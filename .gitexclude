@@ -1,0 +1,13 @@
+/.idea
+/venv
+/venv-pc
+.DS_Store
+__pycache__
+*.pyc
+*.pyo
+/build
+/dist
+*.egg-info
+.cache
+.eggs
+.tox
