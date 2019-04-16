@@ -1,0 +1,21 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - pip install --upgrade pip wheel
+  build:
+    commands:
+      # install aws-cloudformation-rpdk
+      - cd "$CODEBUILD_SRC_DIR_RPDK"
+      - pip install .
+      # patch boto3/awscli with internal SDK (must be done after RPDK is installed, since awscli is a dep currently)
+      - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
+      # install aws-cloudformation-rpdk-python-plugin (Python)
+      - pip install . # -r requirements.txt (currently no testing/linting dependencies)
+      # run unit tests/linting here
+      # end-to-end test
+      - DIR=$(mktemp -d)
+      - cd "$DIR"
+      - ls -la
+      #- echo "AWS::Foo::Bar" | uluru-cli init -vv  # enable me when plugin lands
+      - ls -la
