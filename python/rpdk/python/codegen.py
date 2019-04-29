@@ -91,7 +91,9 @@ class PythonLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Installing python rpdk package into: %s", project_path)
         dest_path = os.path.join(pyrpdk.__path__[0], "cfn_resource")
-        pip(['--log', './rpdk.log', '-qqq', 'install', '-t', str(project_path), dest_path])
+        pip(['--log', './rpdk.log', '-qqq', 'install', '-t', str(project_path / 'cfn_resource_dependencies'), dest_path])
+        # handler must be in project root
+        shutil.move(project_path / 'cfn_resource_dependencies' / 'cfn_resource', project_path / 'cfn_resource')
 
         LOG.debug("Generate complete")
 
