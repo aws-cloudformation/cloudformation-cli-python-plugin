@@ -1,36 +1,21 @@
 version: 0.2
 phases:
-  install:
+  pre_build:
     commands:
-      # make sure pip/setuptools/wheel is up to date
-      - pip install --upgrade pip setuptools wheel
-      - mkdir "$CODEBUILD_SRC_DIR/artifacts"
+      - pip install --upgrade pip wheel
   build:
     commands:
       # install aws-cloudformation-rpdk
       - cd "$CODEBUILD_SRC_DIR_RPDK"
-      - python3 setup.py sdist bdist_wheel
-      - cp dist/* "$CODEBUILD_SRC_DIR/artifacts/"
-      - cp "cloudformation-2010-05-15.normal.json" "$CODEBUILD_SRC_DIR/artifacts/"
-      - pip install dist/*.whl
-      # patch boto3/awscli with internal SDK (must be done after RPDK is installed, since awscli is a dep)
-      - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
+      - pip install .
+      # patch boto3/awscli with internal SDK (must be done after RPDK is installed, since awscli is a dep currently)
+      - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
       # install aws-cloudformation-rpdk-python-plugin (Python)
-      - python3 setup.py sdist bdist_wheel
-      - cp dist/* "$CODEBUILD_SRC_DIR/artifacts"
-      - pip install dist/*.whl
+      - pip install . # -r requirements.txt (currently no testing/linting dependencies)
+      # run unit tests/linting here
       # end-to-end test
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
-      - echo "AWS::Foo::Bar" | uluru-cli init -vv
-      - mvn package
+      #- echo "AWS::Foo::Bar" | uluru-cli init -vv  # enable me when plugin lands
       - ls -la
-  post_build:
-    commands:
-      - ls -la "$CODEBUILD_SRC_DIR/artifacts"
-artifacts:
-  files:
-    - '*'
-  base-directory: artifacts
-  discard-paths: yes
