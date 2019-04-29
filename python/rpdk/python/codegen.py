@@ -14,7 +14,7 @@ class PythonLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "python"
     RUNTIME = "python3.7"
-    ENTRY_POINT = "cfn_resource.handler_wrapper.handler_wrapper"
+    ENTRY_POINT = "cfn_resource._handler_wrapper"
     CODE_URI = "./target/{}.zip"
 
     def __init__(self):
