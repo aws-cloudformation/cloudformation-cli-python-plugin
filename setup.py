@@ -8,7 +8,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 def read(*parts):
-
     with open(os.path.join(HERE, *parts), "r", encoding="utf-8") as fp:
         return fp.read()
 

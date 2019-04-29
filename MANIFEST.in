@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+
+graft python/rpdk/python
+
+# last rule wins, put excludes last
+global-exclude __pycache__ *.py[co] .DS_Store
