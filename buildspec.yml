@@ -11,6 +11,8 @@ phases:
       # patch boto3/awscli with internal SDK (must be done after RPDK is installed, since awscli is a dep currently)
       - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
       # install aws-cloudformation-rpdk-python-plugin (Python)
+      - cd "$CODEBUILD_SRC_DIR"
+      - ls -la
       - pip install . # -r requirements.txt (currently no testing/linting dependencies)
       # run unit tests/linting here
       # end-to-end test
