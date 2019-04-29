@@ -1,14 +1,12 @@
-# pylint: disable=useless-super-delegation,too-many-locals
-# pylint doesn't recognize abstract methods
 import logging
 import shutil
-
-from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
+from pip._internal import main as pip
+import os
+import rpdk.python as pyrpdk
 from rpdk.core.plugin_base import LanguagePlugin
 
 LOG = logging.getLogger(__name__)
 
-OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "uluru-cli"
 
 
@@ -16,7 +14,7 @@ class PythonLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "python"
     RUNTIME = "python3.7"
-    ENTRY_POINT = "{}.handler_wrapper"
+    ENTRY_POINT = "cfn_resource.handler_wrapper.handler_wrapper"
     CODE_URI = "./target/{}.zip"
 
     def __init__(self):
@@ -34,68 +32,66 @@ class PythonLanguagePlugin(LanguagePlugin):
 
         self._package_from_project(project)
 
-        # maven folder structure
-        src = project.root / self.package_name
-        LOG.debug("Making source folder structure: %s", src)
-        src.mkdir(parents=True, exist_ok=True)
-        tst = project.root / "tests"
-        LOG.debug("Making test folder structure: %s", tst)
-        tst.mkdir(parents=True, exist_ok=True)
+        folders = [project.root / self.package_name, project.root / "tests"]
 
-        artifact_id = "{}-handler".format(project.hypenated_name)
+        for f in folders:
+            LOG.debug("Making folder: %s", f)
+            f.mkdir(parents=True, exist_ok=True)
 
-        # CloudFormation/SAM template for handler lambda
-        path = project.root / "Handler.yaml"
-        LOG.debug("Writing SAM template: %s", path)
-        template = self.env.get_template("Handler.yaml")
-        contents = template.render(
-            resource_type=project.type_name,
-            handler_params={
-                "Handler": self.ENTRY_POINT.format(self.package_name),
-                "Runtime": self.RUNTIME,
-                "CodeUri": self.CODE_URI.format(artifact_id),
-            },
-        )
-        project.safewrite(path, contents)
+        templates = [
+            [
+                project.root / "Handler.yaml",
+                self.env.get_template("Handler.yaml"),
+                {
+                    'resource_type': project.type_name,
+                    'handler_params': {
+                        "Handler": self.ENTRY_POINT,
+                        "Runtime": self.RUNTIME,
+                        "CodeUri": self.CODE_URI.format(self.package_name),
+                    }
+                }
+            ],
+            [
+                project.root / self.package_name / "__handler__.py",
+                self.env.get_template("__handler__.py"),
+                {'package_name': self.package_name}
+            ],
+            [
+                project.root / "README.md",
+                self.env.get_template("README.md"),
+                {
+                    'type_name': project.type_name,
+                    'schema_path': project.schema_path,
+                    'executable': EXECUTABLE
+                }
+            ]
+        ]
 
-        template = self.env.get_template("stub_handler.py")
-        for operation in OPERATIONS:
-            path = src / "{}.py".format(operation.lower())
-            LOG.debug("%s handler: %s", operation, path)
-            contents = template.render(
-                package_name=self.package_name,
-                operation=operation,
-            )
+        for path, template, kwargs in templates:
+            LOG.debug("Writing file: %s", path)
+            contents = template.render(**kwargs)
             project.safewrite(path, contents)
 
-        path = project.root / "README.md"
-        LOG.debug("Writing README: %s", path)
-        template = self.env.get_template("README.md")
-        contents = template.render(
-            type_name=project.type_name,
-            schema_path=project.schema_path,
-            executable=EXECUTABLE,
-        )
-        project.safewrite(path, contents)
-
         LOG.debug("Init complete")
-
-    @staticmethod
-    def _get_generated_root(project):
-        return project.root / "target" / "generated-sources" / "rpdk"
 
     def generate(self, project):
         LOG.debug("Generate started")
 
         self._package_from_project(project)
 
-        generated_root = self._get_generated_root(project)
-        LOG.debug("Removing generated sources: %s", generated_root)
-        shutil.rmtree(generated_root, ignore_errors=True)
+        project_path = project.root / self.package_name
+        cfn_resource_path = project_path / "cfn_resource"
 
-        src = generated_root.joinpath(*self.namespace)
-        LOG.debug("Making generated folder structure: %s", src)
-        src.mkdir(parents=True, exist_ok=True)
+        LOG.debug("Removing python rpdk package: %s", cfn_resource_path)
+        shutil.rmtree(cfn_resource_path, ignore_errors=True)
+        # cleanup .egg-info dir
+        for p in os.listdir(project_path):
+            if p.startswith('cfn_resource-') and p.endswith('.egg-info'):
+                shutil.rmtree(project_path / p)
+
+        LOG.debug("Installing python rpdk package into: %s", project_path)
+        dest_path = os.path.join(pyrpdk.__path__[0], "cfn_resource")
+        pip(['--log', './rpdk.log', '-qqq', 'install', '-t', str(project_path), dest_path])
 
         LOG.debug("Generate complete")
 
