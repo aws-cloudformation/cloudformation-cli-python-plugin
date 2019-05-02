@@ -19,5 +19,10 @@ phases:
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
-      - echo "AWS::Foo::Bar" | uluru-cli init -vv  # enable me when plugin lands
+      - |
+        echo "AWS::Foo::Bar
+        1" | uluru-cli init -vv # python3.6
+      - |
+        echo "AWS::Foo::Bar
+        2" | uluru-cli init -vv # python3.7
       - ls -la
