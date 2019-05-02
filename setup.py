@@ -35,7 +35,10 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=["aws-cloudformation-rpdk>=0.1,<0.2", "pip>=10"],
-    entry_points={"rpdk.v1.languages": ["python = rpdk.python.codegen:PythonLanguagePlugin"]},
+    entry_points={"rpdk.v1.languages": [
+        "python37 = rpdk.python.codegen:Python37LanguagePlugin",
+        "python36 = rpdk.python.codegen:Python36LanguagePlugin"
+    ]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

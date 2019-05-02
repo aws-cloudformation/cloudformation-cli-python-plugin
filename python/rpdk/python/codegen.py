@@ -10,9 +10,9 @@ LOG = logging.getLogger(__name__)
 EXECUTABLE = "uluru-cli"
 
 
-class PythonLanguagePlugin(LanguagePlugin):
+class Python36LanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
-    NAME = "python"
+    NAME = "python37"
     RUNTIME = "python3.7"
     ENTRY_POINT = "cfn_resource._handler_wrapper"
     CODE_URI = "./target/{}.zip"
@@ -99,3 +99,8 @@ class PythonLanguagePlugin(LanguagePlugin):
 
     def package(self, project):
         pass
+
+
+class Python37LanguagePlugin(Python36LanguagePlugin):
+    NAME = "python37"
+    RUNTIME = "python3.7"
