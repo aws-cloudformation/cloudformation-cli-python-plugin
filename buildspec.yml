@@ -15,7 +15,12 @@ phases:
       - ls -la
       - pip install . # -r requirements.txt (currently no testing/linting dependencies)
       # run unit tests/linting here
-      # end-to-end test
+      - pip install pytest pylint
+      - pytest
+      - pylint python/rpdk/python/ src/
+      # end-to-end test - need privileged codebuild job and docker installed in container
+      # - pip install aws-sam-cli
+      # - ./tests/functional-tests.sh ${CODEBUILD_SRC_DIR}/src/
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la

@@ -34,7 +34,7 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=["aws-cloudformation-rpdk>=0.1,<0.2", "pip>=10"],
+    install_requires=["aws-cloudformation-rpdk>=0.1,<0.2", "docker>=3.7,<3.8"],
     entry_points={"rpdk.v1.languages": [
         "python37 = rpdk.python.codegen:Python37LanguagePlugin",
         "python36 = rpdk.python.codegen:Python36LanguagePlugin"

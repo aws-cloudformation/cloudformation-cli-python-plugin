@@ -1,0 +1,28 @@
+[MASTER]
+
+ignore=CVS
+jobs=1
+persistent=yes
+
+[MESSAGES CONTROL]
+
+disable=
+    missing-docstring,          # not everything needs a docstring
+    fixme,                      # work in progress
+    bad-continuation,           # clashes with black
+    duplicate-code,             # finds dupes between tests and plugins
+    too-few-public-methods,     # triggers when inheriting
+    ungrouped-imports,          # clashes with isort
+
+[BASIC]
+
+good-names=e,ex,f,fp,i,j,k,n,_
+
+[FORMAT]
+
+indent-string='    '
+max-line-length=120
+
+[DESIGN]
+max-attributes=12
+max-args=7
