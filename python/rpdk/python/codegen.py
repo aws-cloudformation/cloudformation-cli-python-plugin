@@ -43,6 +43,9 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         self._package_from_project(project)
 
+        project.runtime = self.RUNTIME
+        project.entrypoint = self.ENTRY_POINT
+
         folders = [project.root / self.package_name, project.root / "tests"]
 
         # venv_dir = project.root / ".venv"
@@ -59,8 +62,8 @@ class Python36LanguagePlugin(LanguagePlugin):
                 {
                     'resource_type': project.type_name,
                     'handler_params': {
-                        "Handler": self.ENTRY_POINT,
-                        "Runtime": self.RUNTIME,
+                        "Handler": project.entrypoint,
+                        "Runtime": project.runtime,
                         "CodeUri": self.CODE_URI.format(self.package_name),
                     }
                 }
