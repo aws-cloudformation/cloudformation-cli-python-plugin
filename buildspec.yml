@@ -14,6 +14,8 @@ phases:
       - cd "$CODEBUILD_SRC_DIR"
       - ls -la
       - pip install . # -r requirements.txt (currently no testing/linting dependencies)
+      # work around https://github.com/boto/botocore/issues/1733
+      - pip install 'urllib3<1.25'
       # run unit tests/linting here
       - pip install pytest pylint
       - pytest
