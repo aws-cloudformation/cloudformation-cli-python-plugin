@@ -1,35 +1,28 @@
 version: 0.2
 phases:
-  pre_build:
+  install:
     commands:
-      - pip install --upgrade pip wheel
+      # make sure pip/setuptools/wheel is up to date, awscli for SDK patching
+      - pip install --upgrade pip setuptools wheel awscli -r requirements.txt
+      - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
   build:
     commands:
-      # install aws-cloudformation-rpdk
-      - cd "$CODEBUILD_SRC_DIR_RPDK"
-      - pip install .
-      # patch boto3/awscli with internal SDK (must be done after RPDK is installed, since awscli is a dep currently)
-      - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
-      # install aws-cloudformation-rpdk-python-plugin (Python)
-      - cd "$CODEBUILD_SRC_DIR"
-      - ls -la
-      - pip install . # -r requirements.txt (currently no testing/linting dependencies)
-      # work around https://github.com/boto/botocore/issues/1733
-      - pip install 'urllib3<1.25'
-      # run unit tests/linting here
-      - pip install pytest pylint
-      - pytest
-      - pylint python/rpdk/python/ src/
-      # end-to-end test - need privileged codebuild job and docker installed in container
-      # - pip install aws-sam-cli
-      # - ./tests/functional-tests.sh ${CODEBUILD_SRC_DIR}/src/
+      # install aws-cloudformation-rpdk-python-plugin and rpdk core
+      - pip install "$CODEBUILD_SRC_DIR_RPDK" .
+      # run lints/tests
+      - pre-commit run --all-files
+      # end-to-end test
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
       - |
         echo "AWS::Foo::Bar
-        1" | uluru-cli init -vv # python3.6
+        1" | cfn-cli init -vv # python3.6
+      - ls -la
+      - DIR=$(mktemp -d)
+      - cd "$DIR"
+      - ls -la
       - |
         echo "AWS::Foo::Bar
-        2" | uluru-cli init -vv # python3.7
+        2" | cfn-cli init -vv # python3.7
       - ls -la

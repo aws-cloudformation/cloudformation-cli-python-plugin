@@ -3,14 +3,12 @@ import os
 import shutil
 
 import docker
-
 from rpdk.core.plugin_base import LanguagePlugin
-
 
 LOG = logging.getLogger(__name__)
 
-EXECUTABLE = "uluru-cli"
-OLD_VIRTUAL_ENV = ''
+EXECUTABLE = "cfn-cli"
+OLD_VIRTUAL_ENV = ""
 OLD_PATH = []
 
 
@@ -28,7 +26,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         self.package_name = None
         self.schema_filename = None
         self.namespace = None
-        self.cfn_resource_version = 'cfn_resource==0.0.1'
+        self.cfn_resource_version = "cfn_resource==0.0.1"
 
     def _package_from_project(self, project):
         self.namespace = tuple(s.lower() for s in project.type_info)
@@ -58,43 +56,44 @@ class Python36LanguagePlugin(LanguagePlugin):
         templates = [
             [
                 project.root / "Handler.yaml",
-                self.env.get_template("Handler.yaml"),
+                self.env.get_template("Handler.yaml.jinja2"),
                 {
-                    'resource_type': project.type_name,
-                    'handler_params': {
+                    "resource_type": project.type_name,
+                    "handler_params": {
                         "Handler": project.entrypoint,
                         "Runtime": project.runtime,
                         "CodeUri": self.CODE_URI.format(self.package_name),
-                    }
-                }
+                    },
+                },
             ],
             [
                 project.root / self.package_name / "handlers.py",
-                self.env.get_template("handlers.py"),
-                {}
+                self.env.get_template("handlers.py.jinja2"),
+                {},
             ],
             [
                 project.root / self.package_name / "__init__.py",
                 self.env.get_template("__init__.py.jinja2"),
-                {}
+                {},
             ],
             [
                 project.root / "README.md",
                 self.env.get_template("README.md"),
                 {
-                    'type_name': project.type_name,
-                    'schema_path': project.schema_path,
-                    'project_path': self.package_name,
-                    'executable': EXECUTABLE
-                }
+                    "type_name": project.type_name,
+                    "schema_path": project.schema_path,
+                    "project_path": self.package_name,
+                    "executable": EXECUTABLE,
+                },
             ],
             [
                 project.root / "requirements.txt",
                 self.env.get_template("requirements.txt.jinja2"),
-                # until cfn_resource has it's own pypi package, this will need to be updated to point to the absolute
-                # path for the src folder in your working copy
-                {'cfn_resource_version': self.cfn_resource_version}
-            ]
+                # until cfn_resource has it's own pypi package, this will need to be
+                # updated to point to the absolute path for the src folder in your
+                # working copy
+                {"cfn_resource_version": self.cfn_resource_version},
+            ],
         ]
 
         for path, template, kwargs in templates:
@@ -119,7 +118,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             [
                 resource_model_path,
                 self.env.get_template("resource_model.py.jinja2"),
-                {'properties': project.schema["properties"]}
+                {"properties": project.schema["properties"]},
             ]
         ]
 
@@ -141,7 +140,7 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         resource_model_path = project.root / "resource_model"
         handlers_path = project.root / self.package_name
-        deps_path = project.root / 'build'
+        deps_path = project.root / "build"
 
         self._docker_build(project)
         write_with_relative_path(resource_model_path)
@@ -153,19 +152,20 @@ class Python36LanguagePlugin(LanguagePlugin):
     def _docker_build(cls, project):
         LOG.debug("Dependencies build started")
         docker_client = docker.from_env()
-        volumes = {str(project.root): {'bind': '/project', 'mode': 'rw'}}
-        with open(project.root / 'requirements.txt', 'r') as f:
+        volumes = {str(project.root): {"bind": "/project", "mode": "rw"}}
+        with open(project.root / "requirements.txt", "r") as f:
             for line in f.readlines():
                 if line.startswith("/"):
-                    line = line.rstrip('\n')
-                    volumes[line] = {'bind': line, 'mode': 'ro'}
+                    line = line.rstrip("\n")
+                    volumes[line] = {"bind": line, "mode": "ro"}
         logs = docker_client.containers.run(
-            image='lambci/lambda:build-{}'.format(cls.RUNTIME),
-            command='pip install --upgrade -r /project/requirements.txt -t /project/build/',
+            image="lambci/lambda:build-{}".format(cls.RUNTIME),
+            command="pip install --upgrade -r /project/requirements.txt -t "
+            "/project/build/",
             auto_remove=True,
-            volumes=volumes
+            volumes=volumes,
         )
-        LOG.debug("pip install logs: \n%s", logs.decode('utf-8'))
+        LOG.debug("pip install logs: \n%s", logs.decode("utf-8"))
 
 
 class Python37LanguagePlugin(Python36LanguagePlugin):

@@ -19,71 +19,70 @@ class Metrics:
         if session_config is None:
             session_config = {}
         self.resource_type = resource_type
-        self.namespace = '{}/{}'.format(Metrics.METRIC_NAMESPACE_ROOT, resource_type.replace('::', '/'))
-        self._cw_client = b3(**session_config).client('cloudwatch')
+        self.namespace = "{}/{}".format(
+            Metrics.METRIC_NAMESPACE_ROOT, resource_type.replace("::", "/")
+        )
+        self._cw_client = b3(**session_config).client("cloudwatch")
         self.data = []
 
     def _reset_data(self):
         self.data = []
 
     def exception(self, timestamp: datetime, action: str, exception: Exception):
-        self.data.append({
-            'MetricName': Metrics.METRIC_NAME_HANDLER_EXCEPTION,
-            'Dimensions': [
-                {
-                    'Name': Metrics.DIMENSION_KEY_ACTION_TYPE,
-                    'Value': action
-                },
-                {
-                    'Name': Metrics.DIMENSION_KEY_EXCEPTION_TYPE,
-                    'Value': type(exception).__name__
-                },
-                {
-                    'Name': Metrics.DIMENSION_KEY_RESOURCE_TYPE,
-                    'Value': self.resource_type
-                }
-            ],
-            'Timestamp': timestamp,
-            'Value': 1.0,
-            'Unit': 'Count'
-        })
+        self.data.append(
+            {
+                "MetricName": Metrics.METRIC_NAME_HANDLER_EXCEPTION,
+                "Dimensions": [
+                    {"Name": Metrics.DIMENSION_KEY_ACTION_TYPE, "Value": action},
+                    {
+                        "Name": Metrics.DIMENSION_KEY_EXCEPTION_TYPE,
+                        "Value": type(exception).__name__,
+                    },
+                    {
+                        "Name": Metrics.DIMENSION_KEY_RESOURCE_TYPE,
+                        "Value": self.resource_type,
+                    },
+                ],
+                "Timestamp": timestamp,
+                "Value": 1.0,
+                "Unit": "Count",
+            }
+        )
 
     def invocation(self, timestamp: datetime, action: str):
-        self.data.append({
-            'MetricName': Metrics.METRIC_NAME_HANDLER_INVOCATION_COUNT,
-            'Dimensions': [
-                {
-                    'Name': Metrics.DIMENSION_KEY_ACTION_TYPE,
-                    'Value': action
-                },
-                {
-                    'Name': Metrics.DIMENSION_KEY_RESOURCE_TYPE,
-                    'Value': self.resource_type
-                }
-            ],
-            'Timestamp': timestamp,
-            'Value': 1.0,
-            'Unit': 'Count'
-        })
+        self.data.append(
+            {
+                "MetricName": Metrics.METRIC_NAME_HANDLER_INVOCATION_COUNT,
+                "Dimensions": [
+                    {"Name": Metrics.DIMENSION_KEY_ACTION_TYPE, "Value": action},
+                    {
+                        "Name": Metrics.DIMENSION_KEY_RESOURCE_TYPE,
+                        "Value": self.resource_type,
+                    },
+                ],
+                "Timestamp": timestamp,
+                "Value": 1.0,
+                "Unit": "Count",
+            }
+        )
 
     def duration(self, timestamp: datetime, action: str, duration: timedelta):
         ms_elapsed = int(round(duration.total_seconds() * 1000))
-        self.data.append({
-            'MetricName': Metrics.METRIC_NAME_HANDLER_DURATION,
-            'Dimensions': [
-                {
-                    'Name': Metrics.DIMENSION_KEY_ACTION_TYPE,
-                    'Value': action
-                },
-                {
-                    'Name': Metrics.DIMENSION_KEY_RESOURCE_TYPE,
-                    'Value': self.resource_type
-                }
-            ],
-            'Timestamp': timestamp,
-            'Value': ms_elapsed,
-            'Unit': 'Milliseconds'
-        })
+        self.data.append(
+            {
+                "MetricName": Metrics.METRIC_NAME_HANDLER_DURATION,
+                "Dimensions": [
+                    {"Name": Metrics.DIMENSION_KEY_ACTION_TYPE, "Value": action},
+                    {
+                        "Name": Metrics.DIMENSION_KEY_RESOURCE_TYPE,
+                        "Value": self.resource_type,
+                    },
+                ],
+                "Timestamp": timestamp,
+                "Value": ms_elapsed,
+                "Unit": "Milliseconds",
+            }
+        )
 
     def publish(self):
         LOG.debug(self.data)

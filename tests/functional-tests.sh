@@ -14,7 +14,7 @@ function F_cleanup() {
 trap F_cleanup EXIT
 
 # Absolute path to runtime wrapper package, if not specified will use what init places into requirements.txt
-RUNTIME_WRAPPER_PATH=${1}
+RUNTIME_WRAPPER_PATH=$(pwd)/${1}
 RESOURCE_TYPE=Org::Segment::Product
 PACKAGE_NAME=$(echo $RESOURCE_TYPE | awk '{print tolower($0)}'  | sed 's/::/_/g')
 SCHEMA_FILE_NAME=$(echo $RESOURCE_TYPE | awk '{print tolower($0)}'  | sed 's/::/-/g').json
@@ -48,10 +48,10 @@ for dir in $(ls -1 ${SCRIPT_DIR}/data/) ; do
         BASE_DIR=$(mktemp -d)
         cd ${BASE_DIR}
         echo "Org::Segment::Product
-        2" | uluru-cli init > /dev/null # Assumes only the python plugin is installed, python36 is option 1, python37 option 2
-        echo "" > ${BASE_DIR}/rpdk.log # empty log if uluru-cli execution successful
-        uluru-cli generate > /dev/null # run this just to be sure generate works when called by itself
-        echo "" > ${BASE_DIR}/rpdk.log # empty log if uluru-cli execution successful
+        2" | cfn-cli init > /dev/null # Assumes only the python plugin is installed, python36 is option 1, python37 option 2
+        echo "" > ${BASE_DIR}/rpdk.log # empty log if cfn-cli execution successful
+        cfn-cli generate > /dev/null # run this just to be sure generate works when called by itself
+        echo "" > ${BASE_DIR}/rpdk.log # empty log if cfn-cli execution successful
         mkdir ${BASE_DIR}/sam_output/
         # get generic expected response from folder
         expected_output=$(cat ${SCRIPT_DIR}/data/${dir}/expected)

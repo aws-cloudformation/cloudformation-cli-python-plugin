@@ -9,18 +9,23 @@ from cfn_resource.metrics import Metrics
 
 
 class TestMetrics(unittest.TestCase):
-
     def test_exception(self):
         boto3_mock = mock.Mock()
         start_time = datetime.now()
         metrics = Metrics("Aa::Bb::Cc", b3=boto3_mock)
-        metrics.exception(start_time, Status.FAILED, ValueError('test'))
+        metrics.exception(start_time, Status.FAILED, ValueError("test"))
         expected = [
-            {'MetricName': 'HandlerException', 'Dimensions': [
-                {'Name': 'Action', 'Value': 'FAILED'},
-                {'Name': 'ExceptionType', 'Value': 'ValueError'},
-                {'Name': 'ResourceType', 'Value': 'Aa::Bb::Cc'}],
-             'Timestamp': start_time, 'Value': 1.0, 'Unit': 'Count'}
+            {
+                "MetricName": "HandlerException",
+                "Dimensions": [
+                    {"Name": "Action", "Value": "FAILED"},
+                    {"Name": "ExceptionType", "Value": "ValueError"},
+                    {"Name": "ResourceType", "Value": "Aa::Bb::Cc"},
+                ],
+                "Timestamp": start_time,
+                "Value": 1.0,
+                "Unit": "Count",
+            }
         ]
         self.assertEqual(expected, metrics.data)
 
@@ -30,10 +35,16 @@ class TestMetrics(unittest.TestCase):
         metrics = Metrics("Aa::Bb::Cc", b3=boto3_mock)
         metrics.invocation(start_time, Status.SUCCESS)
         expected = [
-            {'MetricName': 'HandlerInvocationCount', 'Dimensions': [
-                {'Name': 'Action', 'Value': 'SUCCESS'},
-                {'Name': 'ResourceType', 'Value': 'Aa::Bb::Cc'}],
-             'Timestamp': start_time, 'Value': 1.0, 'Unit': 'Count'}
+            {
+                "MetricName": "HandlerInvocationCount",
+                "Dimensions": [
+                    {"Name": "Action", "Value": "SUCCESS"},
+                    {"Name": "ResourceType", "Value": "Aa::Bb::Cc"},
+                ],
+                "Timestamp": start_time,
+                "Value": 1.0,
+                "Unit": "Count",
+            }
         ]
         self.assertEqual(expected, metrics.data)
 
@@ -44,10 +55,17 @@ class TestMetrics(unittest.TestCase):
         duration = (start_time + timedelta(0, 10)) - start_time
         metrics.duration(start_time, Status.SUCCESS, duration)
         expected = [
-            {'MetricName': 'HandlerInvocationDuration', 'Dimensions': [
-                {'Name': 'Action', 'Value': 'SUCCESS'},
-                {'Name': 'ResourceType', 'Value': 'Aa::Bb::Cc'}],
-             'Timestamp': start_time, 'Value': 10000, 'Unit': 'Milliseconds'}]
+            {
+                "MetricName": "HandlerInvocationDuration",
+                "Dimensions": [
+                    {"Name": "Action", "Value": "SUCCESS"},
+                    {"Name": "ResourceType", "Value": "Aa::Bb::Cc"},
+                ],
+                "Timestamp": start_time,
+                "Value": 10000,
+                "Unit": "Milliseconds",
+            }
+        ]
         print(metrics.data)
         self.assertEqual(expected, metrics.data)
 
