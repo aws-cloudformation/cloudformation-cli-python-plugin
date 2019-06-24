@@ -12,7 +12,7 @@ setup(
     tests_require=[],
     test_suite="tests",
     classifiers=[
-        'Programming Language :: Python :: 3.7',
+        "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],

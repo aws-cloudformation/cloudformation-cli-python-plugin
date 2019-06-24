@@ -5,7 +5,7 @@ from cfn_resource import (
     Status,
     exceptions,
 )
-from cfn_resource.base_resource_model import BaseResourceModel as ResourceModel
+from resource_model import ResourceModel
 
 
 def create_handler(
@@ -17,7 +17,7 @@ def create_handler(
     progress_event = ProgressEvent(
         status=Status.IN_PROGRESS, resourceModel=resource_model
     )
-    raise ValueError
+    # TODO: put code here
     return progress_event
 
 
@@ -31,7 +31,7 @@ def update_handler(
     progress_event = ProgressEvent(
         status=Status.IN_PROGRESS, resourceModel=resource_model
     )
-    raise exceptions.NetworkFailure
+    # TODO: put code here
     return progress_event
 
 
@@ -44,7 +44,7 @@ def delete_handler(
     progress_event = ProgressEvent(
         status=Status.IN_PROGRESS, resourceModel=resource_model
     )
-    raise ValueError
+    # TODO: put code here
     return progress_event
 
 
@@ -56,7 +56,7 @@ def read_handler(
     progress_event = ProgressEvent(
         status=Status.IN_PROGRESS, resourceModel=resource_model
     )
-    raise ValueError
+    # TODO: put code here
     return progress_event
 
 
@@ -68,6 +68,5 @@ def list_handler(
     progress_event = ProgressEvent(
         status=Status.IN_PROGRESS, resourceModel=resource_model
     )
-    progress_event.status = Status.FAILED
-    progress_event.errorCode = exceptions.Codes.INVALID_REQUEST
+    # TODO: put code here
     return progress_event

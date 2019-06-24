@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+
 from rpdk.core.project import Project
 from rpdk.python.codegen import Python36LanguagePlugin
 
@@ -15,9 +16,9 @@ RESOURCE = "DZQWCC"
 def project(tmpdir):
     project = Project(root=tmpdir)
     with patch.dict(
-            "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
-            {"test": lambda: Python36LanguagePlugin},
-            clear=True,
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
+        {"test": lambda: Python36LanguagePlugin},
+        clear=True,
     ):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
     return project
@@ -37,7 +38,7 @@ def test_initialize(project):
 
     handler_properties = template["Resources"]["ResourceHandler"]["Properties"]
 
-    code_uri = "./target/{}.zip".format(project.hypenated_name.replace('-', '_'))
+    code_uri = "./target/{}.zip".format(project.hypenated_name.replace("-", "_"))
     assert handler_properties["CodeUri"] == code_uri
     handler = "cfn_resource.handler_wrapper._handler_wrapper"
     assert handler_properties["Handler"] == handler
