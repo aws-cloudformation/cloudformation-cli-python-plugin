@@ -64,7 +64,8 @@ for dir in $(ls -1 ${SCRIPT_DIR}/data/) ; do
         cd ${handler_path}
         package_zip
         echo "invoking sam local with event data/${dir}/${test_file}"
-        sam local invoke -e ${SCRIPT_DIR}/data/${dir}/${test_file}  -t ${BASE_DIR}/Handler.yaml > ${BASE_DIR}/sam_output/${test_file}.outp 2> ${BASE_DIR}/sam_output/${test_file}.outp_stderr
+        cd ${BASE_DIR}
+        sam local invoke -e ${SCRIPT_DIR}/data/${dir}/${test_file} > ${BASE_DIR}/sam_output/${test_file}.outp 2> ${BASE_DIR}/sam_output/${test_file}.outp_stderr
         received_output=$(cat ${BASE_DIR}/sam_output/${test_file}.outp)
         if [[ "${received_output}" != "${expected_output}" ]] ; then
             echo "-------------------------------------------"

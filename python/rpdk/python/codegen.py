@@ -55,8 +55,8 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         templates = [
             [
-                project.root / "Handler.yaml",
-                self.env.get_template("Handler.yaml.jinja2"),
+                project.root / "template.yml",
+                self.env.get_template("template.yml"),
                 {
                     "resource_type": project.type_name,
                     "handler_params": {
