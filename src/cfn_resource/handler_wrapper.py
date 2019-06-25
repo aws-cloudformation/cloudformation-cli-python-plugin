@@ -1,6 +1,7 @@
 import importlib
 import logging
 from datetime import datetime
+from time import sleep
 
 from . import ProgressEvent, Status, request
 from .boto3_proxy import get_boto3_proxy_session, get_boto_session_config
@@ -113,21 +114,44 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
             args.append(ResourceModel.new(**prev_props))
         return args
 
+    def _is_local_callback(self):
+        if self._handler_response.callbackDelaySeconds > 60:
+            return False
+        remaining = int(self._context.get_remaining_time_in_millis() / 1000)
+        needed = self._handler_response.callbackDelaySeconds + 10
+        return needed < remaining
+
+    def _is_callback(self):
+        delay = self._handler_response.callbackDelaySeconds
+        status = self._handler_response.status
+        return delay > 0 and status == Status.IN_PROGRESS
+
+    def _local_callback(self):
+        self._handler_args[3] = self._handler_response.callbackContext
+        if "invocation" not in self._event["requestContext"]:
+            self._event["requestContext"]["invocation"] = 1
+        self._event["requestContext"]["invocation"] += 1
+        handler = self._get_handler()
+        self._handler_response = handler(*self._handler_args)
+
+    def _callback(self):
+        while self._is_local_callback() and self._is_callback():
+            sleep(self._handler_response.callbackDelaySeconds)
+            self._local_callback()
+        if not self._is_local_callback() and self._is_callback():
+            self._scheduler.reschedule(
+                function_arn=self._context.invoked_function_arn,
+                event=self._event,
+                callback_context=self._handler_response.callbackContext,
+                seconds=self._handler_response.callbackDelaySeconds,
+            )
+
     def run_handler(self):
         try:
             logging.debug(self._handler_args)
             handler = self._get_handler()
             self._handler_response = handler(*self._handler_args)
-            if (
-                self._handler_response.callbackDelaySeconds > 0
-                and self._handler_response.status == Status.IN_PROGRESS
-            ):
-                self._scheduler.reschedule(
-                    function_arn=self._context.invoked_function_arn,
-                    event=self._event,
-                    callback_context=self._handler_response.callbackContext,
-                    seconds=self._handler_response.callbackDelaySeconds,
-                )
+            self._callback()
         except Exception as e:  # pylint: disable=broad-except
             LOG.error("unhandled exception", exc_info=True)
             self._metrics.exception(self._start_time, action=self._action, exception=e)
