@@ -118,7 +118,7 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         if self._handler_response.callbackDelaySeconds > 60:
             return False
         remaining = int(self._context.get_remaining_time_in_millis() / 1000)
-        needed = self._handler_response.callbackDelaySeconds + 10
+        needed = self._handler_response.callbackDelaySeconds * 1.2
         return needed < remaining
 
     def _is_callback(self):
