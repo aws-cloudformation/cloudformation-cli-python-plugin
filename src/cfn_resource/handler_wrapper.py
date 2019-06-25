@@ -126,9 +126,7 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
 
     def _local_callback(self):
         self._handler_args[3] = self._handler_response.callbackContext
-        if "invocation" not in self._event["requestContext"]:
-            self._event["requestContext"]["invocation"] = 1
-        self._event["requestContext"]["invocation"] += 1
+        self._handler_args[1].invocation_count += 1
         handler = self._get_handler()
         self._handler_response = handler(*self._handler_args)
 
