@@ -54,7 +54,7 @@ for dir in $(ls -1 ${SCRIPT_DIR}/data/) ; do
         echo "" > ${BASE_DIR}/rpdk.log # empty log if cfn-cli execution successful
         mkdir ${BASE_DIR}/sam_output/
         # get generic expected response from folder
-        expected_output=$(cat ${SCRIPT_DIR}/data/${dir}/expected)
+        expected_output=$(cat ${SCRIPT_DIR}/data/${dir}/expected | tr -d '\n')
         # if defined get expected response for this request
         [[ -f ${SCRIPT_DIR}/data/${dir}/${test_file}.expected ]] && expected_output=$(cat ${SCRIPT_DIR}/data/${dir}/${test_file}.expected) || True
         # set handler path
@@ -66,7 +66,7 @@ for dir in $(ls -1 ${SCRIPT_DIR}/data/) ; do
         echo "invoking sam local with event data/${dir}/${test_file}"
         cd ${BASE_DIR}
         sam local invoke -e ${SCRIPT_DIR}/data/${dir}/${test_file} > ${BASE_DIR}/sam_output/${test_file}.outp 2> ${BASE_DIR}/sam_output/${test_file}.outp_stderr
-        received_output=$(cat ${BASE_DIR}/sam_output/${test_file}.outp)
+        received_output=$(cat ${BASE_DIR}/sam_output/${test_file}.outp | tr -d '\n')
         if [[ "${received_output}" != "${expected_output}" ]] ; then
             echo "-------------------------------------------"
             echo "Test failed. Expected output does not match"
