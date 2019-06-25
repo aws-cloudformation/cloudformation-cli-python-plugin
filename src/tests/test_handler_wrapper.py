@@ -65,7 +65,7 @@ def mock_handler_reschedule(*args, **kwargs):  # pylint: disable=unused-argument
         status=Status.IN_PROGRESS,
         resourceModel=ResourceModel(),
         callbackContext={"some_key": "some-value"},
-        callbackDelayMinutes=1,
+        callbackDelaySeconds=60,
     )
 
 

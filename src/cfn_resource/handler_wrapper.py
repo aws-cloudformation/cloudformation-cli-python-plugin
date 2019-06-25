@@ -119,14 +119,14 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
             handler = self._get_handler()
             self._handler_response = handler(**self._handler_kwargs)
             if (
-                self._handler_response.callbackDelayMinutes > 0
+                self._handler_response.callbackDelaySeconds > 0
                 and self._handler_response.status == Status.IN_PROGRESS
             ):
                 self._scheduler.reschedule(
                     function_arn=self._context.invoked_function_arn,
                     event=self._event,
                     callback_context=self._handler_response.callbackContext,
-                    minutes=self._handler_response.callbackDelayMinutes,
+                    seconds=self._handler_response.callbackDelaySeconds,
                 )
         except Exception as e:  # pylint: disable=broad-except
             LOG.error("unhandled exception", exc_info=True)

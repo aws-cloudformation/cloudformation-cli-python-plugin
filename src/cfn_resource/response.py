@@ -31,7 +31,7 @@ class ProgressEvent:  # pylint: disable=too-many-arguments
         message: str = "",  # pylint: disable=invalid-name
         callbackContext: dict = None,
         error_code: str = "",
-        callbackDelayMinutes: int = 0,
+        callbackDelaySeconds: int = 0,
     ):  # pylint: disable=invalid-name
         callbackContext = {} if callbackContext is None else callbackContext
         resourceModel = {} if resourceModel is None else resourceModel
@@ -40,7 +40,7 @@ class ProgressEvent:  # pylint: disable=too-many-arguments
         self.errorCode = error_code  # pylint: disable=invalid-name
         self.message = message
         self.callbackContext = callbackContext  # pylint: disable=invalid-name
-        self.callbackDelayMinutes = callbackDelayMinutes  # pylint: disable=invalid-name
+        self.callbackDelaySeconds = callbackDelaySeconds  # pylint: disable=invalid-name
         self.resourceModel = resourceModel  # pylint: disable=invalid-name
 
     def json(self):

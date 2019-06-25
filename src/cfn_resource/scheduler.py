@@ -16,7 +16,7 @@ class CloudWatchScheduler:
         self._cwe_client = b3(**session_config).client("events")
 
     def reschedule(
-        self, function_arn, event: dict, callback_context: dict, minutes: int
+        self, function_arn, event: dict, callback_context: dict, seconds: int
     ):
         reschedule_id = str(uuid.uuid4())
         rule_name = "reinvoke-handler-{}".format(reschedule_id)
@@ -32,7 +32,7 @@ class CloudWatchScheduler:
         if is_sam_local():
             LOG.warning("Skipping rescheduling, as invocation is SAM local")
         else:
-            self._put_rule(rule_name, minutes)
+            self._put_rule(rule_name, seconds)
             self._put_targets(
                 rule_name,
                 target_id,
@@ -40,10 +40,10 @@ class CloudWatchScheduler:
                 json.dumps(event, default=_serialize),
             )
 
-    def _put_rule(self, rule_name: str, minutes: int):
+    def _put_rule(self, rule_name: str, seconds: int):
         self._cwe_client.put_rule(
             Name=rule_name,
-            ScheduleExpression=self._min_to_cron(minutes),
+            ScheduleExpression=self._min_to_cron(seconds),
             State="ENABLED",
         )
 
@@ -81,8 +81,8 @@ class CloudWatchScheduler:
             self._delete_rule(event["requestContext"]["cloudWatchEventsRuleName"])
 
     @staticmethod
-    def _min_to_cron(minutes):
-        schedule_time = datetime.now() + timedelta(minutes=minutes)
+    def _min_to_cron(seconds):
+        schedule_time = datetime.now() + timedelta(seconds=seconds)
         # add another minute, as per java implementation
         schedule_time = schedule_time + timedelta(minutes=1)
         return schedule_time.strftime("cron('%M %H %d %m ? %Y')")
