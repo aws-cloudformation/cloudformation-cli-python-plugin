@@ -16,16 +16,10 @@ class RequestContext:  # pylint: disable=too-many-instance-attributes
         self.logical_resource_id = request["requestData"]["logicalResourceId"]
         self.resource_properties = request["requestData"]["resourceProperties"]
         self.system_tags = request["requestData"]["systemTags"]
-        self.stack_tags: dict = {}
-        if "stackTags" in request["requestData"].keys():
-            self.stack_tags = request["requestData"]["stackTags"]
+        self.stack_tags = request["requestData"].get("stackTags", {})
         self.get_remaining_time_in_millis = context.get_remaining_time_in_millis
-        self.invocation_count = 0
-        if request["requestContext"]:
-            self.invocation_count = request["requestContext"]["invocation"]
-        self.previous_stack_tags: dict = {}
-        if "previousStackTags" in request["requestData"].keys():
-            self.previous_stack_tags = request["requestData"]["previousStackTags"]
+        self.invocation_count = request.get("requestContext", {}).get("invocation", 0)
+        self.previous_stack_tags = request["requestData"].get("previousStackTags", {})
 
 
 def extract_event_data(event):
