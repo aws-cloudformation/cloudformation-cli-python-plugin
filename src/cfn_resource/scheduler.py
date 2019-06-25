@@ -43,7 +43,7 @@ class CloudWatchScheduler:
     def _put_rule(self, rule_name: str, seconds: int):
         self._cwe_client.put_rule(
             Name=rule_name,
-            ScheduleExpression=self._min_to_cron(int(seconds / 60)),
+            ScheduleExpression=self._min_to_cron(seconds // 60),
             State="ENABLED",
         )
 
