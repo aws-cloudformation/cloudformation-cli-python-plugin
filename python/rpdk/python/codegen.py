@@ -68,12 +68,12 @@ class Python36LanguagePlugin(LanguagePlugin):
             ],
             [
                 project.root / self.package_name / "handlers.py",
-                self.env.get_template("handlers.py.jinja2"),
+                self.env.get_template("handlers.py"),
                 {},
             ],
             [
                 project.root / self.package_name / "__init__.py",
-                self.env.get_template("__init__.py.jinja2"),
+                self.env.get_template("__init__.py"),
                 {},
             ],
             [
@@ -88,7 +88,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             ],
             [
                 project.root / "requirements.txt",
-                self.env.get_template("requirements.txt.jinja2"),
+                self.env.get_template("requirements.txt"),
                 # until cfn_resource has it's own pypi package, this will need to be
                 # updated to point to the absolute path for the src folder in your
                 # working copy
@@ -117,7 +117,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         templates = [
             [
                 resource_model_path,
-                self.env.get_template("resource_model.py.jinja2"),
+                self.env.get_template("resource_model.py"),
                 {"properties": project.schema["properties"]},
             ]
         ]
