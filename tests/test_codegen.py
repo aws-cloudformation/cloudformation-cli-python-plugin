@@ -32,11 +32,11 @@ def test_python_language_plugin_module_is_set():
 def test_initialize(project):
     assert (project.root / "README.md").is_file()
 
-    path = project.root / "Handler.yaml"
+    path = project.root / "template.yml"
     with path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f)
 
-    handler_properties = template["Resources"]["ResourceHandler"]["Properties"]
+    handler_properties = template["Resources"]["TypeFunction"]["Properties"]
 
     code_uri = "./target/{}.zip".format(project.hypenated_name.replace("-", "_"))
     assert handler_properties["CodeUri"] == code_uri
