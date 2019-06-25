@@ -10,6 +10,7 @@ repos:
   rev: stable
   hooks:
   - id: black
+    exclude: templates/
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.0.0
   hooks:
@@ -28,6 +29,7 @@ repos:
     - flake8-debugger>=3.1.0
     - flake8-pep3101>=1.2.1
     # language_version: python3.6
+    exclude: templates/resource_model.py
   - id: pretty-format-json
     args:
     - --autofix
@@ -47,9 +49,8 @@ repos:
   hooks:
   - id: bandit
     files: "^src/"
-    # have to skip B101, contract tests use it and there's no way to skip for specific files
     # have to skip B322, as there is no way to indicate the codebase is Python 3 only (input only vulnerable in Py2)
-    args: ["--skip", "B101,B322"]
+    args: ["--skip", "B322"]
 - repo: local
   hooks:
   - id: pylint-local
