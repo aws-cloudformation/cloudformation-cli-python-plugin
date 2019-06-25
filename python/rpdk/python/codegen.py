@@ -14,8 +14,8 @@ OLD_PATH = []
 
 class Python36LanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
-    NAME = "python37"
-    RUNTIME = "python3.7"
+    NAME = "python36"
+    RUNTIME = "python3.6"
     ENTRY_POINT = "cfn_resource.handler_wrapper._handler_wrapper"
     CODE_URI = "./target/{}.zip"
 
