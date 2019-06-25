@@ -63,6 +63,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                         "Handler": project.entrypoint,
                         "Runtime": project.runtime,
                         "CodeUri": self.CODE_URI.format(self.package_name),
+                        "Timeout": 900,
                     },
                 },
             ],
