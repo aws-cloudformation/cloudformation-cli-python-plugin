@@ -115,7 +115,7 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         return args
 
     def _is_local_callback(self):
-        if self._handler_response.callbackDelaySeconds > 60:
+        if self._handler_response.callbackDelaySeconds > 60 or not self._is_callback():
             return False
         remaining = self._context.get_remaining_time_in_millis() / 1000
         needed = self._handler_response.callbackDelaySeconds * 1.2
@@ -131,10 +131,10 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         self._handler_response = handler(*self._handler_args)
 
     def _callback(self):
-        while self._is_local_callback() and self._is_callback():
+        while self._is_local_callback():
             sleep(self._handler_response.callbackDelaySeconds)
             self._local_callback()
-        if not self._is_local_callback() and self._is_callback():
+        if self._is_callback():
             self._scheduler.reschedule(
                 function_arn=self._context.invoked_function_arn,
                 event=self._event,
