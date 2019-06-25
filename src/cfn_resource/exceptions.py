@@ -32,7 +32,11 @@ class Codes:
     # the customer has insufficient permissions to perform this action
     ACCESS_DENIED = "AccessDenied"
     # a generic exception caused by invalid input from the customer
-    INVALID_REQUEST = "InvalidRequest"
+    INVALID_REQUEST = 'InvalidRequest'
+    # a resource create request failed for an existing entity (only applicable to
+    # CreateHandler) Handlers MUST return this error when duplicate creation requests
+    # are received.
+    ALREADY_EXISTS = "AlreadyExists"
 
     @classmethod
     def is_handled(cls, e: Exception):
@@ -98,4 +102,8 @@ class AccessDenied(CfnResourceBaseException):
 
 
 class InvalidRequest(CfnResourceBaseException):
+    pass
+
+
+class AlreadyExists(CfnResourceBaseException):
     pass
