@@ -8,7 +8,7 @@ from cfn_resource import (
 from resource_model import ResourceModel as Model
 
 
-def create_handler(model: Model, callback: dict, context: Context, boto3: BotoProxy):
+def create_handler(model: Model, context: Context, boto3: BotoProxy, callback: dict):
     progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
     # TODO: put code here
 
@@ -26,25 +26,26 @@ def create_handler(model: Model, callback: dict, context: Context, boto3: BotoPr
     return progress
 
 
-def update_handler(model: Model, callback: dict, context: Context, boto3: BotoProxy):
+def update_handler(model: Model, context: Context, boto3: BotoProxy, callback: dict,
+                   prev_model: Model):
     progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
     # TODO: put code here
     return progress
 
 
-def delete_handler(model: Model, callback: dict, context: Context, boto3: BotoProxy):
+def delete_handler(model: Model, context: Context, boto3: BotoProxy, callback: dict):
     progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
     # TODO: put code here
     return progress
 
 
-def read_handler(model: Model, callback: dict, context: Context, boto3: BotoProxy):
+def read_handler(model: Model, context: Context, boto3: BotoProxy):
     progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
     # TODO: put code here
     return progress
 
 
-def list_handler(model: Model, callback: dict, context: Context, boto3: BotoProxy):
+def list_handler(model: Model, context: Context, boto3: BotoProxy):
     progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
     # TODO: put code here
     return progress
