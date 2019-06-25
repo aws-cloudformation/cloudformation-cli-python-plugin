@@ -5,6 +5,7 @@ import os
 import sys
 import types
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -48,9 +49,25 @@ def mock_remaining_time(val=None):
     return remaining
 
 
+def mock_remaining_time_countdown(deadline):
+    def remaining():
+        remaining = deadline - datetime.now()
+        return int(remaining.total_seconds() * 1000)
+
+    return remaining
+
+
 class MockContext:
     def __init__(self, val=None):
         self.get_remaining_time_in_millis = mock_remaining_time(val)
+        self.invoked_function_arn = (
+            "arn:aws:lambda:us-west-2:123412341234:function:my-function"
+        )
+
+
+class MockContextDeadline:
+    def __init__(self, deadline=None):
+        self.get_remaining_time_in_millis = mock_remaining_time_countdown(deadline)
         self.invoked_function_arn = (
             "arn:aws:lambda:us-west-2:123412341234:function:my-function"
         )
@@ -65,7 +82,16 @@ def mock_handler_reschedule(*args, **kwargs):  # pylint: disable=unused-argument
         status=Status.IN_PROGRESS,
         resourceModel=ResourceModel(),
         callbackContext={"some_key": "some-value"},
-        callbackDelaySeconds=60,
+        callbackDelaySeconds=120,
+    )
+
+
+def mock_handler_local_callback(*args, **kwargs):  # pylint: disable=unused-argument
+    return ProgressEvent(
+        status=Status.IN_PROGRESS,
+        resourceModel=ResourceModel(),
+        callbackContext={"some_key": "some-value"},
+        callbackDelaySeconds=1,
     )
 
 
@@ -144,11 +170,9 @@ class TestHandlerWrapper(unittest.TestCase):
     ):
         h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
         resp = h_wrap.run_handler()
-        print(resp.json())
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
         mock_scheduler.assert_called_once()
-        print(resp.json())
         self.assertEqual(Status.IN_PROGRESS, resp.status)
 
     @mock.patch(
@@ -163,7 +187,6 @@ class TestHandlerWrapper(unittest.TestCase):
         del os.environ["AWS_SAM_LOCAL"]
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_not_called()
-        print(resp.json())
         self.assertEqual(Status.SUCCESS, resp.status)
 
     @mock.patch(
@@ -213,3 +236,24 @@ class TestHandlerWrapper(unittest.TestCase):
         self.assertEqual(Status.FAILED, resp.status)
         self.assertEqual("InternalFailure", resp.errorCode)
         self.assertEqual("ValueError: blah", resp.message)
+
+    @mock.patch(
+        "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        return_value=mock_handler_local_callback,
+    )
+    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch(
+        "cfn_resource.scheduler.CloudWatchScheduler.reschedule", return_value=None
+    )
+    def test_good_run_handler_local_callback(
+        self, mock_scheduler, mock_metric_publish, mock_get_handler
+    ):
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]),
+            MockContextDeadline(datetime.now() + timedelta(seconds=30)),
+        )
+        resp = h_wrap.run_handler()
+        self.assertGreater(mock_get_handler.call_count, 1)
+        mock_metric_publish.assert_called_once()
+        mock_scheduler.assert_called_once()
+        self.assertEqual(Status.IN_PROGRESS, resp.status)
