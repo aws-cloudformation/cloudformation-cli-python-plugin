@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import List
 
 from .boto3_proxy import Boto3Client
 
@@ -23,7 +24,7 @@ class Metrics:
             Metrics.METRIC_NAMESPACE_ROOT, resource_type.replace("::", "/")
         )
         self._cw_client = b3(**session_config).client("cloudwatch")
-        self.data = []
+        self.data: List[dict] = []
 
     def _reset_data(self):
         self.data = []
