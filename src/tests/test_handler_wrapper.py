@@ -39,38 +39,16 @@ def _get_event(evt_path):
     return event
 
 
-def mock_remaining_time(val=None):
-    if not val:
-        val = 9000
-
-    def remaining():
-        return val
-
-    return remaining
-
-
-def mock_remaining_time_countdown(deadline):
-    def remaining():
-        remaining = deadline - datetime.now()
-        return int(remaining.total_seconds() * 1000)
-
-    return remaining
-
-
-class MockContext:
-    def __init__(self, val=None):
-        self.get_remaining_time_in_millis = mock_remaining_time(val)
-        self.invoked_function_arn = (
-            "arn:aws:lambda:us-west-2:123412341234:function:my-function"
+def get_mock_context(deadline=None, val=9000):
+    arn = "arn:aws:lambda:us-west-2:123412341234:function:my-function"
+    context = mock.Mock(invoked_function_arn=arn)
+    if deadline:
+        context.get_remaining_time_in_millis.side_effect = lambda: int(
+            (deadline - datetime.now()).total_seconds() * 1000
         )
-
-
-class MockContextDeadline:
-    def __init__(self, deadline=None):
-        self.get_remaining_time_in_millis = mock_remaining_time_countdown(deadline)
-        self.invoked_function_arn = (
-            "arn:aws:lambda:us-west-2:123412341234:function:my-function"
-        )
+    else:
+        context.get_remaining_time_in_millis.return_value = val
+    return context
 
 
 def mock_handler(*_args, **_kwargs):
@@ -114,7 +92,7 @@ class TestHandlerWrapper(unittest.TestCase):
             mock_hw_run_handler.reset_mock()
 
             event = _get_event(event)
-            resp = _handler_wrapper(event, MockContext())
+            resp = _handler_wrapper(event, get_mock_context())
             resp = json.loads(resp)
             self.assertEqual("SUCCESS", resp["status"])
             mock_hw_init.assert_called_once()
@@ -125,18 +103,18 @@ class TestHandlerWrapper(unittest.TestCase):
             mock_hw_run_handler.reset_mock()
 
             event = _get_event(event)
-            resp = _handler_wrapper(event, MockContext())
+            resp = _handler_wrapper(event, get_mock_context())
             resp = json.loads(resp)
             self.assertEqual("FAILED", resp["status"])
             self.assertEqual("InternalFailure", resp["errorCode"])
 
     def test_handler_wrapper_get_handler(self):
         for event in EVENTS["SYNC-GOOD"]:
-            h_wrap = HandlerWrapper(_get_event(event), MockContext())
+            h_wrap = HandlerWrapper(_get_event(event), get_mock_context())
             handler = h_wrap._get_handler("mock_handler")
             self.assertEqual(True, isinstance(handler, types.FunctionType))
 
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
 
         with self.assertRaises(exceptions.InternalFailure):
             h_wrap._get_handler("non-existant-module")
@@ -155,7 +133,7 @@ class TestHandlerWrapper(unittest.TestCase):
         for event in EVENTS["SYNC-GOOD"]:
             mock_metric_publish.reset_mock()
             mock_get_handler.reset_mock()
-            h_wrap = HandlerWrapper(_get_event(event), MockContext())
+            h_wrap = HandlerWrapper(_get_event(event), get_mock_context())
             resp = h_wrap.run_handler()
             mock_get_handler.assert_called_once()
             mock_metric_publish.assert_called_once()
@@ -175,7 +153,7 @@ class TestHandlerWrapper(unittest.TestCase):
     def test_good_run_handler_reschedule(
         self, mock_scheduler, mock_metric_publish, mock_get_handler
     ):
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -190,7 +168,7 @@ class TestHandlerWrapper(unittest.TestCase):
     @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_good_run_handler_sam_local(self, mock_metric_publish, mock_get_handler):
         os.environ["AWS_SAM_LOCAL"] = "true"
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
         resp = h_wrap.run_handler()
         del os.environ["AWS_SAM_LOCAL"]
         mock_get_handler.assert_called_once()
@@ -207,7 +185,7 @@ class TestHandlerWrapper(unittest.TestCase):
         self, mock_metric_publish, mock_get_handler
     ):
         mock_get_handler.side_effect = ValueError("blah")
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -224,7 +202,7 @@ class TestHandlerWrapper(unittest.TestCase):
     def test_run_handler_handled_exception(self, mock_metric_publish, mock_get_handler):
         # handler fails with exception in cfn_resource.exceptions
         mock_get_handler.side_effect = exceptions.AccessDenied("blah")
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -240,7 +218,7 @@ class TestHandlerWrapper(unittest.TestCase):
     @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_run_handler_metrics_fail(self, mock_metric_publish, mock_get_handler):
         mock_metric_publish.side_effect = ValueError("blah")
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -262,11 +240,10 @@ class TestHandlerWrapper(unittest.TestCase):
     def test_good_run_handler_local_callback(
         self, mock_scheduler, mock_metric_publish, mock_get_handler
     ):
-        h_wrap = HandlerWrapper(
-            _get_event(EVENTS["SYNC-GOOD"][0]),
-            MockContextDeadline(datetime.now() + timedelta(seconds=30)),
-        )
+        context = get_mock_context(deadline=datetime.now() + timedelta(seconds=30))
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), context)
         resp = h_wrap.run_handler()
+        context.get_remaining_time_in_millis.assert_called()
         self.assertGreater(mock_get_handler.call_count, 1)
         mock_metric_publish.assert_called_once()
         mock_scheduler.assert_called_once()
