@@ -117,14 +117,12 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
     def _is_local_callback(self):
         if self._handler_response.callbackDelaySeconds > 60:
             return False
-        remaining = int(self._context.get_remaining_time_in_millis() / 1000)
+        remaining = self._context.get_remaining_time_in_millis() / 1000
         needed = self._handler_response.callbackDelaySeconds * 1.2
         return needed < remaining
 
     def _is_callback(self):
-        delay = self._handler_response.callbackDelaySeconds
-        status = self._handler_response.status
-        return delay > 0 and status == Status.IN_PROGRESS
+        return self._handler_response.status == Status.IN_PROGRESS
 
     def _local_callback(self):
         self._handler_args[3] = self._handler_response.callbackContext
