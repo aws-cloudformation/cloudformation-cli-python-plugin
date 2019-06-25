@@ -43,7 +43,7 @@ class CloudWatchScheduler:
     def _put_rule(self, rule_name: str, seconds: int):
         self._cwe_client.put_rule(
             Name=rule_name,
-            ScheduleExpression=self._min_to_cron(seconds),
+            ScheduleExpression=self._min_to_cron(int(seconds / 60)),
             State="ENABLED",
         )
 
@@ -81,8 +81,8 @@ class CloudWatchScheduler:
             self._delete_rule(event["requestContext"]["cloudWatchEventsRuleName"])
 
     @staticmethod
-    def _min_to_cron(seconds):
-        schedule_time = datetime.now() + timedelta(seconds=seconds)
+    def _min_to_cron(minutes):
+        schedule_time = datetime.now() + timedelta(minutes=minutes)
         # add another minute, as per java implementation
         schedule_time = schedule_time + timedelta(minutes=1)
         return schedule_time.strftime("cron('%M %H %d %m ? %Y')")
