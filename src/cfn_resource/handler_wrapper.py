@@ -71,7 +71,7 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
             resource_type=event["resourceType"], session_config=self._session_config
         )
         self._metrics.invocation(self._start_time, action=event["action"])
-        self._handler_kwargs = self._event_parse()
+        self._handler_args = self._event_parse()
         self._scheduler = CloudWatchScheduler(self._session_config)
         self._scheduler.cleanup(event)
         self._timer = None
@@ -96,28 +96,28 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
     def _event_parse(self):
         props, prev_props, callback = request.extract_event_data(self._event)
         session_config = get_boto_session_config(self._event)
-        kwargs = {
-            "resource_model": ResourceModel.new(**props),
-            "handler_context": request.RequestContext(self._event, self._context),
-            "boto3": get_boto3_proxy_session(session_config),
-        }
+        args = [
+            ResourceModel.new(**props),
+            request.RequestContext(self._event, self._context),
+            get_boto3_proxy_session(session_config),
+        ]
         # Write actions can be async
         if self._event["action"] in [
             request.Action.CREATE,
             request.Action.UPDATE,
             request.Action.DELETE,
         ]:
-            kwargs["callback_context"] = callback
+            args.append(callback)
         # Update action gets previous properties
         if self._event["action"] == request.Action.UPDATE:
-            kwargs["previous_resource_model"] = ResourceModel.new(**prev_props)
-        return kwargs
+            args.append(ResourceModel.new(**prev_props))
+        return args
 
     def run_handler(self):
         try:
-            logging.debug(self._handler_kwargs)
+            logging.debug(self._handler_args)
             handler = self._get_handler()
-            self._handler_response = handler(**self._handler_kwargs)
+            self._handler_response = handler(*self._handler_args)
             if (
                 self._handler_response.callbackDelaySeconds > 0
                 and self._handler_response.status == Status.IN_PROGRESS
