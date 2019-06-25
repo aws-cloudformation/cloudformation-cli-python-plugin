@@ -16,7 +16,8 @@ ProgressEvent(
     # message='', # Optional: message to supply to CloudFormation Stack events
     # error_code='', # Optional: error code (only used in failure) Should be one of cfn_resource.exceptions.Codes
     # callback_context={}, # will be sent to callback invocations as callback_context
-    # callback_delay_minutes=0 # setting to a value > 0 will re-call handler after specified time
+    # callback_delay_seconds=0 # setting to a value > 0 will re-call handler after
+    # specified time
 )
 
 Failures can be passed back to CloudFormation by either raising an exception, preferably one of cfn_resource.exceptions
