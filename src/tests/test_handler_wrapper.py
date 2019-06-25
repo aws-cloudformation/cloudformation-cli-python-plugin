@@ -73,11 +73,11 @@ class MockContextDeadline:
         )
 
 
-def mock_handler(*args, **kwargs):  # pylint: disable=unused-argument
+def mock_handler(*_args, **_kwargs):
     return ProgressEvent(status=Status.SUCCESS, resourceModel=ResourceModel())
 
 
-def mock_handler_reschedule(*args, **kwargs):  # pylint: disable=unused-argument
+def mock_handler_reschedule(*_args, **_kwargs):
     return ProgressEvent(
         status=Status.IN_PROGRESS,
         resourceModel=ResourceModel(),
@@ -86,7 +86,7 @@ def mock_handler_reschedule(*args, **kwargs):  # pylint: disable=unused-argument
     )
 
 
-def mock_handler_local_callback(*args, **kwargs):  # pylint: disable=unused-argument
+def mock_handler_local_callback(*_args, **_kwargs):
     return ProgressEvent(
         status=Status.IN_PROGRESS,
         resourceModel=ResourceModel(),
@@ -97,10 +97,13 @@ def mock_handler_local_callback(*args, **kwargs):  # pylint: disable=unused-argu
 
 class TestHandlerWrapper(unittest.TestCase):
     @mock.patch(
-        "cfn_resource.handler_wrapper.HandlerWrapper.__init__", return_value=None
+        "cfn_resource.handler_wrapper.HandlerWrapper.__init__",
+        autospec=True,
+        return_value=None,
     )
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper.run_handler",
+        autospec=True,
         return_value=ProgressEvent(
             status=Status.SUCCESS, resourceModel=ResourceModel()
         ),
@@ -144,6 +147,7 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler,
     )
     @mock.patch("cfn_resource.metrics.Metrics.publish")
@@ -159,11 +163,14 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler_reschedule,
     )
-    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     @mock.patch(
-        "cfn_resource.scheduler.CloudWatchScheduler.reschedule", return_value=None
+        "cfn_resource.scheduler.CloudWatchScheduler.reschedule",
+        autospec=True,
+        return_value=None,
     )
     def test_good_run_handler_reschedule(
         self, mock_scheduler, mock_metric_publish, mock_get_handler
@@ -177,9 +184,10 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler,
     )
-    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_good_run_handler_sam_local(self, mock_metric_publish, mock_get_handler):
         os.environ["AWS_SAM_LOCAL"] = "true"
         h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
@@ -191,9 +199,10 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler,
     )
-    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_run_handler_unhandled_exception(
         self, mock_metric_publish, mock_get_handler
     ):
@@ -208,9 +217,10 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler,
     )
-    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_run_handler_handled_exception(self, mock_metric_publish, mock_get_handler):
         # handler fails with exception in cfn_resource.exceptions
         mock_get_handler.side_effect = exceptions.AccessDenied("blah")
@@ -224,9 +234,10 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler,
     )
-    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_run_handler_metrics_fail(self, mock_metric_publish, mock_get_handler):
         mock_metric_publish.side_effect = ValueError("blah")
         h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), MockContext())
@@ -239,11 +250,14 @@ class TestHandlerWrapper(unittest.TestCase):
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
+        autospec=True,
         return_value=mock_handler_local_callback,
     )
-    @mock.patch("cfn_resource.metrics.Metrics.publish")
+    @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     @mock.patch(
-        "cfn_resource.scheduler.CloudWatchScheduler.reschedule", return_value=None
+        "cfn_resource.scheduler.CloudWatchScheduler.reschedule",
+        autospec=True,
+        return_value=None,
     )
     def test_good_run_handler_local_callback(
         self, mock_scheduler, mock_metric_publish, mock_get_handler
