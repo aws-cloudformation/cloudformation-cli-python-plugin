@@ -22,11 +22,11 @@ def get_boto3_proxy_session(session_config, boto3pkg=boto3):
     )
 
 
-def get_boto_session_config(event):
+def get_boto_session_config(event, cred_type):
     return {
-        "aws_access_key_id": event["requestData"]["credentials"]["accessKeyId"],
-        "aws_secret_access_key": event["requestData"]["credentials"]["secretAccessKey"],
-        "aws_session_token": event["requestData"]["credentials"]["sessionToken"],
+        "aws_access_key_id": event["requestData"][cred_type]["accessKeyId"],
+        "aws_secret_access_key": event["requestData"][cred_type]["secretAccessKey"],
+        "aws_session_token": event["requestData"][cred_type]["sessionToken"],
         "region_name": event["region"],
     }
 

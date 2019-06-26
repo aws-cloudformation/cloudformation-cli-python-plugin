@@ -9,10 +9,16 @@ from cfn_resource.boto3_proxy import (
     get_boto_session_config,
 )
 
-SESSION_CONFIG = {
+CALLER_SESSION_CONFIG = {
     "aws_access_key_id": "a",
     "aws_secret_access_key": "b",
     "aws_session_token": "c",
+    "region_name": "d",
+}
+PLATFORM_SESSION_CONFIG = {
+    "aws_access_key_id": "d",
+    "aws_secret_access_key": "e",
+    "aws_session_token": "f",
     "region_name": "d",
 }
 
@@ -43,21 +49,28 @@ class TestBoto3funcs(unittest.TestCase):
         evt = {
             "region": "d",
             "requestData": {
-                "credentials": {
+                "callerCredentials": {
                     "accessKeyId": "a",
                     "secretAccessKey": "b",
                     "sessionToken": "c",
-                }
+                },
+                "platformCredentials": {
+                    "accessKeyId": "d",
+                    "secretAccessKey": "e",
+                    "sessionToken": "f",
+                },
             },
         }
-        act = get_boto_session_config(evt)
-        self.assertEqual(SESSION_CONFIG, act)
+        act = get_boto_session_config(evt, "callerCredentials")
+        self.assertEqual(CALLER_SESSION_CONFIG, act)
+        act = get_boto_session_config(evt, "platformCredentials")
+        self.assertEqual(PLATFORM_SESSION_CONFIG, act)
 
     def test_boto3_factory(self):
         mock_boto = mock.Mock()
 
         def mock_provider():
-            return SESSION_CONFIG
+            return CALLER_SESSION_CONFIG
 
         boto_proxy = boto3_factory(mock_provider, mock_boto)
         self.assertEqual(0, len(mock_boto.mock_calls))
@@ -82,7 +95,7 @@ class TestBoto3funcs(unittest.TestCase):
 class TestBoto3SessionProxy(unittest.TestCase):
     def test_proxy_(self):
         def mock_provider():
-            return SESSION_CONFIG
+            return CALLER_SESSION_CONFIG
 
         class MockSession:
             class client:  # pylint: disable=invalid-name

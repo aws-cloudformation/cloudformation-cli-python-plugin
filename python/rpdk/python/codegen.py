@@ -135,18 +135,21 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         self._package_from_project(project)
 
-        def write_with_relative_path(path, base=project.root):
-            relative = path.relative_to(base)
-            zip_file.write(path.resolve(), str(relative))
+        def recursive_relative_write(base_path, base=project.root):
+            for path in base_path.rglob("*"):
+                if path.is_file():
+                    relative = path.relative_to(base)
+                    zip_file.write(path.resolve(), str(relative))
 
         resource_model_path = project.root / "resource_model"
         handlers_path = project.root / self.package_name
         deps_path = project.root / "build"
 
         self._docker_build(project)
-        write_with_relative_path(resource_model_path)
-        write_with_relative_path(handlers_path)
-        write_with_relative_path(deps_path, deps_path)
+
+        recursive_relative_write(resource_model_path)
+        recursive_relative_write(handlers_path)
+        recursive_relative_write(deps_path, deps_path)
         LOG.debug("Package complete")
 
     @classmethod

@@ -4,8 +4,8 @@ from datetime import datetime
 from time import sleep
 
 from . import ProgressEvent, Status, request
-from .boto3_proxy import get_boto3_proxy_session, get_boto_session_config
-from .exceptions import Codes, InternalFailure
+from .boto3_proxy import Boto3Client, get_boto3_proxy_session, get_boto_session_config
+from .exceptions import Codes, InternalFailure, InvalidRequest
 from .metrics import Metrics
 from .scheduler import CloudWatchScheduler
 from .utils import get_log_level_from_env, is_sam_local, setup_json_logger
@@ -33,6 +33,7 @@ BOTO_LOG_LEVEL_ENV_VAR = "BOTO_LOG_LEVEL"
 
 def _handler_wrapper(event, context):
     progress_event = ProgressEvent(Status.FAILED, resourceModel=ResourceModel())
+    record_handler_progress = None
     try:
         setup_json_logger(
             level=get_log_level_from_env(LOG_LEVEL_ENV_VAR),
@@ -44,7 +45,13 @@ def _handler_wrapper(event, context):
             stackid=event["stackId"],
         )
 
-        wrapper = HandlerWrapper(event, context)
+        if not event["responseEndpoint"]:
+            raise InvalidRequest("responseEndpoint is missing")
+        record_handler_progress = _create_cfn_client(
+            get_boto_session_config(event, "platformCredentials"),
+            event["responseEndpoint"],
+        ).record_handler_progress
+        wrapper = HandlerWrapper(event, context, record_handler_progress)
         logging.info("Invoking %s handler", event["action"])
         progress_event = wrapper.run_handler()
     except Exception as e:  # pylint: disable=broad-except
@@ -55,11 +62,39 @@ def _handler_wrapper(event, context):
         )
         progress_event.message = "{}: {}".format(type(e).__name__, str(e))
     finally:
+        _report_progress(event["bearerToken"], progress_event, record_handler_progress)
         return progress_event.json()  # pylint: disable=lost-exception
 
 
+def _report_progress(bearer_token, progress_event, record_handler_progress):
+    if progress_event.status != Status.IN_PROGRESS:
+        return
+    if not record_handler_progress:
+        LOG.error("unable to report progress as client method is not defined")
+        return
+    try:
+        response = record_handler_progress(
+            BearerToken=bearer_token,
+            OperationStatus=progress_event.status,
+            StatusMessage=progress_event.message,
+            ErrorCode=progress_event.errorCode,
+            ResourceModel=progress_event.resourceModel,
+        )
+        LOG.debug(response)
+    except Exception as e:  # pylint: disable=broad-except
+        LOG.error("failed to submit RecordHandlerProgress response", exc_info=True)
+        progress_event.status = Status.FAILED
+        progress_event.errorCode = Codes.INTERNAL_FAILURE
+        progress_event.message(str(e))
+
+
+def _create_cfn_client(credentials, endpoint):
+    session = Boto3Client(**credentials)
+    return session.client("cloudformation", endpoint_url=f"https://{endpoint}")
+
+
 class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
-    def __init__(self, event, context):
+    def __init__(self, event, context, record_handler_progress):
         self._start_time = datetime.now()
         self._event = event
         self._context = context
@@ -67,7 +102,7 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         self._handler_response = ProgressEvent(
             Status.FAILED, resourceModel=ResourceModel()
         )
-        self._session_config = get_boto_session_config(event)
+        self._session_config = get_boto_session_config(event, "platformCredentials")
         self._metrics = Metrics(
             resource_type=event["resourceType"], session_config=self._session_config
         )
@@ -75,7 +110,9 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         self._handler_args = self._event_parse()
         self._scheduler = CloudWatchScheduler(self._session_config)
         self._scheduler.cleanup(event)
+        self._record_handler_progress = record_handler_progress
         self._timer = None
+        self._bearer_token = event["bearerToken"]
 
     def _get_handler(self, handler_path="handlers"):
         try:
@@ -96,7 +133,7 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
 
     def _event_parse(self):
         props, prev_props, callback = request.extract_event_data(self._event)
-        session_config = get_boto_session_config(self._event)
+        session_config = get_boto_session_config(self._event, "callerCredentials")
         args = [
             ResourceModel.new(**props),
             request.RequestContext(self._event, self._context),
@@ -132,6 +169,11 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
 
     def _callback(self):
         while self._is_local_callback():
+            _report_progress(
+                self._bearer_token,
+                self._handler_response,
+                self._record_handler_progress,
+            )
             sleep(self._handler_response.callbackDelaySeconds)
             self._local_callback()
         if self._is_callback():

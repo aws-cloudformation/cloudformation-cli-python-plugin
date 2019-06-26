@@ -2,8 +2,8 @@
     "awsAccountId": "123456789012",
     "bearerToken": "123456",
     "region": "us-east-1",
-    "action": "READ",
-    "responseEndpoint": "cloudformation.us-west-2.amazonaws.com",
+    "action": "CREATE",
+    "responseEndpoint": "",
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
     "requestContext": {},
@@ -25,6 +25,12 @@
         },
         "systemTags": {
             "aws:cloudformation:stack-id": "SampleStack"
+        },
+        "stackTags": {
+            "tag1": "abc"
+        },
+        "previousStackTags": {
+            "tag1": "def"
         }
     },
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968"
