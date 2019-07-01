@@ -32,10 +32,10 @@ EVENTS = {
         PARENT / "data" / "update.with-request-context.request.json",
     ],
     "BAD": [
-        # meed schema validation for this one to fail
+        # meed schema validation for these to fail
         # PARENT / "data" / "create.request.with-extraneous-model-fields.json",
+        # [PARENT / "data" / "malformed.request.json", "InternalFailure"],
         [PARENT / "data" / "no-response-endpoint.request.json", "InvalidRequest"],
-        [PARENT / "data" / "malformed.request.json", "InternalFailure"],
         [
             PARENT / "data" / "create.request-without-platform-credentials.json",
             "InternalFailure",
@@ -52,7 +52,7 @@ def _get_event(evt_path):
     return event
 
 
-def get_mock_context(deadline=None, val=9000):
+def get_mock_context(deadline=None, val=90000):
     arn = "arn:aws:lambda:us-west-2:123412341234:function:my-function"
     context = mock.Mock(invoked_function_arn=arn)
     if deadline:
@@ -99,7 +99,13 @@ class TestHandlerWrapper(unittest.TestCase):
             status=Status.SUCCESS, resourceModel=ResourceModel()
         ),
     )
-    def test_handler_wrapper_func(self, mock_hw_run_handler, mock_hw_init):
+    @mock.patch(
+        "cfn_resource.handler_wrapper.HandlerWrapper.timer",
+        autospec=True,
+        return_value=None,
+    )
+    def test_handler_wrapper_func(self, _, mock_hw_run_handler, mock_hw_init):
+        mock_hw_init.timer = None
         for event in EVENTS["SYNC-GOOD"]:
             mock_hw_init.reset_mock()
             mock_hw_run_handler.reset_mock()
@@ -122,7 +128,12 @@ class TestHandlerWrapper(unittest.TestCase):
             self.assertEqual("FAILED", resp["status"])
             self.assertEqual(expected_error, resp["errorCode"])
 
-    def test_handler_wrapper_get_handler(self):
+    @mock.patch(
+        "cfn_resource.handler_wrapper.HandlerWrapper._set_timeout",
+        autospec=True,
+        return_value=None,
+    )
+    def test_handler_wrapper_get_handler(self, _):
         for event in EVENTS["SYNC-GOOD"]:
             mock_rhp = mock.Mock()
             h_wrap = HandlerWrapper(_get_event(event), get_mock_context(), mock_rhp)
@@ -146,7 +157,12 @@ class TestHandlerWrapper(unittest.TestCase):
         return_value=mock_handler,
     )
     @mock.patch("cfn_resource.metrics.Metrics.publish")
-    def test_run_handler_good(self, mock_metric_publish, mock_get_handler):
+    @mock.patch(
+        "cfn_resource.handler_wrapper.HandlerWrapper._set_timeout",
+        autospec=True,
+        return_value=None,
+    )
+    def test_run_handler_good(self, _, mock_metric_publish, mock_get_handler):
         for event in EVENTS["SYNC-GOOD"]:
             mock_rhp = mock.Mock()
             mock_metric_publish.reset_mock()
@@ -180,6 +196,7 @@ class TestHandlerWrapper(unittest.TestCase):
         mock_metric_publish.assert_called_once()
         mock_scheduler.assert_called_once()
         self.assertEqual(Status.IN_PROGRESS, resp.status)
+        h_wrap.timer.cancel()
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
@@ -198,6 +215,7 @@ class TestHandlerWrapper(unittest.TestCase):
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_not_called()
         self.assertEqual(Status.SUCCESS, resp.status)
+        h_wrap.timer.cancel()
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
@@ -219,6 +237,7 @@ class TestHandlerWrapper(unittest.TestCase):
         self.assertEqual(Status.FAILED, resp.status)
         self.assertEqual("InternalFailure", resp.errorCode)
         self.assertEqual("ValueError: blah", resp.message)
+        h_wrap.timer.cancel()
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
@@ -239,6 +258,7 @@ class TestHandlerWrapper(unittest.TestCase):
         self.assertEqual(Status.FAILED, resp.status)
         self.assertEqual("AccessDenied", resp.errorCode)
         self.assertEqual("AccessDenied: blah", resp.message)
+        h_wrap.timer.cancel()
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
@@ -258,6 +278,7 @@ class TestHandlerWrapper(unittest.TestCase):
         self.assertEqual(Status.FAILED, resp.status)
         self.assertEqual("InternalFailure", resp.errorCode)
         self.assertEqual("ValueError: blah", resp.message)
+        h_wrap.timer.cancel()
 
     @mock.patch(
         "cfn_resource.handler_wrapper.HandlerWrapper._get_handler",
@@ -273,15 +294,17 @@ class TestHandlerWrapper(unittest.TestCase):
     def test_good_run_handler_local_callback(
         self, mock_scheduler, mock_metric_publish, mock_get_handler
     ):
-        context = get_mock_context(deadline=datetime.now() + timedelta(seconds=30))
+        context = get_mock_context(deadline=datetime.now() + timedelta(seconds=90))
         mock_rhp = mock.Mock()
         h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), context, mock_rhp)
         resp = h_wrap.run_handler()
         context.get_remaining_time_in_millis.assert_called()
         self.assertGreater(mock_get_handler.call_count, 1)
-        mock_metric_publish.assert_called_once()
-        mock_scheduler.assert_called_once()
+        self.assertEqual(mock_get_handler.call_count, mock_metric_publish.call_count)
+        self.assertEqual(mock_get_handler.call_count, mock_scheduler.call_count)
         self.assertEqual(Status.IN_PROGRESS, resp.status)
+
+        h_wrap.timer.cancel()
 
     def test_report_progress_success(self):
         mock_record_handler_progress = mock.Mock()

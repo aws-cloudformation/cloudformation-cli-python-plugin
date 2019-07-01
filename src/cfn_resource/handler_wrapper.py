@@ -1,9 +1,12 @@
 import importlib
 import logging
 from datetime import datetime
+from multiprocessing import Process
+from threading import Timer
 from time import sleep
+from typing import Optional
 
-from . import ProgressEvent, Status, request
+from . import ProgressEvent, Status, exceptions, request
 from .boto3_proxy import Boto3Client, get_boto3_proxy_session, get_boto_session_config
 from .exceptions import Codes, InternalFailure, InvalidRequest
 from .metrics import Metrics
@@ -27,23 +30,14 @@ LOG_LEVEL_ENV_VAR = "LOG_LEVEL"
 BOTO_LOG_LEVEL_ENV_VAR = "BOTO_LOG_LEVEL"
 
 
-# TODO:
-# - catch timeouts
-
-
 def _handler_wrapper(event, context):
     progress_event = ProgressEvent(Status.FAILED, resourceModel=ResourceModel())
     record_handler_progress = None
+    timer = None
     try:
-        setup_json_logger(
-            level=get_log_level_from_env(LOG_LEVEL_ENV_VAR),
-            boto_level=get_log_level_from_env(BOTO_LOG_LEVEL_ENV_VAR, logging.ERROR),
-            acctid=event["awsAccountId"],
-            token=event["bearerToken"],
-            action=event["action"],
-            logicalid=event["requestData"]["logicalResourceId"],
-            stackid=event["stackId"],
-        )
+        level = get_log_level_from_env(LOG_LEVEL_ENV_VAR)
+        boto_level = get_log_level_from_env(BOTO_LOG_LEVEL_ENV_VAR, logging.ERROR)
+        setup_json_logger(level, boto_level, event)
 
         if not event["responseEndpoint"]:
             raise InvalidRequest("responseEndpoint is missing")
@@ -52,6 +46,7 @@ def _handler_wrapper(event, context):
             event["responseEndpoint"],
         ).record_handler_progress
         wrapper = HandlerWrapper(event, context, record_handler_progress)
+        timer = wrapper.timer
         logging.info("Invoking %s handler", event["action"])
         progress_event = wrapper.run_handler()
     except Exception as e:  # pylint: disable=broad-except
@@ -62,6 +57,8 @@ def _handler_wrapper(event, context):
         )
         progress_event.message = "{}: {}".format(type(e).__name__, str(e))
     finally:
+        if timer:
+            timer.cancel()
         _report_progress(event["bearerToken"], progress_event, record_handler_progress)
         return progress_event.json()  # pylint: disable=lost-exception
 
@@ -94,25 +91,54 @@ def _create_cfn_client(credentials, endpoint):
 
 
 class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
+    TIMEOUT_BUFFER = 2.5
+    LOCAL_CALLBACK_BUFFER = 2.0
+    HANDLER_MAX_EXECUTION_TIME = 60.0
+    HANDLER_TIMEOUT_RETRIES = 3
+
     def __init__(self, event, context, record_handler_progress):
-        self._start_time = datetime.now()
+        self.progress: ProgressEvent = ProgressEvent(
+            Status.FAILED, resourceModel=ResourceModel()
+        )
         self._event = event
         self._context = context
         self._action = event["action"]
-        self._handler_response = ProgressEvent(
-            Status.FAILED, resourceModel=ResourceModel()
-        )
         self._session_config = get_boto_session_config(event, "platformCredentials")
         self._metrics = Metrics(
             resource_type=event["resourceType"], session_config=self._session_config
         )
-        self._metrics.invocation(self._start_time, action=event["action"])
         self._handler_args = self._event_parse()
         self._scheduler = CloudWatchScheduler(self._session_config)
         self._scheduler.cleanup(event)
         self._record_handler_progress = record_handler_progress
-        self._timer = None
         self._bearer_token = event["bearerToken"]
+        self._handler_thread: Optional[Process] = None
+        self._handler_timeout_count = 0
+        self._timer = None
+        self._invoke_start = None
+
+    @property
+    def timer(self):
+        return self._timer
+
+    def _timeout(self):
+        LOG.error("Execution is about to time out")
+        if self._handler_thread:
+            self._handler_thread.terminate()
+        self._handler_timeout_count += 1
+        if self._handler_timeout_count < 3:
+            self.progress.status = Status.IN_PROGRESS
+            self.progress.message = "Handler timed out and is being re-invoked"
+            self._callback()
+        else:
+            self.progress.status = Status.FAILED
+            self.progress.message = "Resource timed out"
+            self.progress.errorCode = exceptions.Codes.SERVICE_TIMEOUT
+
+    def _set_timeout(self):
+        if self._timer:
+            self._timer.cancel()
+        self._timer = Timer(self._timeout, self.HANDLER_MAX_EXECUTION_TIME)
 
     def _get_handler(self, handler_path="handlers"):
         try:
@@ -152,57 +178,68 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         return args
 
     def _is_local_callback(self):
-        if self._handler_response.callbackDelaySeconds > 60 or not self._is_callback():
+        if self.progress.callbackDelaySeconds > 60 or not self._is_callback():
             return False
         remaining = self._context.get_remaining_time_in_millis() / 1000
-        needed = self._handler_response.callbackDelaySeconds * 1.2
+        needed = (
+            self.progress.callbackDelaySeconds
+            + self.HANDLER_MAX_EXECUTION_TIME
+            + self.LOCAL_CALLBACK_BUFFER
+        )
+        remaining = remaining - self.TIMEOUT_BUFFER
         return needed < remaining
 
     def _is_callback(self):
-        return self._handler_response.status == Status.IN_PROGRESS
+        return self.progress.status == Status.IN_PROGRESS
 
     def _local_callback(self):
-        self._handler_args[3] = self._handler_response.callbackContext
+        self._handler_args[3] = self.progress.callbackContext
         self._handler_args[1].invocation_count += 1
-        handler = self._get_handler()
-        self._handler_response = handler(*self._handler_args)
+        self.run_handler()
 
     def _callback(self):
         while self._is_local_callback():
             _report_progress(
-                self._bearer_token,
-                self._handler_response,
-                self._record_handler_progress,
+                self._bearer_token, self.progress, self._record_handler_progress
             )
-            sleep(self._handler_response.callbackDelaySeconds)
+            sleep(self.progress.callbackDelaySeconds)
             self._local_callback()
         if self._is_callback():
             self._scheduler.reschedule(
                 function_arn=self._context.invoked_function_arn,
                 event=self._event,
-                callback_context=self._handler_response.callbackContext,
-                seconds=self._handler_response.callbackDelaySeconds,
+                callback_context=self.progress.callbackContext,
+                seconds=self.progress.callbackDelaySeconds,
             )
 
     def run_handler(self):
+        self._metrics.invocation(datetime.now(), action=self._action)
+        self._invoke_start = datetime.now()
+        self._handler_thread = Process(target=self._run_handler_thread())
+        self._handler_thread.start()
+        self._set_timeout()
+        self._handler_thread.join()
+        return self.progress
+
+    def _run_handler_thread(self):
         try:
             logging.debug(self._handler_args)
             handler = self._get_handler()
-            self._handler_response = handler(*self._handler_args)
+            self.progress = handler(*self._handler_args)
             self._callback()
         except Exception as e:  # pylint: disable=broad-except
             LOG.error("unhandled exception", exc_info=True)
-            self._metrics.exception(self._start_time, action=self._action, exception=e)
-            self._handler_response.message = "{}: {}".format(type(e).__name__, str(e))
-            self._handler_response.errorCode = (
+            self._metrics.exception(datetime.now(), action=self._action, exception=e)
+            self.progress.message = "{}: {}".format(type(e).__name__, str(e))
+            self.progress.errorCode = (
                 type(e).__name__ if Codes.is_handled(e) else Codes.INTERNAL_FAILURE
             )
         finally:
             try:
                 self._metrics.duration(
-                    self._start_time,
+                    self._invoke_start,
                     action=self._action,
-                    duration=datetime.now() - self._start_time,
+                    duration=datetime.now() - self._invoke_start,
                 )
                 if is_sam_local():
                     LOG.warning(
@@ -215,11 +252,8 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
                     "CloudWatch Metrics for this invocation have not been published"
                 )
                 LOG.error("unhandled exception", exc_info=True)
-                self._handler_response.status = Status.FAILED
-                self._handler_response.message = "{}: {}".format(
-                    type(e).__name__, str(e)
-                )
-                self._handler_response.errorCode = (
+                self.progress.status = Status.FAILED
+                self.progress.message = "{}: {}".format(type(e).__name__, str(e))
+                self.progress.errorCode = (
                     type(e).__name__ if Codes.is_handled(e) else Codes.INTERNAL_FAILURE
                 )
-            return self._handler_response  # pylint: disable=lost-exception
