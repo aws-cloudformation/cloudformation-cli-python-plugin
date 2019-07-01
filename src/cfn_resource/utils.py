@@ -4,6 +4,8 @@ import os
 from datetime import date, datetime, time
 
 LOG = logging.getLogger(__name__)
+LOG_LEVEL_ENV_VAR = "LOG_LEVEL"
+BOTO_LOG_LEVEL_ENV_VAR = "BOTO_LOG_LEVEL"
 
 
 class JsonFormatter(logging.Formatter):
@@ -47,18 +49,20 @@ class JsonFormatter(logging.Formatter):
         return json_record
 
 
-def setup_json_logger(
-    level=logging.DEBUG,
-    boto_level=logging.ERROR,
-    formatter_cls=JsonFormatter,
-    **kwargs  # noqa: C816
-):
-    if formatter_cls:
-        for handler in logging.root.handlers:
-            handler.setFormatter(formatter_cls(**kwargs))
-
+def setup_json_logger(level, boto_level=logging.ERROR, event=None, **kwargs):
+    event = event if event else {}
+    extra_fields = {
+        "acctid": event.get("awsAccountId", None),
+        "token": event.get("bearerToken", None),
+        "action": event.get("action", None),
+        "logicalid": event.get("requestData", {}).get("logicalResourceId", None),
+        "stackid": event.get("stackId", None),
+    }
+    for key, value in kwargs.items():
+        extra_fields[key] = value
+    for handler in logging.root.handlers:
+        handler.setFormatter(JsonFormatter(**extra_fields))
     logging.root.setLevel(level)
-
     logging.getLogger("boto").setLevel(boto_level)
     logging.getLogger("boto3").setLevel(boto_level)
     logging.getLogger("botocore").setLevel(boto_level)
