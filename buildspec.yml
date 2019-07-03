@@ -5,6 +5,13 @@ phases:
       # make sure pip/setuptools/wheel is up to date, awscli for SDK patching
       - pip install --upgrade pip setuptools wheel awscli -r requirements.txt
       - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
+      # setup git-secrets
+      - WD=$(pwd)
+      - cd /tmp
+      - git clone https://github.com/awslabs/git-secrets.git
+      - cd git-secrets
+      - make install
+      - cd ${WD}
   build:
     commands:
       # install aws-cloudformation-rpdk-python-plugin and rpdk core
