@@ -85,7 +85,7 @@ def _report_progress(bearer_token, progress_event, record_handler_progress):
         LOG.error("failed to submit RecordHandlerProgress response", exc_info=True)
         progress_event.status = Status.FAILED
         progress_event.errorCode = Codes.INTERNAL_FAILURE
-        progress_event.message(str(e))
+        progress_event.message = str(e)
 
 
 def _create_cfn_client(credentials, endpoint):
