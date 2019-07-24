@@ -2,7 +2,7 @@
     "awsAccountId": "123456789012",
     "bearerToken": "123456",
     "region": "us-east-1",
-    "action": "READ",
+    "action": "CREATE",
     "responseEndpoint": "cloudformation.us-west-2.amazonaws.com",
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
@@ -21,10 +21,17 @@
         "logicalResourceId": "myBucket",
         "resourceProperties": {
             "DueDate": "29-08-1978 00:00",
-            "Title": "abc"
+            "Title": "abc",
+            "fieldCausesValidationError": "DONOTIGNORE"
         },
         "systemTags": {
             "aws:cloudformation:stack-id": "SampleStack"
+        },
+        "stackTags": {
+            "tag1": "abc"
+        },
+        "previousStackTags": {
+            "tag1": "def"
         }
     },
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968"

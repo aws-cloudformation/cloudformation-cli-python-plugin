@@ -2,12 +2,14 @@
     "awsAccountId": "123456789012",
     "bearerToken": "123456",
     "region": "us-east-1",
-    "action": "READ",
+    "action": "CREATE",
+    "thisFieldShouldBeIgnored": "IGNOREME",
     "responseEndpoint": "cloudformation.us-west-2.amazonaws.com",
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
     "requestContext": {},
     "requestData": {
+        "thisFieldShouldAlsoBeIgnored": "IGNOREME",
         "callerCredentials": {
             "accessKeyId": "IASAYK835GAIFHAHEI23",
             "secretAccessKey": "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0",
@@ -25,6 +27,12 @@
         },
         "systemTags": {
             "aws:cloudformation:stack-id": "SampleStack"
+        },
+        "stackTags": {
+            "tag1": "abc"
+        },
+        "previousStackTags": {
+            "tag1": "def"
         }
     },
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968"

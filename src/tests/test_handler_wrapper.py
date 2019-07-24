@@ -11,7 +11,11 @@ from unittest import mock
 
 from cfn_resource import ProgressEvent, Status, exceptions
 from cfn_resource.base_resource_model import BaseResourceModel as ResourceModel
-from cfn_resource.handler_wrapper import HandlerWrapper, _handler_wrapper
+from cfn_resource.handler_wrapper import (
+    HandlerWrapper,
+    _handler_wrapper,
+    _report_progress,
+)
 
 PARENT = Path(__file__).parent
 EVENTS = {
@@ -27,7 +31,16 @@ EVENTS = {
         PARENT / "data" / "delete.with-request-context.request.json",
         PARENT / "data" / "update.with-request-context.request.json",
     ],
-    "BAD": [PARENT / "data" / "missing-fields.request.json"],
+    "BAD": [
+        # meed schema validation for this one to fail
+        # PARENT / "data" / "create.request.with-extraneous-model-fields.json",
+        [PARENT / "data" / "no-response-endpoint.request.json", "InvalidRequest"],
+        [PARENT / "data" / "malformed.request.json", "InternalFailure"],
+        [
+            PARENT / "data" / "create.request-without-platform-credentials.json",
+            "InternalFailure",
+        ],
+    ],
 }
 
 sys.path.append(str(PARENT))
@@ -102,19 +115,23 @@ class TestHandlerWrapper(unittest.TestCase):
             mock_hw_init.reset_mock()
             mock_hw_run_handler.reset_mock()
 
-            event = _get_event(event)
+            expected_error = event[1]
+            event = _get_event(event[0])
             resp = _handler_wrapper(event, get_mock_context())
             resp = json.loads(resp)
             self.assertEqual("FAILED", resp["status"])
-            self.assertEqual("InternalFailure", resp["errorCode"])
+            self.assertEqual(expected_error, resp["errorCode"])
 
     def test_handler_wrapper_get_handler(self):
         for event in EVENTS["SYNC-GOOD"]:
-            h_wrap = HandlerWrapper(_get_event(event), get_mock_context())
+            mock_rhp = mock.Mock()
+            h_wrap = HandlerWrapper(_get_event(event), get_mock_context(), mock_rhp)
             handler = h_wrap._get_handler("mock_handler")
             self.assertEqual(True, isinstance(handler, types.FunctionType))
 
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context(), mock_rhp
+        )
 
         with self.assertRaises(exceptions.InternalFailure):
             h_wrap._get_handler("non-existant-module")
@@ -131,9 +148,10 @@ class TestHandlerWrapper(unittest.TestCase):
     @mock.patch("cfn_resource.metrics.Metrics.publish")
     def test_run_handler_good(self, mock_metric_publish, mock_get_handler):
         for event in EVENTS["SYNC-GOOD"]:
+            mock_rhp = mock.Mock()
             mock_metric_publish.reset_mock()
             mock_get_handler.reset_mock()
-            h_wrap = HandlerWrapper(_get_event(event), get_mock_context())
+            h_wrap = HandlerWrapper(_get_event(event), get_mock_context(), mock_rhp)
             resp = h_wrap.run_handler()
             mock_get_handler.assert_called_once()
             mock_metric_publish.assert_called_once()
@@ -153,7 +171,10 @@ class TestHandlerWrapper(unittest.TestCase):
     def test_good_run_handler_reschedule(
         self, mock_scheduler, mock_metric_publish, mock_get_handler
     ):
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
+        mock_rhp = mock.Mock()
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context(), mock_rhp
+        )
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -168,7 +189,10 @@ class TestHandlerWrapper(unittest.TestCase):
     @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_good_run_handler_sam_local(self, mock_metric_publish, mock_get_handler):
         os.environ["AWS_SAM_LOCAL"] = "true"
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
+        mock_rhp = mock.Mock()
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context(), mock_rhp
+        )
         resp = h_wrap.run_handler()
         del os.environ["AWS_SAM_LOCAL"]
         mock_get_handler.assert_called_once()
@@ -185,7 +209,10 @@ class TestHandlerWrapper(unittest.TestCase):
         self, mock_metric_publish, mock_get_handler
     ):
         mock_get_handler.side_effect = ValueError("blah")
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
+        mock_rhp = mock.Mock()
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context(), mock_rhp
+        )
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -202,7 +229,10 @@ class TestHandlerWrapper(unittest.TestCase):
     def test_run_handler_handled_exception(self, mock_metric_publish, mock_get_handler):
         # handler fails with exception in cfn_resource.exceptions
         mock_get_handler.side_effect = exceptions.AccessDenied("blah")
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
+        mock_rhp = mock.Mock()
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context(), mock_rhp
+        )
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -218,7 +248,10 @@ class TestHandlerWrapper(unittest.TestCase):
     @mock.patch("cfn_resource.metrics.Metrics.publish", autospec=True)
     def test_run_handler_metrics_fail(self, mock_metric_publish, mock_get_handler):
         mock_metric_publish.side_effect = ValueError("blah")
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context())
+        mock_rhp = mock.Mock()
+        h_wrap = HandlerWrapper(
+            _get_event(EVENTS["SYNC-GOOD"][0]), get_mock_context(), mock_rhp
+        )
         resp = h_wrap.run_handler()
         mock_get_handler.assert_called_once()
         mock_metric_publish.assert_called_once()
@@ -241,10 +274,52 @@ class TestHandlerWrapper(unittest.TestCase):
         self, mock_scheduler, mock_metric_publish, mock_get_handler
     ):
         context = get_mock_context(deadline=datetime.now() + timedelta(seconds=30))
-        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), context)
+        mock_rhp = mock.Mock()
+        h_wrap = HandlerWrapper(_get_event(EVENTS["SYNC-GOOD"][0]), context, mock_rhp)
         resp = h_wrap.run_handler()
         context.get_remaining_time_in_millis.assert_called()
         self.assertGreater(mock_get_handler.call_count, 1)
         mock_metric_publish.assert_called_once()
         mock_scheduler.assert_called_once()
         self.assertEqual(Status.IN_PROGRESS, resp.status)
+
+    def test_report_progress_success(self):
+        mock_record_handler_progress = mock.Mock()
+        progress = ProgressEvent(status=Status.SUCCESS, resourceModel=ResourceModel())
+        _report_progress("test", progress, mock_record_handler_progress)
+        mock_record_handler_progress.assert_not_called()
+        self.assertEqual(progress.status, Status.SUCCESS)
+
+    def test_report_progress_in_progress(self):
+        mock_record_handler_progress = mock.Mock()
+        model = ResourceModel()
+        progress = ProgressEvent(
+            status=Status.IN_PROGRESS, resourceModel=model, message="hi there"
+        )
+        _report_progress("test", progress, mock_record_handler_progress)
+        mock_record_handler_progress.assert_called_with(
+            BearerToken="test",
+            ErrorCode="",
+            OperationStatus="IN_PROGRESS",
+            ResourceModel=model,
+            StatusMessage="hi there",
+        )
+        self.assertEqual(progress.status, Status.IN_PROGRESS)
+
+    def test_report_progress_failed_to_respond(self):
+        mock_record_handler_progress = mock.Mock()
+        mock_record_handler_progress.side_effect = ValueError("unexpected oopsie")
+        model = ResourceModel()
+        progress = ProgressEvent(
+            status=Status.IN_PROGRESS, resourceModel=model, message="hi there"
+        )
+        _report_progress("test", progress, mock_record_handler_progress)
+        self.assertEqual(progress.status, Status.FAILED)
+        self.assertEqual(progress.message, "unexpected oopsie")
+
+    def test_report_progress__no_record_handler(self):
+        progress = ProgressEvent(
+            status=Status.IN_PROGRESS, resourceModel=ResourceModel()
+        )
+        _report_progress("test", progress, None)
+        self.assertEqual(progress.status, Status.IN_PROGRESS)
