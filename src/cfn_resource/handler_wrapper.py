@@ -104,8 +104,13 @@ class HandlerWrapper:  # pylint: disable=too-many-instance-attributes
         self._context = context
         self._action = event["action"]
         self._session_config = get_boto_session_config(event, "platformCredentials")
+        session_configs = [self._session_config]
+        if "resourceOwnerLoggingCredentials" in event:
+            session_configs.append(
+                get_boto_session_config(event, "resourceOwnerLoggingCredentials")
+            )
         self._metrics = Metrics(
-            resource_type=event["resourceType"], session_config=self._session_config
+            resource_type=event["resourceType"], session_configs=session_configs
         )
         self._handler_args = self._event_parse()
         self._scheduler = CloudWatchScheduler(self._session_config)

@@ -73,11 +73,18 @@ class TestMetrics(unittest.TestCase):
         boto3_mock = mock.Mock()
         start_time = datetime.now()
         duration = (start_time + timedelta(0, 10)) - start_time
-        metrics = Metrics("Aa::Bb::Cc", b3=boto3_mock)
-        metrics._cw_client.put_metric_data = mock.Mock()
+        sessions = [{"region_name": "us-east-1"}, {"region_name": "us-east-2"}]
+        metrics = Metrics("Aa::Bb::Cc", session_configs=sessions, b3=boto3_mock)
+        client_indexes = range(len(metrics._cw_clients))
+        self.assertEqual(client_indexes, range(0, 2))
+        for i in client_indexes:
+            metrics._cw_clients[i] = mock.Mock()
+            metrics._cw_clients[i].put_metric_data = mock.Mock()
         metrics.publish()
-        metrics._cw_client.put_metric_data.assert_not_called()
+        for i in client_indexes:
+            metrics._cw_clients[i].put_metric_data.assert_not_called()
         metrics.duration(start_time, Status.SUCCESS, duration)
         metrics.publish()
-        metrics._cw_client.put_metric_data.assert_called_once()
+        for i in client_indexes:
+            metrics._cw_clients[i].put_metric_data.assert_called_once()
         self.assertEqual([], metrics.data)

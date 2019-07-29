@@ -16,14 +16,18 @@ class Metrics:
     DIMENSION_KEY_EXCEPTION_TYPE = "ExceptionType"
     DIMENSION_KEY_RESOURCE_TYPE = "ResourceType"
 
-    def __init__(self, resource_type: str, session_config: dict = None, b3=Boto3Client):
-        if session_config is None:
-            session_config = {}
+    def __init__(
+        self, resource_type: str, session_configs: List[dict] = None, b3=Boto3Client
+    ):
+        if session_configs is None:
+            session_configs = [{}]
         self.resource_type = resource_type
         self.namespace = "{}/{}".format(
             Metrics.METRIC_NAMESPACE_ROOT, resource_type.replace("::", "/")
         )
-        self._cw_client = b3(**session_config).client("cloudwatch")
+        self._cw_clients: list = []
+        for session_config in session_configs:
+            self._cw_clients.append(b3(**session_config).client("cloudwatch"))
         self.data: List[dict] = []
 
     def _reset_data(self):
@@ -90,5 +94,6 @@ class Metrics:
         if not self.data:
             LOG.warning("No metrics available to publish")
             return
-        self._cw_client.put_metric_data(Namespace=self.namespace, MetricData=self.data)
+        for cw_client in self._cw_clients:
+            cw_client.put_metric_data(Namespace=self.namespace, MetricData=self.data)
         self._reset_data()
