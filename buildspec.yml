@@ -28,10 +28,10 @@ phases:
       - ls -la
       - printf "AWS::Foo::Bar\n1\nn" | cfn-cli init -vv # python3.6
       - ls -la
-      - mypy aws_foo_bar/ --strict --implicit-reexport
+      - mypy src/aws_foo_bar/ --strict --implicit-reexport
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
       - printf "AWS::Foo::Bar\n2\nn" | cfn-cli init -vv # python3.7
       - ls -la
-      - mypy aws_foo_bar/ --strict --implicit-reexport
+      - mypy src/aws_foo_bar/ --strict --implicit-reexport
