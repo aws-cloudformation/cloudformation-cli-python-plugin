@@ -25,12 +25,12 @@ test_default_datetimes = given(s.datetimes())(default_assert)
 test_default_times = given(s.times())(default_assert)
 
 
-def test_default_obj_has_to_json_method():
+def test_default_obj_has__serialize_method():
     value = {"a": "b"}
 
     class Serializable:
         @staticmethod
-        def to_json():
+        def _serialize():
             return value
 
     assert value == roundtrip(Serializable())

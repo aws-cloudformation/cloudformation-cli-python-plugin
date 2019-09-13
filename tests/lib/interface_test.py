@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 import json
 from string import ascii_letters
 
@@ -18,12 +19,10 @@ def test_progress_event_failed_is_json_serializable(error_code, message):
     assert event.errorCode == error_code
     assert event.message == message
 
-    assert json.loads(json.dumps(event.to_json())) == {
+    assert json.loads(json.dumps(event._serialize())) == {
         "status": OperationStatus.FAILED.value,
         "errorCode": error_code.value,
         "message": message,
         "callbackContext": {},
         "callbackDelaySeconds": 0,
-        "resourceModel": None,
-        "resourceModels": None,
     }

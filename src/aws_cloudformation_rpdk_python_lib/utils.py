@@ -11,7 +11,7 @@ class KitchenSinkEncoder(json.JSONEncoder):
         if isinstance(o, (datetime, date, time)):
             return o.isoformat()
         try:
-            return o.to_json()
+            return o._serialize()  # pylint: disable=protected-access
         except AttributeError:
             return super().default(o)
 

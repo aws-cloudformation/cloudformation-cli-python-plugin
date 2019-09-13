@@ -31,9 +31,9 @@ def _ensure_serialize(
             response = entrypoint(self, event, context)
             serialized = json.dumps(response, cls=KitchenSinkEncoder)
         except Exception as e:  # pylint: disable=broad-except
-            return ProgressEvent.failed(
+            return ProgressEvent.failed(  # pylint: disable=protected-access
                 HandlerErrorCode.InternalFailure, str(e)
-            ).to_json()
+            )._serialize()
         return json.loads(serialized)
 
     return wrapper

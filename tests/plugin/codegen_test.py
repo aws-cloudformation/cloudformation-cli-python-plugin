@@ -141,7 +141,8 @@ def test_generate(project):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    assert hasattr(module.ResourceModel, "to_json")
+    assert hasattr(module.ResourceModel, "_serialize")
+    assert hasattr(module.ResourceModel, "_deserialize")
 
 
 def test_package_pip(project):

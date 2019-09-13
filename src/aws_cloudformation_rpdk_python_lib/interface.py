@@ -57,8 +57,10 @@ class ProgressEvent(Generic[T]):
     resourceModel: Optional[T] = None
     resourceModels: Optional[List[T]] = None
 
-    def to_json(self) -> Mapping[str, Any]:
-        return self.__dict__
+    def _serialize(self) -> Mapping[str, Any]:
+        # to match Java serialization, which drops `null` values, and the
+        # contract tests currently expect this also
+        return {k: v for k, v in self.__dict__.items() if v is not None}
 
     @classmethod
     def failed(

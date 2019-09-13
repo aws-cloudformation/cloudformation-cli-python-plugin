@@ -45,11 +45,11 @@ class {{ model }}{{ class_model_bindings(properties) }}:
     {{ name }}: Optional[{{ type|translate_type }}]
     {% endfor %}
 
-    def to_json(self) -> Mapping[str, Any]:
+    def _serialize(self) -> Mapping[str, Any]:
         return self.__dict__
 
     @classmethod
-    def from_json(
+    def _deserialize(
         cls: Type[T{{ model }}],
         json: Mapping[str, Any],
     ) -> Optional[T{{ model }}]:
@@ -58,7 +58,7 @@ class {{ model }}{{ class_model_bindings(properties) }}:
         return cls(
             {% for name, type in properties.items() %}
             {% if type.container == ContainerType.MODEL %}
-            {{ name }}={{ type.type }}.from_json(json.get("{{ name }}")),  # type: ignore
+            {{ name }}={{ type.type }}._deserialize(json.get("{{ name }}")),  # type: ignore
             {% elif type.container == ContainerType.SET %}
             {{ name }}=set_or_none(json.get("{{ name }}")),
             {% else %}
