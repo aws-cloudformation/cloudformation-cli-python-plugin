@@ -1,35 +1,37 @@
 version: 0.2
 phases:
   install:
+    runtime-versions:
+      python: 3.7
     commands:
-      # make sure pip/setuptools/wheel is up to date, awscli for SDK patching
-      - pip install --upgrade pip setuptools wheel awscli -r requirements.txt
-      - aws configure add-model --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json" --service-name cloudformation
-      # setup git-secrets
-      - WD=$(pwd)
-      - cd /tmp
-      - git clone https://github.com/awslabs/git-secrets.git
-      - cd git-secrets
-      - make install
-      - cd ${WD}
+      - >
+        pip install --upgrade
+        pip
+        setuptools
+        wheel
+        awscli
+        mypy
+        -r "$CODEBUILD_SRC_DIR_RPDK/requirements.txt"
+      - >
+        aws configure add-model
+        --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json"
+        --service-name "cloudformation"
   build:
     commands:
       # install aws-cloudformation-rpdk-python-plugin and rpdk core
-      - pip install "$CODEBUILD_SRC_DIR_RPDK" .
+      - pip install "$CODEBUILD_SRC_DIR_RPDK" "$CODEBUILD_SRC_DIR" "$CODEBUILD_SRC_DIR/src"
       # run lints/tests
       - pre-commit run --all-files
       # end-to-end test
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
-      - |
-        echo "AWS::Foo::Bar
-        1" | cfn-cli init -vv # python3.6
+      - printf "AWS::Foo::Bar\n1\nn" | cfn-cli init -vv # python3.6
       - ls -la
+      - mypy src/aws_foo_bar/ --strict --implicit-reexport
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la
-      - |
-        echo "AWS::Foo::Bar
-        2" | cfn-cli init -vv # python3.7
+      - printf "AWS::Foo::Bar\n2\nn" | cfn-cli init -vv # python3.7
       - ls -la
+      - mypy src/aws_foo_bar/ --strict --implicit-reexport

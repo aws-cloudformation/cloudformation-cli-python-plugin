@@ -1,2 +1,6 @@
+include ../LICENSE
+
+graft aws_cloudformation_rpdk_python_lib
+
 # last rule wins, put excludes last
 global-exclude __pycache__ *.py[co] .DS_Store

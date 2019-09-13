@@ -1,51 +1,100 @@
-from cfn_resource import (
-    Boto3SessionProxy as BotoProxy,
-    ProgressEvent as Progress,
-    RequestContext as Context,
-    Status,
+from typing import Any, MutableMapping
+
+from {{support_lib_pkg}} import (
+    Action,
+    HandlerErrorCode,
+    OperationStatus,
+    ProgressEvent,
+    Resource,
+    ResourceHandlerRequest,
+    SessionProxy,
     exceptions,
 )
-from resource_model import ResourceModel as Model
+
+from .models import ResourceModel, TResourceModel
+
+resource = Resource(ResourceModel)
+test_entrypoint = resource.test_entrypoint
 
 
-def create_handler(model: Model, context: Context, boto3: BotoProxy, callback: dict):
-    progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
+@resource.handler(Action.CREATE)
+def create_handler(
+    session: SessionProxy,
+    request: ResourceHandlerRequest[TResourceModel],
+    callback_context: MutableMapping[str, Any],
+) -> ProgressEvent[TResourceModel]:
+    model = request.desiredResourceState
+    progress: ProgressEvent[TResourceModel] = ProgressEvent(
+        status=OperationStatus.IN_PROGRESS,
+        resourceModel=model,
+    )
     # TODO: put code here
 
     # Example:
     try:
+        client = session.client("s3")
         # Setting Status to success will signal to cfn that the operation is complete
-        progress.status = Status.SUCCESS
+        progress.status = OperationStatus.SUCCESS
     except TypeError as e:
         # exceptions module lets CloudFormation know the type of failure that occurred
         raise exceptions.InternalFailure(f"was not expecting type {e}")
-        # this can also be done by setting progress.status, errorCode and message:
-        # progress.status = Status.FAILED
-        # progress.errorCode = exceptions.Codes.INTERNAL_FAILURE
-        # progress.message = f"was not expecting type {e}"
+        # this can also be done by returning a failed progress event
+        # return ProgressEvent.failed(HandlerErrorCode.InternalFailure, f"was not expecting type {e}")
     return progress
 
 
-def update_handler(model: Model, context: Context, boto3: BotoProxy, callback: dict,
-                   prev_model: Model):
-    progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
+@resource.handler(Action.UPDATE)
+def update_handler(
+    session: SessionProxy,
+    request: ResourceHandlerRequest[TResourceModel],
+    callback_context: MutableMapping[str, Any],
+) -> ProgressEvent[TResourceModel]:
+    model = request.desiredResourceState
+    progress: ProgressEvent[TResourceModel] = ProgressEvent(
+        status=OperationStatus.IN_PROGRESS,
+        resourceModel=model,
+    )
     # TODO: put code here
     return progress
 
 
-def delete_handler(model: Model, context: Context, boto3: BotoProxy, callback: dict):
-    progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
+@resource.handler(Action.DELETE)
+def delete_handler(
+    session: SessionProxy,
+    request: ResourceHandlerRequest[TResourceModel],
+    callback_context: MutableMapping[str, Any],
+) -> ProgressEvent[TResourceModel]:
+    model = request.desiredResourceState
+    progress: ProgressEvent[TResourceModel] = ProgressEvent(
+        status=OperationStatus.IN_PROGRESS,
+        resourceModel=model,
+    )
     # TODO: put code here
     return progress
 
 
-def read_handler(model: Model, context: Context, boto3: BotoProxy):
-    progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
+@resource.handler(Action.READ)
+def read_handler(
+    session: SessionProxy,
+    request: ResourceHandlerRequest[TResourceModel],
+    callback_context: MutableMapping[str, Any],
+) -> ProgressEvent[TResourceModel]:
+    model = request.desiredResourceState
     # TODO: put code here
-    return progress
+    return ProgressEvent(
+        status=OperationStatus.SUCCESS,
+        resourceModel=model,
+    )
 
 
-def list_handler(model: Model, context: Context, boto3: BotoProxy):
-    progress = Progress(status=Status.IN_PROGRESS, resourceModel=model)
+@resource.handler(Action.LIST)
+def list_handler(
+    session: SessionProxy,
+    request: ResourceHandlerRequest[TResourceModel],
+    callback_context: MutableMapping[str, Any],
+) -> ProgressEvent[TResourceModel]:
     # TODO: put code here
-    return progress
+    return ProgressEvent(
+        status=OperationStatus.SUCCESS,
+        resourceModels=[],
+    )

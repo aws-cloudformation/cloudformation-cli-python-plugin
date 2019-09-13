@@ -1,6 +1,6 @@
 [MASTER]
 
-ignore=CVS
+ignore=CVS,models.py,handlers.py
 jobs=1
 persistent=yes
 
@@ -10,9 +10,9 @@ disable=
     missing-docstring,          # not everything needs a docstring
     fixme,                      # work in progress
     bad-continuation,           # clashes with black
-    duplicate-code,             # finds dupes between tests and plugins
     too-few-public-methods,     # triggers when inheriting
     ungrouped-imports,          # clashes with isort
+    duplicate-code,             # broken, setup.py
 
 [BASIC]
 

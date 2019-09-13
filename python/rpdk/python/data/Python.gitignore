@@ -122,7 +122,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-.DS_Store
-.idea/
-*.tar.gz

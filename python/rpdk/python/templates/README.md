@@ -5,20 +5,35 @@ Congratulations on starting development! Next steps:
 1. Write the JSON schema describing your resource, `{{ schema_path.name }}`
 2. Implement your resource handlers in `{{ project_path }}/handlers.py`
 
-> Don't modify files in `resource_model/` by hand, any modifications will be overwritten when `generate` or
-`package` commandsare run.
+> Don't modify `models.py` by hand, any modifications will be overwritten when the `generate` or `package` commands are run.
 
-Implement CloudFormation resource here. Each function must return a ProgressEvent.
+Implement CloudFormation resource here. Each function must always return a ProgressEvent.
 
+```python
 ProgressEvent(
-    operation_status=Status.IN_PROGRESS, # Required: must be one of Status.IN_PROGRESS, Status.FAILED, Status.SUCCESS
-    # resource_model={}, # Optional: resource model dict, values can be retrieved in CFN with Fn::GetAtt
-    # message='', # Optional: message to supply to CloudFormation Stack events
-    # error_code='', # Optional: error code (only used in failure) Should be one of cfn_resource.exceptions.Codes
-    # callback_context={}, # will be sent to callback invocations as callback_context
-    # callback_delay_seconds=0 # setting to a value > 0 will re-call handler after
-    # specified time
+    # Required
+    # Must be one of OperationStatus.IN_PROGRESS, OperationStatus.FAILED, OperationStatus.SUCCESS
+    status=OperationStatus.IN_PROGRESS,
+    # Required on SUCCESS (except for LIST where resourceModels is required)
+    # The current resource model after the operation; instance of ResourceModel class
+    resourceModel=model,
+    resourceModels=None,
+    # Required on FAILED
+    # Customer-facing message, displayed in e.g. CloudFormation stack events
+    message="",
+    # Required on FAILED: a HandlerErrorCode
+    errorCode=HandlerErrorCode.InternalFailure,
+    # Optional
+    # Use to store any state between re-invocation via IN_PROGRESS
+    callbackContext={},
+    # Required on IN_PROGRESS
+    # The number of seconds to delay before re-invocation
+    callbackDelaySeconds=0,
 )
+```
 
-Failures can be passed back to CloudFormation by either raising an exception, preferably one of cfn_resource.exceptions
-operation_status to Status.FAILED and error_code to one of cfn_resource.exceptions
+Failures can be passed back to CloudFormation by either raising an exception from `{{ support_lib_pkg }}.exceptions`, or setting the ProgressEvent's `status` to `OperationStatus.FAILED` and `errorCode` to one of `{{ support_lib_pkg }}.HandlerErrorCode`. There is a static helper function, `ProgressEvent.failed`, for this common case.
+
+## What's with the type hints?
+
+We hope they'll be useful for getting started quicker with an IDE that support type hints. Type hints are optional - if your code doesn't use them, it will still work.
