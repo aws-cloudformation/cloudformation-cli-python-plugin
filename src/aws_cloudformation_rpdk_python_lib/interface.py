@@ -25,6 +25,7 @@ class Action(str, _AutoName):
 
 
 class OperationStatus(str, _AutoName):
+    PENDING = auto()
     IN_PROGRESS = auto()
     SUCCESS = auto()
     FAILED = auto()
