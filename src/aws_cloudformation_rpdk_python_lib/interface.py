@@ -56,6 +56,7 @@ class ProgressEvent(Generic[T]):
     callbackDelaySeconds: int = 0
     resourceModel: Optional[T] = None
     resourceModels: Optional[List[T]] = None
+    nextToken: Optional[str] = None
 
     def _serialize(self) -> Mapping[str, Any]:
         # to match Java serialization, which drops `null` values, and the
@@ -75,3 +76,4 @@ class ResourceHandlerRequest(Generic[T]):
     desiredResourceState: Optional[T]
     previousResourceState: Optional[T]
     logicalResourceIdentifier: Optional[str]
+    nextToken: Optional[str]
