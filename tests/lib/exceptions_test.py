@@ -32,6 +32,10 @@ def test_all_error_codes_have_exceptions():
 
 @pytest.mark.parametrize("name, ex", EXCEPTIONS)
 def test_exception_to_progress_event(name, ex):
-    progress_event = ex().to_progress_event()
+    try:
+        e = ex()
+    except TypeError:
+        e = ex("Foo::Bar::Baz", "ident")
+    progress_event = e.to_progress_event()
     assert progress_event.status == OperationStatus.FAILED
     assert progress_event.errorCode == HandlerErrorCode[name]

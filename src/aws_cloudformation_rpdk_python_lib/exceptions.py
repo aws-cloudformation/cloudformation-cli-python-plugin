@@ -29,11 +29,19 @@ class InvalidCredentials(_HandlerError[T]):
 
 
 class AlreadyExists(_HandlerError[T]):
-    pass
+    def __init__(self, type_name: str, identifier: str):
+        super().__init__(
+            f"Resource of type '{type_name}' with identifier "
+            f"'{identifier}' already exists."
+        )
 
 
 class NotFound(_HandlerError[T]):
-    pass
+    def __init__(self, type_name: str, identifier: str):
+        super().__init__(
+            f"Resource of type '{type_name}' with identifier "
+            f"'{identifier}' was not found."
+        )
 
 
 class ResourceConflict(_HandlerError[T]):
