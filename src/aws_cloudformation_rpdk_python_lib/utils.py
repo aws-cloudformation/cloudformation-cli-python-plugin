@@ -38,6 +38,7 @@ class UnmodelledRequest:
     desiredResourceState: Optional[Mapping[str, Any]] = None
     previousResourceState: Optional[Mapping[str, Any]] = None
     logicalResourceIdentifier: Optional[str] = None
+    nextToken: Optional[str] = None
 
     def to_modelled(self, model_cls: Type[T]) -> ResourceHandlerRequest[T]:
         return ResourceHandlerRequest(
@@ -49,4 +50,5 @@ class UnmodelledRequest:
                 self.previousResourceState
             ),
             logicalResourceIdentifier=self.logicalResourceIdentifier,
+            nextToken=self.nextToken,
         )
