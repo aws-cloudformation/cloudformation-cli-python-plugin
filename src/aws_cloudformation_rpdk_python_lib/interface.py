@@ -48,8 +48,10 @@ class HandlerErrorCode(str, _AutoName):
     InternalFailure = auto()
 
 
+# pylint: disable=too-many-instance-attributes
 @dataclass
 class ProgressEvent(Generic[T]):
+    # pylint: disable=invalid-name
     status: OperationStatus
     errorCode: Optional[HandlerErrorCode] = None
     message: str = ""
@@ -73,6 +75,7 @@ class ProgressEvent(Generic[T]):
 
 @dataclass
 class ResourceHandlerRequest(Generic[T]):
+    # pylint: disable=invalid-name
     clientRequestToken: str
     desiredResourceState: Optional[T]
     previousResourceState: Optional[T]
