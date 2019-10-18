@@ -43,10 +43,10 @@ class UnmodelledRequest:
     def to_modelled(self, model_cls: Type[T]) -> ResourceHandlerRequest[T]:
         return ResourceHandlerRequest(
             clientRequestToken=self.clientRequestToken,
-            desiredResourceState=model_cls.from_json(  # type: ignore
+            desiredResourceState=model_cls._deserialize(  # type: ignore
                 self.desiredResourceState
             ),
-            previousResourceState=model_cls.from_json(  # type: ignore
+            previousResourceState=model_cls._deserialize(  # type: ignore
                 self.previousResourceState
             ),
             logicalResourceIdentifier=self.logicalResourceIdentifier,
