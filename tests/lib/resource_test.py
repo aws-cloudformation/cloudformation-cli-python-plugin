@@ -81,8 +81,8 @@ def test__parse_test_request_invalid_request(resource, event, messages):
 
 
 def test__parse_test_request_valid_request():
-    mock_model = Mock(spec_set=["from_json"])
-    mock_model.from_json.side_effect = [sentinel.state_out1, sentinel.state_out2]
+    mock_model = Mock(spec_set=["_deserialize"])
+    mock_model._deserialize.side_effect = [sentinel.state_out1, sentinel.state_out2]
 
     payload = {
         "credentials": {"accessKeyId": "", "secretAccessKey": "", "sessionToken": ""},
@@ -108,7 +108,7 @@ def test__parse_test_request_valid_request():
     assert session is mock_session.return_value
 
     assert request.clientRequestToken == "ecba020e-b2e6-4742-a7d0-8a06ae7c4b2b"
-    mock_model.from_json.assert_has_calls(
+    mock_model._deserialize.assert_has_calls(
         [call(sentinel.state_in1), call(sentinel.state_in2)]
     )
     assert request.desiredResourceState is sentinel.state_out1
@@ -142,8 +142,8 @@ def test_test_entrypoint_uncaught_exception(resource, exc_cls):
 
 
 def test_test_entrypoint_success():
-    mock_model = Mock(spec_set=["from_json"])
-    mock_model.from_json.side_effect = [None, None]
+    mock_model = Mock(spec_set=["_deserialize"])
+    mock_model._deserialize.side_effect = [None, None]
 
     resource = Resource(mock_model)
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=sentinel.response))
@@ -164,5 +164,5 @@ def test_test_entrypoint_success():
     )
     assert event is sentinel.response
 
-    mock_model.from_json.assert_has_calls([call(None), call(None)])
+    mock_model._deserialize.assert_has_calls([call(None), call(None)])
     mock_handler.assert_called_once()
