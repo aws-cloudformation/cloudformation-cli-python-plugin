@@ -7,7 +7,7 @@ from .interface import Action, ResourceHandlerRequest, T
 
 
 class KitchenSinkEncoder(json.JSONEncoder):
-    def default(self, o):  # type: ignore pylint: disable=method-hidden
+    def default(self, o):  # type: ignore  # pylint: disable=method-hidden
         if isinstance(o, (datetime, date, time)):
             return o.isoformat()
         try:
@@ -18,6 +18,7 @@ class KitchenSinkEncoder(json.JSONEncoder):
 
 @dataclass
 class TestEvent:
+    # pylint: disable=invalid-name
     credentials: Mapping[str, str]
     action: Action
     request: Mapping[str, Any]
@@ -27,6 +28,7 @@ class TestEvent:
 
 @dataclass
 class Credentials:
+    # pylint: disable=invalid-name
     accessKeyId: str
     secretAccessKey: str
     sessionToken: str
@@ -34,6 +36,7 @@ class Credentials:
 
 @dataclass
 class UnmodelledRequest:
+    # pylint: disable=invalid-name
     clientRequestToken: str
     desiredResourceState: Optional[Mapping[str, Any]] = None
     previousResourceState: Optional[Mapping[str, Any]] = None
@@ -41,6 +44,7 @@ class UnmodelledRequest:
     nextToken: Optional[str] = None
 
     def to_modelled(self, model_cls: Type[T]) -> ResourceHandlerRequest[T]:
+        # pylint: disable=protected-access
         return ResourceHandlerRequest(
             clientRequestToken=self.clientRequestToken,
             desiredResourceState=model_cls._deserialize(  # type: ignore
