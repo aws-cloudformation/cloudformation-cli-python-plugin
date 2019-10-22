@@ -36,7 +36,6 @@ def test_progress_event_failed_is_json_serializable(error_code, message):
         "status": OperationStatus.FAILED.value,
         "errorCode": error_code.value,
         "message": message,
-        "callbackContext": {},
         "callbackDelaySeconds": 0,
     }
 
