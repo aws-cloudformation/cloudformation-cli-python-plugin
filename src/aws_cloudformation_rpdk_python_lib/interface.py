@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Generic, List, Mapping, Optional, Type, TypeVar
 
@@ -55,7 +55,7 @@ class ProgressEvent(Generic[T]):
     status: OperationStatus
     errorCode: Optional[HandlerErrorCode] = None
     message: str = ""
-    callbackContext: Mapping[str, Any] = field(default_factory=dict)
+    callbackContext: Optional[Mapping[str, Any]] = None
     callbackDelaySeconds: int = 0
     resourceModel: Optional[T] = None
     resourceModels: Optional[List[T]] = None
