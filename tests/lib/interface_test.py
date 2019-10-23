@@ -40,6 +40,20 @@ def test_progress_event_failed_is_json_serializable(error_code, message):
     }
 
 
+@given(s.text(ascii_letters), s.text(ascii_letters))
+def test_progress_event_serialize_to_response(message, bearer_token):
+    event = ProgressEvent(
+        status=OperationStatus.SUCCESS, message=message, callbackDelaySeconds=1
+    )
+
+    assert event._serialize(to_response=True, bearer_token=bearer_token) == {
+        "operationStatus": OperationStatus.SUCCESS.value,
+        "message": message,
+        "bearerToken": bearer_token,
+        "callbackDelaySeconds": 1,
+    }
+
+
 def test_operation_status_enum_matches_sdk(client):
     sdk = set(client.meta.service_model.shape_for("OperationStatus").enum)
     enum = set(OperationStatus.__members__)

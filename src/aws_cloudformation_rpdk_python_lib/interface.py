@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Generic, List, Mapping, Optional, Type, TypeVar
+from typing import Any, Generic, List, Mapping, MutableMapping, Optional, Type, TypeVar
 
 LOG = logging.getLogger(__name__)
 
@@ -61,10 +61,19 @@ class ProgressEvent(Generic[T]):
     resourceModels: Optional[List[T]] = None
     nextToken: Optional[str] = None
 
-    def _serialize(self) -> Mapping[str, Any]:
+    def _serialize(
+        self, to_response: bool = False, bearer_token: Optional[str] = None
+    ) -> MutableMapping[str, Any]:
         # to match Java serialization, which drops `null` values, and the
         # contract tests currently expect this also
-        return {k: v for k, v in self.__dict__.items() if v is not None}
+        ser = {k: v for k, v in self.__dict__.items() if v is not None}
+        # mutate to what's expected in the response
+        if to_response:
+            ser["bearerToken"] = bearer_token
+            ser["operationStatus"] = ser.pop("status")
+            if ser["callbackDelaySeconds"] == 0:
+                del ser["callbackDelaySeconds"]
+        return ser
 
     @classmethod
     def failed(
