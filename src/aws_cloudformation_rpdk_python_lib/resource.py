@@ -12,6 +12,7 @@ from .interface import (
     ResourceHandlerRequest,
     T,
 )
+from .log_delivery import ProviderLogHandler
 from .utils import (
     Credentials,
     HandlerRequest,
@@ -144,6 +145,7 @@ class Resource(Generic[T]):
         self, event_data: MutableMapping[str, Any], _context: Any
     ) -> MutableMapping[str, Any]:
         try:
+            ProviderLogHandler.setup(event_data)
             parsed = self._parse_request(event_data)
             session, request, action, callback_context = parsed
             progress_event = self._invoke_handler(
