@@ -34,6 +34,53 @@ class Credentials:
     sessionToken: str
 
 
+# pylint: disable=too-many-instance-attributes
+@dataclass
+class RequestData:
+    # pylint: disable=invalid-name
+    callerCredentials: Credentials
+    platformCredentials: Credentials
+    providerCredentials: Credentials
+    providerLogGroupName: str
+    logicalResourceId: str
+    resourceProperties: Mapping[str, Any]
+    systemTags: Mapping[str, Any]
+    stackTags: Mapping[str, Any]
+    previousResourceProperties: Optional[Mapping[str, Any]] = None
+    previousStackTags: Optional[Mapping[str, Any]] = None
+
+    @classmethod
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "RequestData":
+        req_data = RequestData(**json_data)
+        for prefix in ["caller", "provider", "platform"]:
+            cred_type = f"{prefix}Credentials"
+            setattr(req_data, cred_type, Credentials(**json_data.get(cred_type, {})))
+        return req_data
+
+
+# pylint: disable=too-many-instance-attributes
+@dataclass
+class HandlerRequest:
+    # pylint: disable=invalid-name
+    awsAccountId: str
+    bearerToken: str
+    region: str
+    action: str
+    responseEndpoint: str
+    resourceType: str
+    resourceTypeVersion: str
+    requestData: RequestData
+    stackId: str
+    nextToken: Optional[str] = None
+    requestContext: Mapping[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HandlerRequest":
+        event = HandlerRequest(**json_data)
+        event.requestData = RequestData.deserialize(json_data.get("requestData", {}))
+        return event
+
+
 @dataclass
 class UnmodelledRequest:
     # pylint: disable=invalid-name
