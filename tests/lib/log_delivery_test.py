@@ -26,6 +26,8 @@ def mock_provider_handler():
             "aws_session_token": "",
         },
     )
+    # not mocking the whole client because that replaces generated exception classes to
+    # be replaced with mocks
     for method in ["create_log_group", "create_log_stream", "put_log_events"]:
         setattr(plh.client, method, Mock(auto_spec=True))
     return plh
