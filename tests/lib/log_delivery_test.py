@@ -64,54 +64,56 @@ def test_setup_with_provider_creds(mock_logger):
             "providerLogGroupName": "test_group",
         },
     }
-    with patch(
+    patch_logger = patch(
         "aws_cloudformation_rpdk_python_lib.log_delivery.logging.getLogger",
         return_value=mock_logger,
-    ) as patched_logger:
-        with patch(
-            "aws_cloudformation_rpdk_python_lib.log_delivery.boto3.client",
-            autospec=True,
-        ) as mock_client:
-            ProviderLogHandler.setup(payload)
+    )
+    patch_client = patch(
+        "aws_cloudformation_rpdk_python_lib.log_delivery.boto3.client", autospec=True
+    )
+
+    with patch_logger as mock_log, patch_client as mock_client:
+        ProviderLogHandler.setup(payload)
     mock_client.assert_called_once_with(
         "logs",
         aws_access_key_id="AKI",
         aws_secret_access_key="SAK",
         aws_session_token="ST",
     )
-    patched_logger.return_value.addHandler.assert_called_once()
+    mock_log.return_value.addHandler.assert_called_once()
 
 
 def test_setup_without_provider_creds(mock_logger):
-    with patch(
+    patch_logger = patch(
         "aws_cloudformation_rpdk_python_lib.log_delivery.logging.getLogger",
         return_value=mock_logger,
-    ) as patched_logger:
-        with patch(
-            "aws_cloudformation_rpdk_python_lib.log_delivery.ProviderLogHandler"
-            ".__init__",
-            autospec=True,
-        ) as mock___init__:
-            payload = {
-                "resourceType": "Foo::Bar::Baz",
-                "region": "us-east-1",
-                "awsAccountId": "123123123123",
+    )
+    patch___init__ = patch(
+        "aws_cloudformation_rpdk_python_lib.log_delivery.ProviderLogHandler"
+        ".__init__",
+        autospec=True,
+    )
+    with patch_logger as mock_log, patch___init__ as mock___init__:
+        payload = {
+            "resourceType": "Foo::Bar::Baz",
+            "region": "us-east-1",
+            "awsAccountId": "123123123123",
+        }
+        ProviderLogHandler.setup(payload)
+        payload["requestData"] = {}
+        ProviderLogHandler.setup(payload)
+        payload["requestData"] = {"providerLogGroupName": "test"}
+        ProviderLogHandler.setup(payload)
+        payload["requestData"] = {
+            "providerCredentials": {
+                "accessKeyId": "AKI",
+                "secretAccessKey": "SAK",
+                "sessionToken": "ST",
             }
-            ProviderLogHandler.setup(payload)
-            payload["requestData"] = {}
-            ProviderLogHandler.setup(payload)
-            payload["requestData"] = {"providerLogGroupName": "test"}
-            ProviderLogHandler.setup(payload)
-            payload["requestData"] = {
-                "providerCredentials": {
-                    "accessKeyId": "AKI",
-                    "secretAccessKey": "SAK",
-                    "sessionToken": "ST",
-                }
-            }
-            ProviderLogHandler.setup(payload)
+        }
+        ProviderLogHandler.setup(payload)
     mock___init__.assert_not_called()
-    patched_logger.return_value.addHandler.assert_not_called()
+    mock_log.return_value.addHandler.assert_not_called()
 
 
 @pytest.mark.parametrize("create_method", ["_create_log_group", "_create_log_stream"])
