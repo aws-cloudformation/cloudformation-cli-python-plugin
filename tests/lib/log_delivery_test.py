@@ -3,7 +3,10 @@ import logging
 from unittest.mock import DEFAULT, Mock, create_autospec, patch
 
 import pytest
-from aws_cloudformation_rpdk_python_lib.log_delivery import ProviderLogHandler
+from aws_cloudformation_rpdk_python_lib.log_delivery import (
+    ProviderFilter,
+    ProviderLogHandler,
+)
 
 
 @pytest.fixture
@@ -28,8 +31,28 @@ def mock_provider_handler():
     return plh
 
 
+@pytest.mark.parametrize(
+    "logger", [("aa_bb_cc", False), ("aws_cloudformation_rpdk_python_lib", True)]
+)
+def test_provider_filter(logger):
+    log_name, expected = logger
+    ProviderFilter.PROVIDER = "aa_bb_cc"
+    log_filter = ProviderFilter()
+    record = logging.LogRecord(
+        name=log_name,
+        level=123,
+        pathname="abc",
+        lineno=123,
+        msg="test",
+        args=[],
+        exc_info=False,
+    )
+    assert log_filter.filter(record) == expected
+
+
 def test_setup_with_provider_creds(mock_logger):
     payload = {
+        "resourceType": "Foo::Bar::Baz",
         "requestData": {
             "providerCredentials": {
                 "accessKeyId": "AKI",
@@ -37,7 +60,7 @@ def test_setup_with_provider_creds(mock_logger):
                 "sessionToken": "ST",
             },
             "providerLogGroupName": "test_group",
-        }
+        },
     }
     with patch(
         "aws_cloudformation_rpdk_python_lib.log_delivery.logging.getLogger",
@@ -67,20 +90,20 @@ def test_setup_without_provider_creds(mock_logger):
             ".__init__",
             autospec=True,
         ) as mock___init__:
-            ProviderLogHandler.setup({})
-            ProviderLogHandler.setup({"requestData": {}})
-            ProviderLogHandler.setup({"requestData": {"providerLogGroupName": "test"}})
-            ProviderLogHandler.setup(
-                {
-                    "requestData": {
-                        "providerCredentials": {
-                            "accessKeyId": "AKI",
-                            "secretAccessKey": "SAK",
-                            "sessionToken": "ST",
-                        }
-                    }
+            payload = {"resourceType": "Foo::Bar::Baz"}
+            ProviderLogHandler.setup(payload)
+            payload["requestData"] = {}
+            ProviderLogHandler.setup(payload)
+            payload["requestData"] = {"providerLogGroupName": "test"}
+            ProviderLogHandler.setup(payload)
+            payload["requestData"] = {
+                "providerCredentials": {
+                    "accessKeyId": "AKI",
+                    "secretAccessKey": "SAK",
+                    "sessionToken": "ST",
                 }
-            )
+            }
+            ProviderLogHandler.setup(payload)
     mock___init__.assert_not_called()
     patched_logger.return_value.addHandler.assert_not_called()
 

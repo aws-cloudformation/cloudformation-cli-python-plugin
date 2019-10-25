@@ -6,6 +6,13 @@ from typing import Any, Mapping
 import boto3  # type: ignore
 
 
+class ProviderFilter(logging.Filter):
+    PROVIDER = ""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not record.name.startswith(self.PROVIDER)
+
+
 class ProviderLogHandler(logging.Handler):
     def __init__(self, group: str, stream: str, creds: Mapping[str, str]):
         logging.Handler.__init__(self)
@@ -24,6 +31,12 @@ class ProviderLogHandler(logging.Handler):
         stream_suffix = event_data.get("requestData", {}).get(
             "logicalResourceId", event_data.get("action")
         )
+
+        # filter provider messages from platform
+        ProviderFilter.PROVIDER = event_data["resourceType"].replace("::", "_").lower()
+        logging.getLogger().handlers[0].addFilter(ProviderFilter())
+
+        # add log handler to root, so that provider gets plugin logs too
         if log_creds and log_group:
             log_handler = cls(
                 group=log_group,
