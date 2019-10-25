@@ -82,10 +82,7 @@ class ProviderLogHandler(logging.Handler):
             "logGroupName": self.group,
             "logStreamName": self.stream,
             "logEvents": [
-                {
-                    "timestamp": int(round(time.time() * 1000)),
-                    "message": self.format(msg),
-                }
+                {"timestamp": round(time.time() * 1000), "message": self.format(msg)}
             ],
         }
         if self.sequence_token:
