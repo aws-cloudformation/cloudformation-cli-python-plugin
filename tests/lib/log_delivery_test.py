@@ -116,10 +116,14 @@ def test_setup_without_provider_creds(mock_logger):
     mock_log.return_value.addHandler.assert_not_called()
 
 
-@pytest.mark.parametrize("create_method", ["_create_log_group", "_create_log_stream"])
-def test__create_success(mock_provider_handler, create_method):
-    getattr(mock_provider_handler, create_method)()
-    getattr(mock_provider_handler.client, create_method[1:]).assert_called_once()
+def test_log_group_create_success(mock_provider_handler):
+    mock_provider_handler._create_log_group()
+    mock_provider_handler.client.create_log_group.assert_called_once()
+
+
+def test_log_stream_create_success(mock_provider_handler):
+    mock_provider_handler._create_log_stream()
+    mock_provider_handler.client.create_log_stream.assert_called_once()
 
 
 @pytest.mark.parametrize("create_method", ["_create_log_group", "_create_log_stream"])
