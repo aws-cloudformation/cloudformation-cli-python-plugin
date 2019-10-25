@@ -53,7 +53,9 @@ def test_provider_filter(logger):
 def test_setup_with_provider_creds(mock_logger):
     payload = {
         "resourceType": "Foo::Bar::Baz",
+        "stackId": "an-arn",
         "requestData": {
+            "logicalResourceId": "MyResourceId",
             "providerCredentials": {
                 "accessKeyId": "AKI",
                 "secretAccessKey": "SAK",
@@ -90,7 +92,11 @@ def test_setup_without_provider_creds(mock_logger):
             ".__init__",
             autospec=True,
         ) as mock___init__:
-            payload = {"resourceType": "Foo::Bar::Baz"}
+            payload = {
+                "resourceType": "Foo::Bar::Baz",
+                "region": "us-east-1",
+                "awsAccountId": "123123123123",
+            }
             ProviderLogHandler.setup(payload)
             payload["requestData"] = {}
             ProviderLogHandler.setup(payload)

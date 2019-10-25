@@ -23,14 +23,21 @@ class ProviderLogHandler(logging.Handler):
 
     @classmethod
     def setup(cls, event_data: Mapping[str, Any]) -> None:
-        log_creds = event_data.get("requestData", {}).get("providerCredentials", {})
-        log_group = event_data.get("requestData", {}).get("providerLogGroupName", "")
-        stream_prefix = event_data.get(
-            "stackId", f'{event_data.get("awsAccountId")}-{event_data.get("region")}'
-        )
-        stream_suffix = event_data.get("requestData", {}).get(
-            "logicalResourceId", event_data.get("action")
-        )
+        try:
+            log_creds = event_data["requestData"]["providerCredentials"]
+        except KeyError:
+            log_creds = {}
+        try:
+            log_group = event_data["requestData"]["providerLogGroupName"]
+        except KeyError:
+            log_group = ""
+        try:
+            stream_name = (
+                f'{event_data["stackId"]}/'
+                f'{event_data["requestData"]["logicalResourceId"]}'
+            )
+        except KeyError:
+            stream_name = f'{event_data["awsAccountId"]}-{event_data["region"]}'
 
         # filter provider messages from platform
         ProviderFilter.PROVIDER = event_data["resourceType"].replace("::", "_").lower()
@@ -40,7 +47,7 @@ class ProviderLogHandler(logging.Handler):
         if log_creds and log_group:
             log_handler = cls(
                 group=log_group,
-                stream=f"{stream_prefix}/{stream_suffix}",
+                stream=stream_name,
                 creds={
                     "aws_access_key_id": log_creds["accessKeyId"],
                     "aws_secret_access_key": log_creds["secretAccessKey"],
