@@ -14,8 +14,15 @@ class ProviderFilter(logging.Filter):
 
 
 class ProviderLogHandler(logging.Handler):
-    def __init__(self, group: str, stream: str, creds: Mapping[str, str]):
-        logging.Handler.__init__(self)
+    def __init__(
+        self,
+        group: str,
+        stream: str,
+        creds: Mapping[str, str],
+        *args: Any,
+        **kwargs: Any,
+    ):
+        super(ProviderLogHandler, self).__init__(*args, **kwargs)
         self.group = group
         self.stream = stream.replace(":", "__")
         self.client = boto3.client("logs", **creds)
