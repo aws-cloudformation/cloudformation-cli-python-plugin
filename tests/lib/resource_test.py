@@ -67,9 +67,10 @@ def patch_and_raise(resource, str_to_patch, exc_cls, entrypoint):
 
 
 def test_entrypoint_handler_error(resource):
-    event = resource.__call__.__wrapped__(
-        resource, {}, None
-    )  # pylint: disable=no-member
+    with patch("aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"):
+        event = resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, {}, None
+        )
     assert event["operationStatus"] == OperationStatus.FAILED.value
     assert event["errorCode"] == HandlerErrorCode.InvalidRequest
 
@@ -79,9 +80,14 @@ def test_entrypoint_success():
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
-    event = resource.__call__.__wrapped__(  # pylint: disable=no-member
-        resource, ENTRYPOINT_PAYLOAD, None
-    )
+    with patch(
+        "aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"
+    ) as mock_log_delivery:
+        event = resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, ENTRYPOINT_PAYLOAD, None
+        )
+    mock_log_delivery.assert_called_once()
+
     assert event == {
         "message": "",
         "bearerToken": "123456",
@@ -130,7 +136,8 @@ def test__parse_request_valid_request():
 
 @pytest.mark.parametrize("exc_cls", [Exception, BaseException])
 def test_entrypoint_uncaught_exception(resource, exc_cls):
-    event = patch_and_raise(resource, "_parse_request", exc_cls, resource.__call__)
+    with patch("aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"):
+        event = patch_and_raise(resource, "_parse_request", exc_cls, resource.__call__)
     assert event["operationStatus"] == OperationStatus.FAILED
     assert event["errorCode"] == HandlerErrorCode.InternalFailure
     assert event["message"] == "hahaha"

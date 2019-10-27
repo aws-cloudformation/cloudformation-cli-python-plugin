@@ -1,3 +1,4 @@
+import logging
 from typing import Any, MutableMapping
 
 from {{support_lib_pkg}} import (
@@ -12,6 +13,9 @@ from {{support_lib_pkg}} import (
 )
 
 from .models import ResourceModel, TResourceModel
+
+# Use this logger to forward log messages to CloudWatch Logs.
+LOG = logging.getLogger(__name__)
 
 resource = Resource(ResourceModel)
 test_entrypoint = resource.test_entrypoint
