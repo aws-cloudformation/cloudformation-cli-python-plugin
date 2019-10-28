@@ -128,7 +128,7 @@ def test_generate(project):
     before = get_files_in_project(project)
     project.generate()
     after = get_files_in_project(project)
-    files = after.keys() - before.keys()
+    files = after.keys() - before.keys() - {"resource-role.yaml"}
 
     assert files == {"src/foo_bar_baz/models.py"}
 
