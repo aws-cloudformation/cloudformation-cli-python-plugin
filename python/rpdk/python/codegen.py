@@ -1,7 +1,9 @@
 import logging
 import shutil
+import zipfile
 from pathlib import PurePosixPath
 from subprocess import CalledProcessError, run as subprocess_run  # nosec
+from tempfile import TemporaryFile
 
 import docker
 from docker.errors import APIError, ContainerError, ImageLoadError
@@ -33,7 +35,7 @@ class Python36LanguagePlugin(LanguagePlugin):
     NAME = "python36"
     RUNTIME = "python3.6"
     ENTRY_POINT = "{}.handlers.resource"
-    CODE_URI = "{}.zip"
+    CODE_URI = "src/"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -112,7 +114,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         handler_params = {
             "Handler": project.entrypoint,
             "Runtime": project.runtime,
-            "CodeUri": self.CODE_URI.format(project.hypenated_name),
+            "CodeUri": self.CODE_URI,
         }
         _render_template(
             project.root / "template.yml",
@@ -145,16 +147,27 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
+    def _pre_package(self, paths):
+        f = TemporaryFile("w+b")
+
+        with zipfile.ZipFile(f, mode="w") as zip_file:
+            for src, base in paths:
+                self._recursive_relative_write(src, base, zip_file)
+        f.seek(0)
+
+        return f
+
+    @staticmethod
+    def _recursive_relative_write(src_path, base_path, zip_file):
+        for path in src_path.rglob("*"):
+            if path.is_file() and path.suffix != ".pyc":
+                relative = path.relative_to(base_path)
+                zip_file.write(path.resolve(), str(relative))
+
     def package(self, project, zip_file):
         LOG.debug("Package started")
 
         self._init_from_project(project)
-
-        def recursive_relative_write(src_path, base_path):
-            for path in src_path.rglob("*"):
-                if path.is_file() and path.suffix != ".pyc":
-                    relative = path.relative_to(base_path)
-                    zip_file.write(path.resolve(), str(relative))
 
         handler_package_path = self.package_root / self.package_name
         deps_path = project.root / "build"
@@ -162,8 +175,14 @@ class Python36LanguagePlugin(LanguagePlugin):
         self._remove_build_artifacts(deps_path)
         self._build(project.root)
 
-        recursive_relative_write(handler_package_path, self.package_root)
-        recursive_relative_write(deps_path, deps_path)
+        relative_paths = [
+            (handler_package_path, self.package_root),
+            (deps_path, deps_path),
+        ]
+
+        inner_zip = self._pre_package(relative_paths)
+        zip_file.writestr("ResourceProvider.zip", inner_zip.read())
+        self._recursive_relative_write(handler_package_path, project.root, zip_file)
 
         LOG.debug("Package complete")
 
@@ -208,7 +227,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             "--requirement",
             str(base_path / "requirements.txt"),
             "--target",
-            str(base_path / "build"),
+            str(base_path / "src"),
         ]
 
     @classmethod
