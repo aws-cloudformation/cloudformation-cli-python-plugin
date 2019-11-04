@@ -35,7 +35,7 @@ class Python36LanguagePlugin(LanguagePlugin):
     NAME = "python36"
     RUNTIME = "python3.6"
     ENTRY_POINT = "{}.handlers.resource"
-    CODE_URI = "src/"
+    CODE_URI = "build/"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -147,12 +147,11 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
-    def _pre_package(self, paths):
+    def _pre_package(self, build_path):
         f = TemporaryFile("w+b")
 
         with zipfile.ZipFile(f, mode="w") as zip_file:
-            for src, base in paths:
-                self._recursive_relative_write(src, base, zip_file)
+            self._recursive_relative_write(build_path, build_path, zip_file)
         f.seek(0)
 
         return f
@@ -170,17 +169,13 @@ class Python36LanguagePlugin(LanguagePlugin):
         self._init_from_project(project)
 
         handler_package_path = self.package_root / self.package_name
-        deps_path = project.root / "build"
+        build_path = project.root / "build"
 
-        self._remove_build_artifacts(deps_path)
+        self._remove_build_artifacts(build_path)
         self._build(project.root)
+        shutil.copytree(str(handler_package_path), str(build_path / self.package_name))
 
-        relative_paths = [
-            (handler_package_path, self.package_root),
-            (deps_path, deps_path),
-        ]
-
-        inner_zip = self._pre_package(relative_paths)
+        inner_zip = self._pre_package(build_path)
         zip_file.writestr("ResourceProvider.zip", inner_zip.read())
         self._recursive_relative_write(handler_package_path, project.root, zip_file)
 
@@ -227,7 +222,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             "--requirement",
             str(base_path / "requirements.txt"),
             "--target",
-            str(base_path / "src"),
+            str(base_path / "build"),
         ]
 
     @classmethod
