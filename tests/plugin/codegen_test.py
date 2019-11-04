@@ -162,9 +162,10 @@ def test_package_pip(project):
 
     with zip_path.open("rb") as f, ZipFile(f, mode="r") as zip_file:
         assert sorted(zip_file.namelist()) == [
-            "foo_bar_baz/__init__.py",
-            "foo_bar_baz/handlers.py",
-            "foo_bar_baz/models.py",
+            "ResourceProvider.zip",
+            "src/foo_bar_baz/__init__.py",
+            "src/foo_bar_baz/handlers.py",
+            "src/foo_bar_baz/models.py",
         ]
 
 
