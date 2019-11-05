@@ -72,6 +72,9 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
+        project.test_entrypoint = project.entrypoint.replace(
+            ".resource", ".test_entrypoint"
+        )
 
         def _render_template(path, **kwargs):
             LOG.debug("Writing '%s'", path)
@@ -123,9 +126,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 "TypeFunction": handler_params,
                 "TestEntrypoint": {
                     **handler_params,
-                    "Handler": handler_params["Handler"].replace(
-                        ".resource", ".test_entrypoint"
-                    ),
+                    "Handler": project.test_entrypoint,
                 },
             },
         )
