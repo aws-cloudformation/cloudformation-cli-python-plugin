@@ -1,7 +1,7 @@
 import json
 import logging
 from functools import wraps
-from typing import Any, Callable, Generic, MutableMapping, Tuple, Type, Union
+from typing import Any, Callable, Generic, MutableMapping, Optional, Tuple, Type, Union
 
 from .boto3_proxy import SessionProxy, _get_boto_session
 from .exceptions import InvalidRequest, _HandlerError
@@ -24,7 +24,7 @@ from .utils import (
 LOG = logging.getLogger(__name__)
 
 HandlerSignature = Callable[
-    [SessionProxy, ResourceHandlerRequest[T], MutableMapping[str, Any]],
+    [Optional[SessionProxy], ResourceHandlerRequest[T], MutableMapping[str, Any]],
     ProgressEvent[T],
 ]
 
@@ -65,7 +65,7 @@ class Resource(Generic[T]):
 
     def _invoke_handler(
         self,
-        session: SessionProxy,
+        session: Optional[SessionProxy],
         request: ResourceHandlerRequest[T],
         action: Action,
         callback_context: MutableMapping[str, Any],
@@ -82,7 +82,10 @@ class Resource(Generic[T]):
     def _parse_test_request(
         self, event_data: MutableMapping[str, Any]
     ) -> Tuple[
-        SessionProxy, ResourceHandlerRequest[T], Action, MutableMapping[str, Any]
+        Optional[SessionProxy],
+        ResourceHandlerRequest[T],
+        Action,
+        MutableMapping[str, Any],
     ]:
         try:
             event = TestEvent(**event_data)
@@ -120,7 +123,10 @@ class Resource(Generic[T]):
     def _parse_request(
         self, event_data: MutableMapping[str, Any]
     ) -> Tuple[
-        SessionProxy, ResourceHandlerRequest[T], Action, MutableMapping[str, Any]
+        Optional[SessionProxy],
+        ResourceHandlerRequest[T],
+        Action,
+        MutableMapping[str, Any],
     ]:
         try:
             event = HandlerRequest.deserialize(event_data)

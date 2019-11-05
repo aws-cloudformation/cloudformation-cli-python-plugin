@@ -13,8 +13,10 @@ class SessionProxy:
 
 
 def _get_boto_session(
-    credentials: Credentials, region: Optional[str] = None
-) -> SessionProxy:
+    credentials: Optional[Credentials], region: Optional[str] = None
+) -> Optional[SessionProxy]:
+    if credentials is None:
+        return None
     session = Session(
         aws_access_key_id=credentials.accessKeyId,
         aws_secret_access_key=credentials.secretAccessKey,
