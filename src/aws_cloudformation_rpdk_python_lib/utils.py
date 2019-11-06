@@ -52,10 +52,12 @@ class RequestData:
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "RequestData":
         req_data = RequestData(**json_data)
-        for cred_type in [k for k in json_data if k.endswith("Credentials")]:
-            creds = json_data.get(cred_type)
-            if isinstance(creds, dict):
-                setattr(req_data, cred_type, Credentials(**creds))
+        for key in json_data:
+            if not key.endswith("Credentials"):
+                continue
+            creds = json_data.get(key)
+            if creds:
+                setattr(req_data, key, Credentials(**creds))
         return req_data
 
 
