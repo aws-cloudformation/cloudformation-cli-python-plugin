@@ -97,6 +97,39 @@ def test_entrypoint_success():
     mock_handler.assert_called_once()
 
 
+def test_entrypoint_success_without_caller_provider_creds():
+    resource = Resource(Mock())
+    event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
+    resource.handler(Action.CREATE)(Mock(return_value=event))
+
+    payload = ENTRYPOINT_PAYLOAD.copy()
+    payload["requestData"] = payload["requestData"].copy()
+
+    expected = {
+        "message": "",
+        "bearerToken": "123456",
+        "operationStatus": OperationStatus.SUCCESS,
+    }
+
+    with patch("aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"):
+        # Credentials are defined in payload, but null
+        payload["requestData"]["providerCredentials"] = None
+        payload["requestData"]["callerCredentials"] = None
+        event = resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, payload, None
+        )
+        assert event == expected
+
+        # Credentials are undefined in payload
+        del payload["requestData"]["providerCredentials"]
+        del payload["requestData"]["callerCredentials"]
+
+        event = resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, payload, None
+        )
+        assert event == expected
+
+
 @pytest.mark.parametrize(
     "event,messages", [({}, ("missing", "awsAccountId", "bearerToken", "requestData"))]
 )

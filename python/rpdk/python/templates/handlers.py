@@ -1,5 +1,5 @@
 import logging
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
 from {{support_lib_pkg}} import (
     Action,
@@ -23,7 +23,7 @@ test_entrypoint = resource.test_entrypoint
 
 @resource.handler(Action.CREATE)
 def create_handler(
-    session: SessionProxy,
+    session: Optional[SessionProxy],
     request: ResourceHandlerRequest[TResourceModel],
     callback_context: MutableMapping[str, Any],
 ) -> ProgressEvent[TResourceModel]:
@@ -36,7 +36,8 @@ def create_handler(
 
     # Example:
     try:
-        client = session.client("s3")
+        if isinstance(session, SessionProxy):
+            client = session.client("s3")
         # Setting Status to success will signal to cfn that the operation is complete
         progress.status = OperationStatus.SUCCESS
     except TypeError as e:
@@ -49,7 +50,7 @@ def create_handler(
 
 @resource.handler(Action.UPDATE)
 def update_handler(
-    session: SessionProxy,
+    session: Optional[SessionProxy],
     request: ResourceHandlerRequest[TResourceModel],
     callback_context: MutableMapping[str, Any],
 ) -> ProgressEvent[TResourceModel]:
@@ -64,7 +65,7 @@ def update_handler(
 
 @resource.handler(Action.DELETE)
 def delete_handler(
-    session: SessionProxy,
+    session: Optional[SessionProxy],
     request: ResourceHandlerRequest[TResourceModel],
     callback_context: MutableMapping[str, Any],
 ) -> ProgressEvent[TResourceModel]:
@@ -79,7 +80,7 @@ def delete_handler(
 
 @resource.handler(Action.READ)
 def read_handler(
-    session: SessionProxy,
+    session: Optional[SessionProxy],
     request: ResourceHandlerRequest[TResourceModel],
     callback_context: MutableMapping[str, Any],
 ) -> ProgressEvent[TResourceModel]:
@@ -93,7 +94,7 @@ def read_handler(
 
 @resource.handler(Action.LIST)
 def list_handler(
-    session: SessionProxy,
+    session: Optional[SessionProxy],
     request: ResourceHandlerRequest[TResourceModel],
     callback_context: MutableMapping[str, Any],
 ) -> ProgressEvent[TResourceModel]:

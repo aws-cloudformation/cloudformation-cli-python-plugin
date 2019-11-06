@@ -38,23 +38,26 @@ class Credentials:
 @dataclass
 class RequestData:
     # pylint: disable=invalid-name
-    callerCredentials: Credentials
     platformCredentials: Credentials
-    providerCredentials: Credentials
     providerLogGroupName: str
     logicalResourceId: str
     resourceProperties: Mapping[str, Any]
     systemTags: Mapping[str, Any]
     stackTags: Mapping[str, Any]
+    callerCredentials: Optional[Credentials] = field(default=None)
+    providerCredentials: Optional[Credentials] = field(default=None)
     previousResourceProperties: Optional[Mapping[str, Any]] = None
     previousStackTags: Optional[Mapping[str, Any]] = None
 
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "RequestData":
         req_data = RequestData(**json_data)
-        for prefix in ["caller", "provider", "platform"]:
-            cred_type = f"{prefix}Credentials"
-            setattr(req_data, cred_type, Credentials(**json_data.get(cred_type, {})))
+        for key in json_data:
+            if not key.endswith("Credentials"):
+                continue
+            creds = json_data.get(key)
+            if creds:
+                setattr(req_data, key, Credentials(**creds))
         return req_data
 
 
