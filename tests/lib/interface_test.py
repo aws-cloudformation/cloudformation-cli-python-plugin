@@ -5,6 +5,7 @@ from string import ascii_letters
 import boto3
 import pytest
 from aws_cloudformation_rpdk_python_lib.interface import (
+    BaseResourceModel,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
@@ -23,6 +24,16 @@ def client():
         aws_session_token="",
         region_name="us-east-1",
     )
+
+
+def test_base_resource_model__deserialize():
+    with pytest.raises(NotImplementedError):
+        BaseResourceModel()._deserialize({})
+
+
+def test_base_resource_model__serialize():
+    brm = BaseResourceModel()
+    assert brm._serialize() == brm.__dict__
 
 
 @given(s.sampled_from(HandlerErrorCode), s.text(ascii_letters))

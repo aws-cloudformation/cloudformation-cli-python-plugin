@@ -7,12 +7,11 @@ from {{support_lib_pkg}} import (
     OperationStatus,
     ProgressEvent,
     Resource,
-    ResourceHandlerRequest,
     SessionProxy,
     exceptions,
 )
 
-from .models import ResourceModel, TResourceModel
+from .models import ResourceHandlerRequest, ResourceModel
 
 # Use this logger to forward log messages to CloudWatch Logs.
 LOG = logging.getLogger(__name__)
@@ -24,11 +23,11 @@ test_entrypoint = resource.test_entrypoint
 @resource.handler(Action.CREATE)
 def create_handler(
     session: Optional[SessionProxy],
-    request: ResourceHandlerRequest[TResourceModel],
+    request: ResourceHandlerRequest,
     callback_context: MutableMapping[str, Any],
-) -> ProgressEvent[TResourceModel]:
+) -> ProgressEvent:
     model = request.desiredResourceState
-    progress: ProgressEvent[TResourceModel] = ProgressEvent(
+    progress: ProgressEvent = ProgressEvent(
         status=OperationStatus.IN_PROGRESS,
         resourceModel=model,
     )
@@ -51,11 +50,11 @@ def create_handler(
 @resource.handler(Action.UPDATE)
 def update_handler(
     session: Optional[SessionProxy],
-    request: ResourceHandlerRequest[TResourceModel],
+    request: ResourceHandlerRequest,
     callback_context: MutableMapping[str, Any],
-) -> ProgressEvent[TResourceModel]:
+) -> ProgressEvent:
     model = request.desiredResourceState
-    progress: ProgressEvent[TResourceModel] = ProgressEvent(
+    progress: ProgressEvent = ProgressEvent(
         status=OperationStatus.IN_PROGRESS,
         resourceModel=model,
     )
@@ -66,11 +65,11 @@ def update_handler(
 @resource.handler(Action.DELETE)
 def delete_handler(
     session: Optional[SessionProxy],
-    request: ResourceHandlerRequest[TResourceModel],
+    request: ResourceHandlerRequest,
     callback_context: MutableMapping[str, Any],
-) -> ProgressEvent[TResourceModel]:
+) -> ProgressEvent:
     model = request.desiredResourceState
-    progress: ProgressEvent[TResourceModel] = ProgressEvent(
+    progress: ProgressEvent = ProgressEvent(
         status=OperationStatus.IN_PROGRESS,
         resourceModel=model,
     )
@@ -81,9 +80,9 @@ def delete_handler(
 @resource.handler(Action.READ)
 def read_handler(
     session: Optional[SessionProxy],
-    request: ResourceHandlerRequest[TResourceModel],
+    request: ResourceHandlerRequest,
     callback_context: MutableMapping[str, Any],
-) -> ProgressEvent[TResourceModel]:
+) -> ProgressEvent:
     model = request.desiredResourceState
     # TODO: put code here
     return ProgressEvent(
@@ -95,9 +94,9 @@ def read_handler(
 @resource.handler(Action.LIST)
 def list_handler(
     session: Optional[SessionProxy],
-    request: ResourceHandlerRequest[TResourceModel],
+    request: ResourceHandlerRequest,
     callback_context: MutableMapping[str, Any],
-) -> ProgressEvent[TResourceModel]:
+) -> ProgressEvent:
     # TODO: put code here
     return ProgressEvent(
         status=OperationStatus.SUCCESS,

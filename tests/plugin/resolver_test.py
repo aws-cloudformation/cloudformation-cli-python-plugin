@@ -13,7 +13,12 @@ RESOLVED_TYPES = [
 
 def test_translate_type_model_typevar():
     traslated = translate_type(ResolvedType(ContainerType.MODEL, "Foo"))
-    assert traslated == "TFoo"
+    assert traslated == '"FooResourceModel"'
+
+
+def test_translate_type_model_typevar_main_resource_model():
+    traslated = translate_type(ResolvedType(ContainerType.MODEL, "ResourceModel"))
+    assert traslated == '"ResourceModel"'
 
 
 @pytest.mark.parametrize("resolved_type,native_type", RESOLVED_TYPES)

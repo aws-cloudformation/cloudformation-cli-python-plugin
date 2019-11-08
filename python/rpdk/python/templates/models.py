@@ -2,7 +2,7 @@
 {%- set used_models = properties|models_in_properties -%}
 {%- if used_models -%}(
 {%- for name in used_models -%}
-Generic[T{{ name }}]{%- if not loop.last -%}, {%- endif -%}
+"{{ name }}"{%- if not loop.last -%}, {%- endif -%}
 {%- endfor -%}
 ){%- endif -%}
 {%- endmacro -%}
@@ -24,45 +24,49 @@ from typing import (
     TypeVar,
 )
 
-T = TypeVar("T")
+from aws_cloudformation_rpdk_python_lib.interface import (
+    BaseResourceHandlerRequest,
+    BaseResourceModel,
+)
 
 
-def set_or_none(value: Optional[Sequence[T]]) -> Optional[AbstractSet[T]]:
+def set_or_none(value: Optional[Sequence[Any]]) -> Optional[AbstractSet[Any]]:
     if value:
         return set(value)
     return None
 
 
-{% for model, properties in models.items() %}
-T{{ model }} = TypeVar("T{{ model }}", bound="{{ model }}{{ typevar_model_bindings(properties) }}")
-{% endfor %}
+@dataclass
+class ResourceHandlerRequest(BaseResourceHandlerRequest):
+    # pylint: disable=invalid-name
+    desiredResourceState: Optional["ResourceModel"]
+    previousResourceState: Optional["ResourceModel"]
+
+
 {% for model, properties in models.items() %}
 
 
 @dataclass
-class {{ model }}{{ class_model_bindings(properties) }}:
+class {{ model|resource_name_suffix }}(BaseResourceModel):
     {% for name, type in properties.items() %}
     {{ name }}: Optional[{{ type|translate_type }}]
     {% endfor %}
 
-    def _serialize(self) -> Mapping[str, Any]:
-        return self.__dict__
-
     @classmethod
     def _deserialize(
-        cls: Type[T{{ model }}],
-        json: Mapping[str, Any],
-    ) -> Optional[T{{ model }}]:
-        if not json:
+        cls: Type["{{ model|resource_name_suffix }}"],
+        json_data: Optional[Mapping[str, Any]],
+    ) -> Optional["{{ model|resource_name_suffix }}"]:
+        if not json_data:
             return None
         return cls(
             {% for name, type in properties.items() %}
             {% if type.container == ContainerType.MODEL %}
-            {{ name }}={{ type.type }}._deserialize(json.get("{{ name }}")),  # type: ignore
+            {{ name }}={{ type.type|resource_name_suffix }}._deserialize(json_data.get("{{ name }}")),
             {% elif type.container == ContainerType.SET %}
-            {{ name }}=set_or_none(json.get("{{ name }}")),
+            {{ name }}=set_or_none(json_data.get("{{ name }}")),
             {% else %}
-            {{ name }}=json.get("{{ name }}"),
+            {{ name }}=json_data.get("{{ name }}"),
             {% endif %}
             {% endfor %}
         )

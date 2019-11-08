@@ -9,10 +9,17 @@ PRIMITIVE_TYPES = {
 }
 
 
+def resource_name_suffix(name):
+    # add a suffix to prevent typing conflicts
+    if name != "ResourceModel":
+        return f"{name}ResourceModel"
+    return name
+
+
 def translate_type(resolved_type):
     if resolved_type.container == ContainerType.MODEL:
-        # we create type vars to make it easier to ref later models
-        return f"T{resolved_type.type}"
+        # quote types to ensure they can be ref'd
+        return f'"{resource_name_suffix(resolved_type.type)}"'
     if resolved_type.container == ContainerType.PRIMITIVE:
         return PRIMITIVE_TYPES[resolved_type.type]
 
