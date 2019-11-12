@@ -17,7 +17,7 @@ from .resolver import models_in_properties, translate_type
 
 LOG = logging.getLogger(__name__)
 
-EXECUTABLE = "cfn-cli"
+EXECUTABLE = "cfn"
 SUPPORT_LIB_NAME = "aws-cloudformation-rpdk-python-lib"
 SUPPORT_LIB_PKG = SUPPORT_LIB_NAME.replace("-", "_")
 

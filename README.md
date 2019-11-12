@@ -11,7 +11,7 @@ Howto
 The support library, `aws-cloudformation-rpdk-python-lib` must be packaged and present in the project's directory. Packaging can be done by running the `package_lib.sh` script. Example run:
 
 ```
-$ cfn-cli init
+$ cfn init
 Initializing new project
 What's the name of your resource type?
 (Organization::Service::Resource)
@@ -29,7 +29,7 @@ with cross-platform Python packaging.
 >> y
 Initialized a new project in <>
 $ cp ../aws-cloudformation-rpdk-python-lib-0.0.1.tar.gz .
-$ cfn-cli submit --dry-run
+$ cfn submit --dry-run
 $ cat test.json
 {
   "credentials": {
