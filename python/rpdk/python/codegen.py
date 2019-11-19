@@ -13,7 +13,7 @@ from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import ContainerType, resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
-from .resolver import models_in_properties, resource_name_suffix, translate_type
+from .resolver import translate_type
 
 LOG = logging.getLogger(__name__)
 
@@ -42,8 +42,6 @@ class Python36LanguagePlugin(LanguagePlugin):
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
         self.env.filters["translate_type"] = translate_type
-        self.env.filters["resource_name_suffix"] = resource_name_suffix
-        self.env.filters["models_in_properties"] = models_in_properties
         self.env.globals["ContainerType"] = ContainerType
         self.namespace = None
         self.package_name = None

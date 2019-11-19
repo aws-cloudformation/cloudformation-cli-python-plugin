@@ -1,15 +1,3 @@
-{%- macro class_model_bindings(properties) -%}
-{%- set used_models = properties|models_in_properties -%}
-{%- if used_models -%}(
-{%- for name in used_models -%}
-"{{ name }}"{%- if not loop.last -%}, {%- endif -%}
-{%- endfor -%}
-){%- endif -%}
-{%- endmacro -%}
-{%- macro typevar_model_bindings(properties) -%}
-{%- set used_models = properties|models_in_properties -%}
-{%- if used_models -%}[{{ used_models|join(", ") }}]{%- endif %}
-{%- endmacro -%}
 # DO NOT modify this file by hand, changes will be overwritten
 from dataclasses import dataclass
 from typing import (
@@ -29,8 +17,10 @@ from cloudformation_cli_python_lib.interface import (
     BaseResourceModel,
 )
 
+T = TypeVar("T")
 
-def set_or_none(value: Optional[Sequence[Any]]) -> Optional[AbstractSet[Any]]:
+
+def set_or_none(value: Optional[Sequence[T]]) -> Optional[AbstractSet[T]]:
     if value:
         return set(value)
     return None
@@ -44,25 +34,23 @@ class ResourceHandlerRequest(BaseResourceHandlerRequest):
 
 
 {% for model, properties in models.items() %}
-
-
 @dataclass
-class {{ model|resource_name_suffix }}(BaseResourceModel):
+class {{ model }}{% if model == "ResourceModel" %}(BaseResourceModel){% endif %}:
     {% for name, type in properties.items() %}
     {{ name }}: Optional[{{ type|translate_type }}]
     {% endfor %}
 
     @classmethod
     def _deserialize(
-        cls: Type["{{ model|resource_name_suffix }}"],
+        cls: Type["{{ model }}Alias"],
         json_data: Optional[Mapping[str, Any]],
-    ) -> Optional["{{ model|resource_name_suffix }}"]:
+    ) -> Optional["{{ model }}Alias"]:
         if not json_data:
             return None
         return cls(
             {% for name, type in properties.items() %}
             {% if type.container == ContainerType.MODEL %}
-            {{ name }}={{ type.type|resource_name_suffix }}._deserialize(json_data.get("{{ name }}")),
+            {{ name }}={{ type.type }}._deserialize(json_data.get("{{ name }}")),
             {% elif type.container == ContainerType.SET %}
             {{ name }}=set_or_none(json_data.get("{{ name }}")),
             {% else %}
@@ -70,4 +58,10 @@ class {{ model|resource_name_suffix }}(BaseResourceModel):
             {% endif %}
             {% endfor %}
         )
-{% endfor %}
+
+
+# work around possible type aliasing issues where variable has same name as type
+{{ model }}Alias = {{ model }}
+
+
+{% endfor -%}

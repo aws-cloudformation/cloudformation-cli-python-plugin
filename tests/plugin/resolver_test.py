@@ -1,9 +1,7 @@
-from string import ascii_lowercase
-
 import pytest
 
 from rpdk.core.jsonutils.resolver import ContainerType, ResolvedType
-from rpdk.python.resolver import PRIMITIVE_TYPES, models_in_properties, translate_type
+from rpdk.python.resolver import PRIMITIVE_TYPES, translate_type
 
 RESOLVED_TYPES = [
     (ResolvedType(ContainerType.PRIMITIVE, item_type), native_type)
@@ -11,14 +9,14 @@ RESOLVED_TYPES = [
 ]
 
 
-def test_translate_type_model_typevar():
+def test_translate_type_model_typevar_not_resource_model():
     traslated = translate_type(ResolvedType(ContainerType.MODEL, "Foo"))
-    assert traslated == '"FooResourceModel"'
+    assert traslated == '"FooAlias"'
 
 
 def test_translate_type_model_typevar_main_resource_model():
     traslated = translate_type(ResolvedType(ContainerType.MODEL, "ResourceModel"))
-    assert traslated == '"ResourceModel"'
+    assert traslated == '"ResourceModelAlias"'
 
 
 @pytest.mark.parametrize("resolved_type,native_type", RESOLVED_TYPES)
@@ -48,24 +46,3 @@ def test_translate_type_set(resolved_type, native_type):
 def test_translate_type_unknown(resolved_type, _native_type):
     with pytest.raises(ValueError):
         translate_type(ResolvedType("foo", resolved_type))
-
-
-def test_models_in_properties():
-    properties = dict(
-        zip(
-            ascii_lowercase,
-            [
-                ResolvedType(ContainerType.MODEL, "foo"),
-                ResolvedType(ContainerType.PRIMITIVE, "string"),
-                ResolvedType(ContainerType.PRIMITIVE, "boolean"),
-                ResolvedType(ContainerType.MODEL, "foo"),
-                ResolvedType(ContainerType.DICT, None),
-                ResolvedType(ContainerType.MODEL, "foo"),
-                ResolvedType(ContainerType.LIST, None),
-                ResolvedType(ContainerType.MODEL, "bar"),
-                ResolvedType(ContainerType.SET, None),
-            ],
-        )
-    )
-    models = models_in_properties(properties)
-    assert models == ["bar", "foo"]
