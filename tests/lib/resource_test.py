@@ -3,14 +3,14 @@ from datetime import datetime
 from unittest.mock import Mock, call, patch, sentinel
 
 import pytest
-from aws_cloudformation_rpdk_python_lib.exceptions import InvalidRequest
-from aws_cloudformation_rpdk_python_lib.interface import (
+from cloudformation_cli_python_lib.exceptions import InvalidRequest
+from cloudformation_cli_python_lib.interface import (
     Action,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
 )
-from aws_cloudformation_rpdk_python_lib.resource import Resource, _ensure_serialize
+from cloudformation_cli_python_lib.resource import Resource, _ensure_serialize
 
 ENTRYPOINT_PAYLOAD = {
     "awsAccountId": "123456789012",
@@ -67,7 +67,7 @@ def patch_and_raise(resource, str_to_patch, exc_cls, entrypoint):
 
 
 def test_entrypoint_handler_error(resource):
-    with patch("aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"):
+    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, {}, None
         )
@@ -81,7 +81,7 @@ def test_entrypoint_success():
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
     with patch(
-        "aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
     ) as mock_log_delivery:
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, ENTRYPOINT_PAYLOAD, None
@@ -111,7 +111,7 @@ def test_entrypoint_success_without_caller_provider_creds():
         "operationStatus": OperationStatus.SUCCESS,
     }
 
-    with patch("aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"):
+    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
         # Credentials are defined in payload, but null
         payload["requestData"]["providerCredentials"] = None
         payload["requestData"]["callerCredentials"] = None
@@ -148,7 +148,7 @@ def test__parse_request_valid_request():
     resource = Resource(mock_model)
 
     with patch(
-        "aws_cloudformation_rpdk_python_lib.resource._get_boto_session"
+        "cloudformation_cli_python_lib.resource._get_boto_session"
     ) as mock_session:
         ret = resource._parse_request(ENTRYPOINT_PAYLOAD)
     session, request, action, callback_context = ret
@@ -169,7 +169,7 @@ def test__parse_request_valid_request():
 
 @pytest.mark.parametrize("exc_cls", [Exception, BaseException])
 def test_entrypoint_uncaught_exception(resource, exc_cls):
-    with patch("aws_cloudformation_rpdk_python_lib.resource.ProviderLogHandler.setup"):
+    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
         event = patch_and_raise(resource, "_parse_request", exc_cls, resource.__call__)
     assert event["operationStatus"] == OperationStatus.FAILED
     assert event["errorCode"] == HandlerErrorCode.InternalFailure
@@ -257,7 +257,7 @@ def test__parse_test_request_valid_request():
     resource = Resource(mock_model)
 
     with patch(
-        "aws_cloudformation_rpdk_python_lib.resource._get_boto_session"
+        "cloudformation_cli_python_lib.resource._get_boto_session"
     ) as mock_session:
         ret = resource._parse_test_request(payload)
     session, request, action, callback_context = ret

@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from aws_cloudformation_rpdk_python_lib.utils import KitchenSinkEncoder
+from cloudformation_cli_python_lib.utils import KitchenSinkEncoder
 
 import hypothesis.strategies as s
 from hypothesis import given

@@ -24,7 +24,7 @@ from typing import (
     TypeVar,
 )
 
-from aws_cloudformation_rpdk_python_lib.interface import (
+from cloudformation_cli_python_lib.interface import (
     BaseResourceHandlerRequest,
     BaseResourceModel,
 )
