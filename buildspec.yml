@@ -5,21 +5,11 @@ phases:
       python: 3.7
     commands:
       - >
-        pip install --upgrade
-        pip
-        setuptools
-        wheel
-        awscli
-        mypy
-        -r "$CODEBUILD_SRC_DIR_RPDK/requirements.txt"
-      - >
-        aws configure add-model
-        --service-model "file://$CODEBUILD_SRC_DIR_RPDK/cloudformation-2010-05-15.normal.json"
-        --service-name "cloudformation"
+        pip install --upgrade pip setuptools wheel mypy
+        -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
   build:
     commands:
-      # install aws-cloudformation-rpdk-python-plugin and rpdk core
-      - pip install "$CODEBUILD_SRC_DIR_RPDK" "$CODEBUILD_SRC_DIR" "$CODEBUILD_SRC_DIR/src"
+      - pip install . src/
       # run lints/tests
       - pre-commit run --all-files
       # end-to-end test

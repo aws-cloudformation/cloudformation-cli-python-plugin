@@ -1,5 +1,8 @@
-## AWS CloudFormation Resource Provider Python Plugin
+# DEVELOPER PREVIEW
 
+We're excited to share our progress with adding new languages to the CloudFormation CLI! This plugin is an early preview, and not ready for production use.
+
+## AWS CloudFormation Resource Provider Python Plugin
 
 The CloudFormation Resource Provider Development Kit (RPDK) allows you to author your own resource providers that can be used by CloudFormation.
 
@@ -8,7 +11,7 @@ This plugin library helps to provide runtime bindings for the execution of your 
 Howto
 -----
 
-The support library, `aws-cloudformation-rpdk-python-lib` must be packaged and present in the project's directory. Packaging can be done by running the `package_lib.sh` script. Example run:
+The support library, `cloudformation-cli-python-lib` must be packaged and present in the project's directory. Packaging can be done by running the `package_lib.sh` script. Example run:
 
 ```
 $ cfn init
@@ -28,7 +31,7 @@ This is highly recommended unless you are experienced
 with cross-platform Python packaging.
 >> y
 Initialized a new project in <>
-$ cp ../aws-cloudformation-rpdk-python-lib-0.0.1.tar.gz .
+$ cp ../cloudformation-cli-python-lib-0.0.1.tar.gz .
 $ cfn submit --dry-run
 $ cat test.json
 {
@@ -55,16 +58,13 @@ $ sam local invoke TestEntrypoint --event test.json
 Development
 -----------
 
-For changes to the plugin, a Python virtual environment is recommended. You also need to download `aws-cloudformation-rpdk` and install it first, as it isn't currently available on PyPI, but is a required dependency:
+For changes to the plugin, a Python virtual environment is recommended. The development requirements can be sourced from the core repository:
 
 ```
 python3 -m venv env
 source env/bin/activate
-# assuming aws-cloudformation-rpdk has already been cloned/downloaded
-pip install \
-    -e ../aws-cloudformation-rpdk \
-    -r ../aws-cloudformation-rpdk/requirements.txt \
-    -e .
+pip install -e . -e src/ \
+  -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
 pre-commit install
 ```
 

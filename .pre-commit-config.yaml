@@ -71,7 +71,7 @@ repos:
       --cov-report=term
       --cov-report=html
       --cov="rpdk.python"
-      --cov="aws_cloudformation_rpdk_python_lib"
+      --cov="cloudformation_cli_python_lib"
       "tests/"
     language: system
     # ignore all files, run on hard-coded modules instead
