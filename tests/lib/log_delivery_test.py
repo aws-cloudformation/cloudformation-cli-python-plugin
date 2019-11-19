@@ -3,7 +3,7 @@ import logging
 from unittest.mock import DEFAULT, Mock, create_autospec, patch
 
 import pytest
-from aws_cloudformation_rpdk_python_lib.log_delivery import (
+from cloudformation_cli_python_lib.log_delivery import (
     ProviderFilter,
     ProviderLogHandler,
 )
@@ -16,7 +16,7 @@ def mock_logger():
 
 @pytest.fixture
 def mock_provider_handler():
-    patch("aws_cloudformation_rpdk_python_lib.log_delivery.boto3.client", autospec=True)
+    patch("cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True)
     plh = ProviderLogHandler(
         group="test-group",
         stream="test-stream",
@@ -34,7 +34,7 @@ def mock_provider_handler():
 
 
 @pytest.mark.parametrize(
-    "logger", [("aa_bb_cc", False), ("aws_cloudformation_rpdk_python_lib", True)]
+    "logger", [("aa_bb_cc", False), ("cloudformation_cli_python_lib", True)]
 )
 def test_provider_filter(logger):
     log_name, expected = logger
@@ -67,11 +67,11 @@ def test_setup_with_provider_creds(mock_logger):
         },
     }
     patch_logger = patch(
-        "aws_cloudformation_rpdk_python_lib.log_delivery.logging.getLogger",
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
         return_value=mock_logger,
     )
     patch_client = patch(
-        "aws_cloudformation_rpdk_python_lib.log_delivery.boto3.client", autospec=True
+        "cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True
     )
 
     with patch_logger as mock_log, patch_client as mock_client:
@@ -87,12 +87,11 @@ def test_setup_with_provider_creds(mock_logger):
 
 def test_setup_without_provider_creds(mock_logger):
     patch_logger = patch(
-        "aws_cloudformation_rpdk_python_lib.log_delivery.logging.getLogger",
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
         return_value=mock_logger,
     )
     patch___init__ = patch(
-        "aws_cloudformation_rpdk_python_lib.log_delivery.ProviderLogHandler"
-        ".__init__",
+        "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler" ".__init__",
         autospec=True,
     )
     with patch_logger as mock_log, patch___init__ as mock___init__:

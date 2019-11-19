@@ -2,13 +2,10 @@ import importlib
 import inspect
 
 import pytest
-from aws_cloudformation_rpdk_python_lib.interface import (
-    HandlerErrorCode,
-    OperationStatus,
-)
+from cloudformation_cli_python_lib.interface import HandlerErrorCode, OperationStatus
 
 
-def get_public_exceptions(module_name="aws_cloudformation_rpdk_python_lib.exceptions"):
+def get_public_exceptions(module_name="cloudformation_cli_python_lib.exceptions"):
     module = importlib.import_module(module_name)
 
     def local_public_class(member):

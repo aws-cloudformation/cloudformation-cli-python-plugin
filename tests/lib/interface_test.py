@@ -4,7 +4,7 @@ from string import ascii_letters
 
 import boto3
 import pytest
-from aws_cloudformation_rpdk_python_lib.interface import (
+from cloudformation_cli_python_lib.interface import (
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,

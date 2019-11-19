@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Python 3.6 and 3.7 language support for the CloudFormation CLI"""
 import os.path
 import re
 
@@ -22,19 +23,21 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cloudformation-rpdk-python-plugin",
+    name="cloudformation-cli-python-plugin",
     version=find_version("python", "rpdk", "python", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
     author="Amazon Web Services",
-    url="https://aws.amazon.com/cloudformation/",
+    author_email="aws-cloudformation-developers@amazon.com",
+    url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk-python-plugin/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.python"],
     package_dir={"": "python"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=["aws-cloudformation-rpdk>=0.1,<0.2", "docker>=3.7,<3.8"],
+    python_requires=">=3.6",
+    install_requires=["cloudformation-cli>=0.1,<0.2", "docker>=3.7,<3.8"],
     entry_points={
         "rpdk.v1.languages": [
             "python37 = rpdk.python.codegen:Python37LanguagePlugin",
@@ -42,8 +45,9 @@ setup(
         ]
     },
     license="Apache License 2.0",
-    classifiers=(
+    classifiers=[
         "Development Status :: 2 - Pre-Alpha",
+        "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
@@ -53,6 +57,6 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-    ),
+    ],
     keywords="Amazon Web Services AWS CloudFormation",
 )
