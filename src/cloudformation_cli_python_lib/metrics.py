@@ -44,7 +44,10 @@ class MetricPublisher:
                 }
             ]
         )
-        return self.client.put_metric_data(**metric_data)
+        try:
+            return self.client.put_metric_data(**metric_data)
+        except Exception as e:
+            LOG.error(f'An error occurred while publishing metrics: {str(e)}')
 
     def publish_exception_metric(self, date, action, error) -> None:
         dimensions = {
