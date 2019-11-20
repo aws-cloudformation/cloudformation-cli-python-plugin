@@ -10,8 +10,6 @@ from .interface import Action, MetricTypes, StandardUnit
 
 LOG = logging.getLogger(__name__)
 
-print(__name__)
-
 
 def format_dimensions(dimensions: Mapping[Any, Any]) -> Any:  # TODO fix type
     formatted_dimensions = []
@@ -47,7 +45,6 @@ class MetricPublisher:
                     }
                 ],
             )
-            print(__name__, LOG)
             LOG.debug(res)
 
         except ClientError as e:
