@@ -1,4 +1,5 @@
 import json
+import time
 import logging
 from functools import wraps
 from typing import Any, Callable, Generic, MutableMapping, Optional, Tuple, Type, Union
@@ -20,6 +21,7 @@ from .utils import (
     TestEvent,
     UnmodelledRequest,
 )
+from .metrics import MetricPublisher
 
 LOG = logging.getLogger(__name__)
 
@@ -69,10 +71,12 @@ class Resource(Generic[T]):
         request: ResourceHandlerRequest[T],
         action: Action,
         callback_context: MutableMapping[str, Any],
+        metric_publisher: MetricPublisher
     ) -> ProgressEvent[T]:
         try:
             handler = self._handlers[action]
-        except KeyError:
+        except KeyError as e:
+            metric_publisher.publish_exception_metric(time.time(), action, e)
             return ProgressEvent.failed(
                 HandlerErrorCode.InternalFailure, f"No handler for {action}"
             )
@@ -154,8 +158,14 @@ class Resource(Generic[T]):
             ProviderLogHandler.setup(event_data)
             parsed = self._parse_request(event_data)
             session, request, action, callback_context = parsed
+
+            metric_publisher = MetricPublisher(
+                namespace='',
+                session=session
+            )
+
             progress_event = self._invoke_handler(
-                session, request, action, callback_context
+                session, request, action, callback_context, metric_publisher
             )
         except _HandlerError as e:
             LOG.exception("Handler error", exc_info=True)
