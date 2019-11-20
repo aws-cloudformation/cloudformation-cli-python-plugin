@@ -126,3 +126,6 @@ dmypy.json
 .DS_Store
 .idea/
 *.tar.gz
+
+# We want to allow the tests/lib folder
+!tests/lib
