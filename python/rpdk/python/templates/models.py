@@ -42,9 +42,9 @@ class {{ model }}{% if model == "ResourceModel" %}(BaseResourceModel){% endif %}
 
     @classmethod
     def _deserialize(
-        cls: Type["{{ model }}Alias"],
+        cls: Type["_{{ model }}"],
         json_data: Optional[Mapping[str, Any]],
-    ) -> Optional["{{ model }}Alias"]:
+    ) -> Optional["_{{ model }}"]:
         if not json_data:
             return None
         return cls(
@@ -60,8 +60,8 @@ class {{ model }}{% if model == "ResourceModel" %}(BaseResourceModel){% endif %}
         )
 
 
-# work around possible type aliasing issues where variable has same name as type
-{{ model }}Alias = {{ model }}
+# work around possible type aliasing issues when variable has same name as a model
+_{{ model }} = {{ model }}
 
 
 {% endfor -%}
