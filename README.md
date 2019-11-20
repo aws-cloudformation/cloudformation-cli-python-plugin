@@ -8,6 +8,16 @@ The CloudFormation Resource Provider Development Kit (RPDK) allows you to author
 
 This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation.
 
+Installation
+------------
+
+Because this is a developer preview, you can't install it from pypi (the version there will not work)
+You can still install the plugin using [pip](https://pypi.org/project/pip/) from GitHub.
+
+```bash
+pip install git+https://github.com/aws-cloudformation/aws-cloudformation-rpdk-python-plugin.git#egg=cloudformation-cli-python-plugin
+```
+
 Howto
 -----
 
