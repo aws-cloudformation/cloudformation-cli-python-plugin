@@ -160,7 +160,7 @@ class Resource(Generic[T]):
             session, request, action, callback_context = parsed
 
             metric_publisher = MetricPublisher(
-                namespace='',
+                namespace='AWS/CloudFormation',
                 session=session
             )
 
