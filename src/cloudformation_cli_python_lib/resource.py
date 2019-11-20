@@ -155,6 +155,7 @@ class Resource(Generic[T]):
         self, event_data: MutableMapping[str, Any], _context: Any
     ) -> MutableMapping[str, Any]:
         try:
+            start = time.time()
             ProviderLogHandler.setup(event_data)
             parsed = self._parse_request(event_data)
             session, request, action, callback_context = parsed
@@ -164,9 +165,12 @@ class Resource(Generic[T]):
                 session=session
             )
 
+            metric_publisher.publish_invocation_metric(start, action)
             progress_event = self._invoke_handler(
                 session, request, action, callback_context, metric_publisher
             )
+            end = time.time()
+            metric_publisher.publish_duration_metric(end, action, end - start)
         except _HandlerError as e:
             LOG.exception("Handler error", exc_info=True)
             progress_event = e.to_progress_event()
