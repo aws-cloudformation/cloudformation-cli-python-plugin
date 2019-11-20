@@ -3,13 +3,6 @@ from enum import Enum
 
 LOG = logging.getLogger(__name__)
 
-def create_dimension(item):
-    key, value = item
-    return {
-        'Name': key,
-        'Value': value
-    }
-
 class MetricTypes(Enum):
     HANDLER_EXCEPTION='HandlerException'
     HANDLER_INVOCATION_COUNT='HandlerInvocationCount'
@@ -32,15 +25,22 @@ class MetricPublisher:
         self.client = session.client('cloudwatch')
 
     def _publish_metric(self, metric_name, dimensions, unit, value, date):
-        dimensions = map(create_dimension, dimensions.items())
+        formatted_dimensions = []
+        for k, v in dimensions.items():
+            formatted_dimensions.append({
+                'Name': k,
+                'Value': v
+            })
+
         metric_data = dict(
             Namespace=self.namespace,
             MetricData=[
                 {
                     'MetricName': metric_name,
-                    'Dimensions': dimensions,
+                    'Dimensions': formatted_dimensions,
                     'Unit': unit,
-                    'Timestamp': date
+                    'Timestamp': date,
+                    'Value': value
                 }
             ]
         )
@@ -57,7 +57,7 @@ class MetricPublisher:
         }
 
         res = self._publish_metric(
-            error_type=MetricTypes.HANDLER_EXCEPTION,
+            metric_name=MetricTypes.HANDLER_EXCEPTION,
             dimensions=dimensions,
             unit=StandardUnit.COUNT,
             value=1.0,
@@ -67,12 +67,12 @@ class MetricPublisher:
 
     def publish_invocation_metric(self, date, action) -> None:
         dimensions = {
-            'DimensionKeyExceptionType': action,
+            'DimensionKeyActionType': action,
             'DimensionKeyResourceType': self.namespace,
         }
 
         res = self._publish_metric(
-            error_type=MetricTypes.HANDLER_INVOCATION_COUNT,
+            metric_name=MetricTypes.HANDLER_INVOCATION_COUNT,
             dimensions=dimensions,
             unit=StandardUnit.COUNT,
             value=1.0,
@@ -82,12 +82,12 @@ class MetricPublisher:
 
     def publish_duration_metric(self, date, action, milliseconds) -> None:
         dimensions = {
-            'DimensionKeyExceptionType': action,
+            'DimensionKeyActionType': action,
             'DimensionKeyResourceType': self.namespace,
         }
 
         res = self._publish_metric(
-            error_type=MetricTypes.HANDLER_INVOCATION_DURATION,
+            metric_name=MetricTypes.HANDLER_INVOCATION_DURATION,
             dimensions=dimensions,
             unit=StandardUnit.MILLISECONDS,
             value=milliseconds,
