@@ -3,7 +3,8 @@ from enum import Enum
 
 LOG = logging.getLogger(__name__)
 
-def create_dimension(key, value):
+def create_dimension(item):
+    key, value = item
     return {
         'Name': key,
         'Value': value
@@ -31,7 +32,7 @@ class MetricPublisher:
         self.client = session.client('cloudwatch')
 
     def _publish_metric(self, metric_name, dimensions, unit, value, date):
-        dimensions = map(create_dimension, dimensions)
+        dimensions = map(create_dimension, dimensions.items())
         metric_data = dict(
             Namespace=self.namespace,
             MetricData=[
