@@ -1,4 +1,4 @@
-import time
+from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
 import boto3
@@ -14,7 +14,7 @@ class MockSession:
     def __init__(self, client):
         self._client = client
 
-    def client(self, name):  # pylint: disable-msg=unused-argument
+    def client(self, _name):
         return self._client
 
 
@@ -41,7 +41,8 @@ def test_put_metric_catches_error():
     stubber.activate()
 
     publisher = MetricPublisher("fake-namespace", MockSession(client))
-    publisher.publish_exception_metric(time.time(), "CREATE", "fake-error")
+    fake_datetime = datetime(2019, 1, 1)
+    publisher.publish_exception_metric(fake_datetime, "CREATE", "fake-error")
     stubber.deactivate()
 
 
@@ -49,8 +50,11 @@ def test_publish_exception_metric():
     mock_client = patch("boto3.client")
     mock_client.return_value = MagicMock()
 
+    fake_datetime = datetime(2019, 1, 1)
     publisher = MetricPublisher("fake-namespace", mock_client.return_value)
-    publisher.publish_exception_metric("fake-date", "fake-action", "fake-error")
+    publisher.publish_exception_metric(
+        fake_datetime, "fake-action", Exception("fake-error")
+    )
 
     expected_calls = [
         call.client("cloudwatch"),
@@ -61,11 +65,14 @@ def test_publish_exception_metric():
                     "MetricName": MetricTypes.HandlerException,
                     "Dimensions": [
                         {"Name": "DimensionKeyActionType", "Value": "fake-action"},
-                        {"Name": "DimensionKeyExceptionType", "Value": "fake-error"},
+                        {
+                            "Name": "DimensionKeyExceptionType",
+                            "Value": "<class 'Exception'>",
+                        },
                         {"Name": "DimensionKeyResourceType", "Value": "fake-namespace"},
                     ],
                     "Unit": StandardUnit.Count,
-                    "Timestamp": "fake-date",
+                    "Timestamp": str(fake_datetime),
                     "Value": 1.0,
                 }
             ],
@@ -78,8 +85,9 @@ def test_publish_invocation_metric():
     mock_client = patch("boto3.client")
     mock_client.return_value = MagicMock()
 
+    fake_datetime = datetime(2019, 1, 1)
     publisher = MetricPublisher("fake-namespace", mock_client.return_value)
-    publisher.publish_invocation_metric("fake-date", "fake-action")
+    publisher.publish_invocation_metric(fake_datetime, "fake-action")
 
     expected_calls = [
         call.client("cloudwatch"),
@@ -93,7 +101,7 @@ def test_publish_invocation_metric():
                         {"Name": "DimensionKeyResourceType", "Value": "fake-namespace"},
                     ],
                     "Unit": StandardUnit.Count,
-                    "Timestamp": "fake-date",
+                    "Timestamp": str(fake_datetime),
                     "Value": 1.0,
                 }
             ],
@@ -106,8 +114,9 @@ def test_publish_duration_metric():
     mock_client = patch("boto3.client")
     mock_client.return_value = MagicMock()
 
+    fake_datetime = datetime(2019, 1, 1)
     publisher = MetricPublisher("fake-namespace", mock_client.return_value)
-    publisher.publish_duration_metric("fake-date", "fake-action", 100)
+    publisher.publish_duration_metric(fake_datetime, "fake-action", 100)
 
     expected_calls = [
         call.client("cloudwatch"),
@@ -121,7 +130,7 @@ def test_publish_duration_metric():
                         {"Name": "DimensionKeyResourceType", "Value": "fake-namespace"},
                     ],
                     "Unit": StandardUnit.Milliseconds,
-                    "Timestamp": "fake-date",
+                    "Timestamp": str(fake_datetime),
                     "Value": 100,
                 }
             ],

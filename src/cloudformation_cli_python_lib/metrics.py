@@ -1,5 +1,6 @@
+import datetime
 import logging
-from typing import Any, Mapping
+from typing import Any, List, Mapping
 
 # boto3 doesn't have stub files
 from boto3.session import Session  # type: ignore
@@ -11,11 +12,8 @@ from .interface import Action, MetricTypes, StandardUnit
 LOG = logging.getLogger(__name__)
 
 
-def format_dimensions(dimensions: Mapping[Any, Any]) -> Any:  # TODO fix type
-    formatted_dimensions = []
-    for key, value in dimensions.items():
-        formatted_dimensions.append({"Name": key, "Value": value})
-    return formatted_dimensions
+def format_dimensions(dimensions: Mapping[str, str]) -> List[Mapping[str, str]]:
+    return [{"Name": key, "Value": value} for key, value in dimensions.items()]
 
 
 class MetricPublisher:
@@ -26,34 +24,34 @@ class MetricPublisher:
     def _publish_metric(  # pylint: disable-msg=too-many-arguments
         self,
         metric_name: MetricTypes,
-        dimensions: Mapping[Any, Any],  # TODO: fix type
+        dimensions: Mapping[str, str],
         unit: StandardUnit,
-        value: Any,
-        date: float,
+        value: float,
+        timestamp: datetime.datetime,
     ) -> None:
-        dimensions = format_dimensions(dimensions)
         try:
-            res = self.client.put_metric_data(
+            self.client.put_metric_data(
                 Namespace=self.namespace,
                 MetricData=[
                     {
                         "MetricName": metric_name,
-                        "Dimensions": dimensions,
+                        "Dimensions": format_dimensions(dimensions),
                         "Unit": unit,
-                        "Timestamp": date,
+                        "Timestamp": str(timestamp),
                         "Value": value,
                     }
                 ],
             )
-            LOG.debug(res)
 
         except ClientError as e:
             LOG.error("An error occurred while publishing metrics: %s", str(e))
 
-    def publish_exception_metric(self, date: float, action: Action, error: Any) -> None:
-        dimensions = {
+    def publish_exception_metric(
+        self, timestamp: datetime.datetime, action: Action, error: Any
+    ) -> None:
+        dimensions: Mapping[str, str] = {
             "DimensionKeyActionType": action,
-            "DimensionKeyExceptionType": str(error),
+            "DimensionKeyExceptionType": str(type(error)),
             "DimensionKeyResourceType": self.namespace,
         }
 
@@ -62,10 +60,12 @@ class MetricPublisher:
             dimensions=dimensions,
             unit=StandardUnit.Count,
             value=1.0,
-            date=date,
+            timestamp=timestamp,
         )
 
-    def publish_invocation_metric(self, date: float, action: Action) -> None:
+    def publish_invocation_metric(
+        self, timestamp: datetime.datetime, action: Action
+    ) -> None:
         dimensions = {
             "DimensionKeyActionType": action,
             "DimensionKeyResourceType": self.namespace,
@@ -76,11 +76,11 @@ class MetricPublisher:
             dimensions=dimensions,
             unit=StandardUnit.Count,
             value=1.0,
-            date=date,
+            timestamp=timestamp,
         )
 
     def publish_duration_metric(
-        self, date: float, action: Action, milliseconds: float
+        self, timestamp: datetime.datetime, action: Action, milliseconds: float
     ) -> None:
         dimensions = {
             "DimensionKeyActionType": action,
@@ -92,5 +92,5 @@ class MetricPublisher:
             dimensions=dimensions,
             unit=StandardUnit.Milliseconds,
             value=milliseconds,
-            date=date,
+            timestamp=timestamp,
         )
