@@ -125,6 +125,7 @@ dmypy.json
 
 .DS_Store
 .idea/
+.vscode/
 *.tar.gz
 
 # We want to allow the tests/lib folder

@@ -7,8 +7,6 @@ from cloudformation_cli_python_lib.metrics import MetricPublisher, format_dimens
 
 from botocore.stub import Stubber
 
-# TODO convert patch to fixture
-
 
 class MockSession:
     def __init__(self, client):
@@ -32,8 +30,8 @@ def test_format_dimensions():
     ] == result
 
 
-# TODO actually do assertions on this test
-def test_put_metric_catches_error():
+@patch("cloudformation_cli_python_lib.metrics.LOG", auto_spec=True)
+def test_put_metric_catches_error(mock_logger):
     client = boto3.client("cloudwatch")
     stubber = Stubber(client)
 
@@ -44,6 +42,13 @@ def test_put_metric_catches_error():
     fake_datetime = datetime(2019, 1, 1)
     publisher.publish_exception_metric(fake_datetime, "CREATE", "fake-error")
     stubber.deactivate()
+    expected_calls = [
+        call.error(
+            "An error occurred while publishing metrics: %s",
+            "An error occurred (InternalServiceError) when calling the PutMetricData operation: ",  # noqa: B950 # pylint: disable=line-too-long
+        )
+    ]
+    assert expected_calls == mock_logger.mock_calls
 
 
 def test_publish_exception_metric():
