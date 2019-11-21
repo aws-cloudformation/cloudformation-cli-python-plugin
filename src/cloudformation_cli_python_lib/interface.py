@@ -1,11 +1,9 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Generic, List, Mapping, MutableMapping, Optional, Type, TypeVar
+from typing import Any, List, Mapping, MutableMapping, Optional, Type
 
 LOG = logging.getLogger(__name__)
-
-T = TypeVar("T")  # pylint: disable=invalid-name
 
 
 class _AutoName(Enum):
@@ -48,17 +46,28 @@ class HandlerErrorCode(str, _AutoName):
     InternalFailure = auto()
 
 
+class BaseResourceModel:
+    def _serialize(self) -> Mapping[str, Any]:
+        return self.__dict__
+
+    @classmethod
+    def _deserialize(
+        cls: Type["BaseResourceModel"], json_data: Optional[Mapping[str, Any]]
+    ) -> Optional["BaseResourceModel"]:
+        raise NotImplementedError()
+
+
 # pylint: disable=too-many-instance-attributes
 @dataclass
-class ProgressEvent(Generic[T]):
+class ProgressEvent:
     # pylint: disable=invalid-name
     status: OperationStatus
     errorCode: Optional[HandlerErrorCode] = None
     message: str = ""
     callbackContext: Optional[Mapping[str, Any]] = None
     callbackDelaySeconds: int = 0
-    resourceModel: Optional[T] = None
-    resourceModels: Optional[List[T]] = None
+    resourceModel: Optional[BaseResourceModel] = None
+    resourceModels: Optional[List[BaseResourceModel]] = None
     nextToken: Optional[str] = None
 
     def _serialize(
@@ -77,16 +86,16 @@ class ProgressEvent(Generic[T]):
 
     @classmethod
     def failed(
-        cls: Type["ProgressEvent[T]"], error_code: HandlerErrorCode, message: str
-    ) -> "ProgressEvent[T]":
+        cls: Type["ProgressEvent"], error_code: HandlerErrorCode, message: str
+    ) -> "ProgressEvent":
         return cls(status=OperationStatus.FAILED, errorCode=error_code, message=message)
 
 
 @dataclass
-class ResourceHandlerRequest(Generic[T]):
+class BaseResourceHandlerRequest:
     # pylint: disable=invalid-name
     clientRequestToken: str
-    desiredResourceState: Optional[T]
-    previousResourceState: Optional[T]
+    desiredResourceState: Optional[BaseResourceModel]
+    previousResourceState: Optional[BaseResourceModel]
     logicalResourceIdentifier: Optional[str]
     nextToken: Optional[str]

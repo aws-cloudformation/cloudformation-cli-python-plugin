@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import Any, Mapping, MutableMapping, Optional, Type
 
-from .interface import Action, ResourceHandlerRequest, T
+from .interface import Action, BaseResourceHandlerRequest, BaseResourceModel
 
 
 class KitchenSinkEncoder(json.JSONEncoder):
@@ -93,16 +93,14 @@ class UnmodelledRequest:
     logicalResourceIdentifier: Optional[str] = None
     nextToken: Optional[str] = None
 
-    def to_modelled(self, model_cls: Type[T]) -> ResourceHandlerRequest[T]:
+    def to_modelled(
+        self, model_cls: Type[BaseResourceModel]
+    ) -> BaseResourceHandlerRequest:
         # pylint: disable=protected-access
-        return ResourceHandlerRequest(
+        return BaseResourceHandlerRequest(
             clientRequestToken=self.clientRequestToken,
-            desiredResourceState=model_cls._deserialize(  # type: ignore
-                self.desiredResourceState
-            ),
-            previousResourceState=model_cls._deserialize(  # type: ignore
-                self.previousResourceState
-            ),
+            desiredResourceState=model_cls._deserialize(self.desiredResourceState),
+            previousResourceState=model_cls._deserialize(self.previousResourceState),
             logicalResourceIdentifier=self.logicalResourceIdentifier,
             nextToken=self.nextToken,
         )

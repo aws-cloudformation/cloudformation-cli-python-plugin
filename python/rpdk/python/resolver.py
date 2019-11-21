@@ -11,8 +11,14 @@ PRIMITIVE_TYPES = {
 
 def translate_type(resolved_type):
     if resolved_type.container == ContainerType.MODEL:
-        # we create type vars to make it easier to ref later models
-        return f"T{resolved_type.type}"
+        # quote types to ensure they can be referenced before they are declared.
+        # use alias (underscore) to avoid clashes with property names. there's
+        # an issue if a property has the same name as the type and it's used twice:
+        #   Memo: Optional["Memo"]
+        #   SecondCopyOfMemo: Optional["Memo"]  <-- mypy doesn't like this
+        # due to the schema, property names can't start with underscores, so
+        # the alias works well
+        return f'"_{resolved_type.type}"'
     if resolved_type.container == ContainerType.PRIMITIVE:
         return PRIMITIVE_TYPES[resolved_type.type]
 
@@ -27,14 +33,3 @@ def translate_type(resolved_type):
         return f"AbstractSet[{item_type}]"
 
     raise ValueError(f"Unknown container type {resolved_type.container}")
-
-
-def models_in_properties(properties):
-    # set for de-dupe, sorted for consistency
-    return sorted(
-        {
-            resolved_type.type
-            for resolved_type in properties.values()
-            if resolved_type.container == ContainerType.MODEL
-        }
-    )

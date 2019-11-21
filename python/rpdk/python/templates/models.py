@@ -1,15 +1,3 @@
-{%- macro class_model_bindings(properties) -%}
-{%- set used_models = properties|models_in_properties -%}
-{%- if used_models -%}(
-{%- for name in used_models -%}
-Generic[T{{ name }}]{%- if not loop.last -%}, {%- endif -%}
-{%- endfor -%}
-){%- endif -%}
-{%- endmacro -%}
-{%- macro typevar_model_bindings(properties) -%}
-{%- set used_models = properties|models_in_properties -%}
-{%- if used_models -%}[{{ used_models|join(", ") }}]{%- endif %}
-{%- endmacro -%}
 # DO NOT modify this file by hand, changes will be overwritten
 from dataclasses import dataclass
 from typing import (
@@ -24,6 +12,11 @@ from typing import (
     TypeVar,
 )
 
+from cloudformation_cli_python_lib.interface import (
+    BaseResourceHandlerRequest,
+    BaseResourceModel,
+)
+
 T = TypeVar("T")
 
 
@@ -33,37 +26,42 @@ def set_or_none(value: Optional[Sequence[T]]) -> Optional[AbstractSet[T]]:
     return None
 
 
-{% for model, properties in models.items() %}
-T{{ model }} = TypeVar("T{{ model }}", bound="{{ model }}{{ typevar_model_bindings(properties) }}")
-{% endfor %}
-{% for model, properties in models.items() %}
-
-
 @dataclass
-class {{ model }}{{ class_model_bindings(properties) }}:
+class ResourceHandlerRequest(BaseResourceHandlerRequest):
+    # pylint: disable=invalid-name
+    desiredResourceState: Optional["ResourceModel"]
+    previousResourceState: Optional["ResourceModel"]
+
+
+{% for model, properties in models.items() %}
+@dataclass
+class {{ model }}{% if model == "ResourceModel" %}(BaseResourceModel){% endif %}:
     {% for name, type in properties.items() %}
     {{ name }}: Optional[{{ type|translate_type }}]
     {% endfor %}
 
-    def _serialize(self) -> Mapping[str, Any]:
-        return self.__dict__
-
     @classmethod
     def _deserialize(
-        cls: Type[T{{ model }}],
-        json: Mapping[str, Any],
-    ) -> Optional[T{{ model }}]:
-        if not json:
+        cls: Type["_{{ model }}"],
+        json_data: Optional[Mapping[str, Any]],
+    ) -> Optional["_{{ model }}"]:
+        if not json_data:
             return None
         return cls(
             {% for name, type in properties.items() %}
             {% if type.container == ContainerType.MODEL %}
-            {{ name }}={{ type.type }}._deserialize(json.get("{{ name }}")),  # type: ignore
+            {{ name }}={{ type.type }}._deserialize(json_data.get("{{ name }}")),
             {% elif type.container == ContainerType.SET %}
-            {{ name }}=set_or_none(json.get("{{ name }}")),
+            {{ name }}=set_or_none(json_data.get("{{ name }}")),
             {% else %}
-            {{ name }}=json.get("{{ name }}"),
+            {{ name }}=json_data.get("{{ name }}"),
             {% endif %}
             {% endfor %}
         )
-{% endfor %}
+
+
+# work around possible type aliasing issues when variable has same name as a model
+_{{ model }} = {{ model }}
+
+
+{% endfor -%}

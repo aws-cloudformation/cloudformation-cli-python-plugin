@@ -1,34 +1,34 @@
-from typing import Any, Generic
+from typing import Any
 
-from .interface import HandlerErrorCode, ProgressEvent, T
+from .interface import HandlerErrorCode, ProgressEvent
 
 
-class _HandlerError(Exception, Generic[T]):
+class _HandlerError(Exception):
     def __init__(self, *args: Any):
         self._error_code = HandlerErrorCode[type(self).__name__]
         super().__init__(*args)
 
-    def to_progress_event(self) -> ProgressEvent[T]:
+    def to_progress_event(self) -> ProgressEvent:
         return ProgressEvent.failed(self._error_code, str(self))
 
 
-class NotUpdatable(_HandlerError[T]):
+class NotUpdatable(_HandlerError):
     pass
 
 
-class InvalidRequest(_HandlerError[T]):
+class InvalidRequest(_HandlerError):
     pass
 
 
-class AccessDenied(_HandlerError[T]):
+class AccessDenied(_HandlerError):
     pass
 
 
-class InvalidCredentials(_HandlerError[T]):
+class InvalidCredentials(_HandlerError):
     pass
 
 
-class AlreadyExists(_HandlerError[T]):
+class AlreadyExists(_HandlerError):
     def __init__(self, type_name: str, identifier: str):
         super().__init__(
             f"Resource of type '{type_name}' with identifier "
@@ -36,7 +36,7 @@ class AlreadyExists(_HandlerError[T]):
         )
 
 
-class NotFound(_HandlerError[T]):
+class NotFound(_HandlerError):
     def __init__(self, type_name: str, identifier: str):
         super().__init__(
             f"Resource of type '{type_name}' with identifier "
@@ -44,33 +44,33 @@ class NotFound(_HandlerError[T]):
         )
 
 
-class ResourceConflict(_HandlerError[T]):
+class ResourceConflict(_HandlerError):
     pass
 
 
-class Throttling(_HandlerError[T]):
+class Throttling(_HandlerError):
     pass
 
 
-class ServiceLimitExceeded(_HandlerError[T]):
+class ServiceLimitExceeded(_HandlerError):
     pass
 
 
-class NotStabilized(_HandlerError[T]):
+class NotStabilized(_HandlerError):
     pass
 
 
-class GeneralServiceException(_HandlerError[T]):
+class GeneralServiceException(_HandlerError):
     pass
 
 
-class ServiceInternalError(_HandlerError[T]):
+class ServiceInternalError(_HandlerError):
     pass
 
 
-class NetworkFailure(_HandlerError[T]):
+class NetworkFailure(_HandlerError):
     pass
 
 
-class InternalFailure(_HandlerError[T]):
+class InternalFailure(_HandlerError):
     pass

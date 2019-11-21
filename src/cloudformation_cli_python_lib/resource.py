@@ -1,19 +1,19 @@
 import json
 import logging
 from functools import wraps
-from typing import Any, Callable, Generic, MutableMapping, Optional, Tuple, Type, Union
+from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
 
 from .boto3_proxy import SessionProxy, _get_boto_session
 from .exceptions import InvalidRequest, _HandlerError
 from .interface import (
     Action,
+    BaseResourceHandlerRequest,
     HandlerErrorCode,
     ProgressEvent,
-    ResourceHandlerRequest,
-    T,
 )
 from .log_delivery import ProviderLogHandler
 from .utils import (
+    BaseResourceModel,
     Credentials,
     HandlerRequest,
     KitchenSinkEncoder,
@@ -24,15 +24,14 @@ from .utils import (
 LOG = logging.getLogger(__name__)
 
 HandlerSignature = Callable[
-    [Optional[SessionProxy], ResourceHandlerRequest[T], MutableMapping[str, Any]],
-    ProgressEvent[T],
+    [Optional[SessionProxy], Any, MutableMapping[str, Any]], ProgressEvent
 ]
 
 
 def _ensure_serialize(
     entrypoint: Callable[
         [Any, MutableMapping[str, Any], Any],
-        Union[ProgressEvent[T], MutableMapping[str, Any]],
+        Union[ProgressEvent, MutableMapping[str, Any]],
     ]
 ) -> Callable[[Any, MutableMapping[str, Any], Any], Any]:
     @wraps(entrypoint)
@@ -49,15 +48,13 @@ def _ensure_serialize(
     return wrapper
 
 
-class Resource(Generic[T]):
-    def __init__(self, resouce_model_cls: Type[T]) -> None:
-        self._model_cls: Type[T] = resouce_model_cls
-        self._handlers: MutableMapping[Action, HandlerSignature[T]] = {}
+class Resource:
+    def __init__(self, resouce_model_cls: Type[BaseResourceModel]) -> None:
+        self._model_cls: Type[BaseResourceModel] = resouce_model_cls
+        self._handlers: MutableMapping[Action, HandlerSignature] = {}
 
-    def handler(
-        self, action: Action
-    ) -> Callable[[HandlerSignature[T]], HandlerSignature[T]]:
-        def _add_handler(f: HandlerSignature[T]) -> HandlerSignature[T]:
+    def handler(self, action: Action) -> Callable[[HandlerSignature], HandlerSignature]:
+        def _add_handler(f: HandlerSignature) -> HandlerSignature:
             self._handlers[action] = f
             return f
 
@@ -66,10 +63,10 @@ class Resource(Generic[T]):
     def _invoke_handler(
         self,
         session: Optional[SessionProxy],
-        request: ResourceHandlerRequest[T],
+        request: BaseResourceHandlerRequest,
         action: Action,
         callback_context: MutableMapping[str, Any],
-    ) -> ProgressEvent[T]:
+    ) -> ProgressEvent:
         try:
             handler = self._handlers[action]
         except KeyError:
@@ -83,14 +80,14 @@ class Resource(Generic[T]):
         self, event_data: MutableMapping[str, Any]
     ) -> Tuple[
         Optional[SessionProxy],
-        ResourceHandlerRequest[T],
+        BaseResourceHandlerRequest,
         Action,
         MutableMapping[str, Any],
     ]:
         try:
             event = TestEvent(**event_data)
             creds = Credentials(**event.credentials)
-            request: ResourceHandlerRequest[T] = UnmodelledRequest(
+            request: BaseResourceHandlerRequest = UnmodelledRequest(
                 **event.request
             ).to_modelled(self._model_cls)
 
@@ -104,7 +101,7 @@ class Resource(Generic[T]):
     @_ensure_serialize
     def test_entrypoint(
         self, event: MutableMapping[str, Any], _context: Any
-    ) -> ProgressEvent[T]:
+    ) -> ProgressEvent:
         msg = "Uninitialized"
         try:
             session, request, action, callback_context = self._parse_test_request(event)
@@ -124,14 +121,14 @@ class Resource(Generic[T]):
         self, event_data: MutableMapping[str, Any]
     ) -> Tuple[
         Optional[SessionProxy],
-        ResourceHandlerRequest[T],
+        BaseResourceHandlerRequest,
         Action,
         MutableMapping[str, Any],
     ]:
         try:
             event = HandlerRequest.deserialize(event_data)
             creds = event.requestData.callerCredentials
-            request: ResourceHandlerRequest[T] = UnmodelledRequest(
+            request: BaseResourceHandlerRequest = UnmodelledRequest(
                 clientRequestToken=event.bearerToken,
                 desiredResourceState=event.requestData.resourceProperties,
                 previousResourceState=event.requestData.previousResourceProperties,
