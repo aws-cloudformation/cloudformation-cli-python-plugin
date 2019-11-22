@@ -22,6 +22,17 @@ class Action(str, _AutoName):
     LIST = auto()
 
 
+class StandardUnit(str, _AutoName):
+    Count = auto()
+    Milliseconds = auto()
+
+
+class MetricTypes(str, _AutoName):
+    HandlerException = auto()
+    HandlerInvocationCount = auto()
+    HandlerInvocationDuration = auto()
+
+
 class OperationStatus(str, _AutoName):
     PENDING = auto()
     IN_PROGRESS = auto()
