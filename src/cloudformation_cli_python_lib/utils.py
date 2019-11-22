@@ -60,6 +60,14 @@ class RequestData:
                 setattr(req_data, key, Credentials(**creds))
         return req_data
 
+    def serialize(self) -> Mapping[str, Any]:
+        ser = self.__dict__
+        for key in ser:
+            if not key.endswith("Credentials") or ser[key] is None:
+                continue
+            ser[key] = getattr(self, key).__dict__
+        return ser
+
 
 # pylint: disable=too-many-instance-attributes
 @dataclass
@@ -75,13 +83,18 @@ class HandlerRequest:
     requestData: RequestData
     stackId: str
     nextToken: Optional[str] = None
-    requestContext: Mapping[str, Any] = field(default_factory=dict)
+    requestContext: MutableMapping[str, Any] = field(default_factory=dict)
 
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HandlerRequest":
         event = HandlerRequest(**json_data)
         event.requestData = RequestData.deserialize(json_data.get("requestData", {}))
         return event
+
+    def serialize(self) -> Mapping[str, Any]:
+        ser = self.__dict__
+        ser["requestData"] = self.requestData.serialize()
+        return ser
 
 
 @dataclass
