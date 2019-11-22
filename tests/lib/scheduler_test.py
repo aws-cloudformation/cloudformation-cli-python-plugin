@@ -35,7 +35,9 @@ def test_instantiates_boto3_client(mock_boto3_session):
     return_value="cron('30 16 21 11 ? 2019')",
 )
 @patch(
-    "cloudformation_cli_python_lib.scheduler.uuid4", autospec=True, return_value=uuid4()
+    "cloudformation_cli_python_lib.scheduler.uuid4",
+    autospec=True,
+    return_value=str(uuid4()),
 )
 def test_reschedule_after_minutes(
     mock_uuid4, mock_min_to_cron, mock_boto3_session, mock_handler_request
@@ -53,17 +55,17 @@ def test_reschedule_after_minutes(
 
     # should have made appropriate calls to create the schedule
     cw_scheduler.client.put_targets.assert_called_once_with(
-        Rule=f"reinvoke-handler-{mock_uuid4.return_value.hex}",
+        Rule=f"reinvoke-handler-{mock_uuid4.return_value}",
         Targets=[
             {
-                "Id": f"reinvoke-target-{mock_uuid4.return_value.hex}",
+                "Id": f"reinvoke-target-{mock_uuid4.return_value}",
                 "Arn": "arn:goes:here",
                 "Input": "{}",
             }
         ],
     )
     cw_scheduler.client.put_rule.assert_called_once_with(
-        Name=f"reinvoke-handler-{mock_uuid4.return_value.hex}",
+        Name=f"reinvoke-handler-{mock_uuid4.return_value}",
         ScheduleExpression="cron('30 16 21 11 ? 2019')",
         State="ENABLED",
     )

@@ -21,7 +21,7 @@ class CloudWatchScheduler:
         self, function_arn: str, minutes_from_now: int, handler_request: HandlerRequest
     ) -> None:
         cron = self._min_to_cron(max(minutes_from_now, 1))
-        uuid = uuid4().hex
+        uuid = str(uuid4())
         rule_name = f"reinvoke-handler-{uuid}"
         target_id = f"reinvoke-target-{uuid}"
         handler_request.requestContext["cloudWatchEventsRuleName"] = rule_name
