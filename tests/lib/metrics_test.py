@@ -45,7 +45,8 @@ def test_put_metric_catches_error(mock_logger):
     expected_calls = [
         call.error(
             "An error occurred while publishing metrics: %s",
-            "An error occurred (InternalServiceError) when calling the PutMetricData operation: ",  # noqa: B950 # pylint: disable=line-too-long
+            "An error occurred (InternalServiceError) when calling the "
+            "PutMetricData operation: ",
         )
     ]
     assert expected_calls == mock_logger.mock_calls
