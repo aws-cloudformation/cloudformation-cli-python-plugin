@@ -6,6 +6,8 @@ from uuid import uuid4
 import pytest
 from cloudformation_cli_python_lib.scheduler import CloudWatchScheduler
 
+from botocore.exceptions import ClientError
+
 
 @pytest.fixture
 def mock_boto3_session():
@@ -87,8 +89,9 @@ def test_cleanup_cloudwatch_events(mock_logger, mock_boto3_session):
     cw_scheduler.client.delete_rule.reset_mock()
 
     # cleanup should catch and log boto failures
-    cw_scheduler.client.remove_targets.side_effect = Exception("raised")
-    cw_scheduler.client.delete_rule.side_effect = Exception("raised")
+    err = ClientError(error_response={"Error": {"Code": "1"}}, operation_name="mock")
+    cw_scheduler.client.remove_targets.side_effect = err
+    cw_scheduler.client.delete_rule.side_effect = err
     cw_scheduler.cleanup_cloudwatch_events("rulename", "targetid")
     assert mock_logger.error.call_count == 2
     cw_scheduler.client.remove_targets.assert_called_once()

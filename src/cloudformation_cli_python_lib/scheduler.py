@@ -6,6 +6,8 @@ from uuid import uuid4
 # boto3 doesn't have stub files
 from boto3 import Session  # type: ignore
 
+from botocore.exceptions import ClientError  # type: ignore
+
 from .utils import HandlerRequest, KitchenSinkEncoder
 
 LOG = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ class CloudWatchScheduler:
         try:
             if target_id and rule_name:
                 self.client.remove_targets(Rule=rule_name, Ids=[target_id])
-        except Exception as e:  # pylint: disable=broad-except
+        except ClientError as e:
             LOG.error(
                 "Error cleaning CloudWatchEvents Target (targetId=%s): %s",
                 target_id,
@@ -45,7 +47,7 @@ class CloudWatchScheduler:
         try:
             if rule_name:
                 self.client.delete_rule(Name=rule_name, Force=True)
-        except Exception as e:  # pylint: disable=broad-except
+        except ClientError as e:
             LOG.error(
                 "Error cleaning CloudWatchEvents (ruleName=%s): %s", rule_name, str(e)
             )
