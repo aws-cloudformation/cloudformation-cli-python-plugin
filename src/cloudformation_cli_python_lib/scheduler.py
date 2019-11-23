@@ -40,9 +40,7 @@ class CloudWatchScheduler:
                 self.client.remove_targets(Rule=rule_name, Ids=[target_id])
         except ClientError as e:
             LOG.error(
-                "Error cleaning CloudWatchEvents Target (targetId=%s): %s",
-                target_id,
-                str(e),
+                "Error cleaning CloudWatchEvents Target (targetId=%s): %s", target_id, e
             )
         try:
             if rule_name:

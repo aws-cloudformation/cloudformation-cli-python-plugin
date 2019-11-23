@@ -26,7 +26,7 @@ def mock_handler_request():
 
 def test_instantiates_boto3_client(mock_boto3_session):
     cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
-    mock_boto3_session.client.assert_called_once_with(("events"))
+    mock_boto3_session.client.assert_called_once_with("events")
     assert cw_scheduler.client == mock_boto3_session.client.return_value
 
 
