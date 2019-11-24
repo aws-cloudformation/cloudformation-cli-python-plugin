@@ -61,12 +61,11 @@ class RequestData:
         return req_data
 
     def serialize(self) -> Mapping[str, Any]:
-        ser = self.__dict__
-        for key in ser:
-            if not key.endswith("Credentials") or ser[key] is None:
-                continue
-            ser[key] = getattr(self, key).__dict__
-        return ser
+        return {
+            key: value.__dict__.copy() if key.endswith("Credentials") else value
+            for key, value in self.__dict__.items()
+            if value is not None
+        }
 
 
 # pylint: disable=too-many-instance-attributes
@@ -92,9 +91,11 @@ class HandlerRequest:
         return event
 
     def serialize(self) -> Mapping[str, Any]:
-        ser = self.__dict__
-        ser["requestData"] = self.requestData.serialize()
-        return ser
+        return {
+            key: value.serialize() if key == "requestData" else value
+            for key, value in self.__dict__.items()
+            if value is not None
+        }
 
 
 @dataclass

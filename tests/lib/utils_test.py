@@ -88,4 +88,13 @@ def test_handler_request_serde_roudtrip():
         "2ae60-fe62-11e8-9a0e-0ae8cc519968",
     }
     ser = HandlerRequest.deserialize(payload).serialize()
-    assert ser == payload
+    # remove None values from payload
+    expected = {
+        k: {k: v for k, v in payload["requestData"].items() if v is not None}
+        if k == "requestData"
+        else v
+        for k, v in payload.items()
+        if v is not None
+    }
+
+    assert ser == expected
