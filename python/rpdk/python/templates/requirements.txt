@@ -1,1 +1,2 @@
-{{ support_lib_name }}==0.0.1
+# This plugin is still in development. {{ support_lib_name }} is only available via git.
+git+{{ support_lib_repo ))#egg={{ support_lib_name }}&subdirectory={{ support_lib_repo_dir }}

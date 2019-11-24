@@ -20,6 +20,8 @@ LOG = logging.getLogger(__name__)
 EXECUTABLE = "cfn"
 SUPPORT_LIB_NAME = "cloudformation-cli-python-lib"
 SUPPORT_LIB_PKG = SUPPORT_LIB_NAME.replace("-", "_")
+SUPPORT_LIB_REPO = "https://github.com/aws-cloudformation/aws-cloudformation-rpdk-python-plugin.git"
+SUPPORT_LIB_REPO_DIR = "src"
 
 
 class StandardDistNotFoundError(SysExitRecommendedError):
@@ -94,7 +96,10 @@ class Python36LanguagePlugin(LanguagePlugin):
         handler_package_path.mkdir(parents=True, exist_ok=True)
         _copy_resource(handler_package_path / "__init__.py")
         _render_template(
-            handler_package_path / "handlers.py", support_lib_pkg=SUPPORT_LIB_PKG
+            handler_package_path / "handlers.py",
+            support_lib_pkg=SUPPORT_LIB_PKG,
+            support_lib_repo=SUPPORT_LIB_REPO,
+            support_lib_repo_dir=SUPPORT_LIB_REPO_DIR,
         )
         # models.py produced by generate
 
