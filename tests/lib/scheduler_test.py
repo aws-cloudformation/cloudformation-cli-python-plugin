@@ -34,24 +34,43 @@ def test_instantiates_boto3_client(mock_boto3_session):
     "cloudformation_cli_python_lib.scheduler.CloudWatchScheduler._min_to_cron",
     return_value="cron('30 16 21 11 ? 2019')",
 )
+def test_reschedule_after_minutes_zero(
+    mock_min_to_cron, mock_boto3_session, mock_handler_request
+):
+    cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
+
+    # if called with zero, should call cron with a 1
+    cw_scheduler.reschedule_after_minutes("arn:goes:here", 0, mock_handler_request)
+    mock_min_to_cron.assert_called_once_with(1)
+
+
+@patch(
+    "cloudformation_cli_python_lib.scheduler.CloudWatchScheduler._min_to_cron",
+    return_value="cron('30 16 21 11 ? 2019')",
+)
+def test_reschedule_after_minutes_not_zero(
+    mock_min_to_cron, mock_boto3_session, mock_handler_request
+):
+    cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
+    # if called with another number, should use that
+    cw_scheduler.reschedule_after_minutes("arn:goes:here", 2, mock_handler_request)
+    mock_min_to_cron.assert_called_once_with(2)
+
+
 @patch(
     "cloudformation_cli_python_lib.scheduler.uuid4",
     autospec=True,
     return_value=str(uuid4()),
 )
-def test_reschedule_after_minutes(
-    mock_uuid4, mock_min_to_cron, mock_boto3_session, mock_handler_request
+def test_reschedule_after_minutes_success(
+    mock_uuid4, mock_boto3_session, mock_handler_request
 ):
     cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
-    # if called with zero, should call cron with a 1
-    cw_scheduler.reschedule_after_minutes("arn:goes:here", 0, mock_handler_request)
-    mock_min_to_cron.assert_called_once_with(1)
-    mock_min_to_cron.reset_mock()
-    cw_scheduler.client.reset_mock()
-
-    # if called with another number, should use that
-    cw_scheduler.reschedule_after_minutes("arn:goes:here", 2, mock_handler_request)
-    mock_min_to_cron.assert_called_once_with(2)
+    with patch(
+        "cloudformation_cli_python_lib.scheduler.CloudWatchScheduler._min_to_cron",
+        return_value="cron('30 16 21 11 ? 2019')",
+    ):
+        cw_scheduler.reschedule_after_minutes("arn:goes:here", 2, mock_handler_request)
 
     # should have made appropriate calls to create the schedule
     cw_scheduler.client.put_targets.assert_called_once_with(
@@ -72,7 +91,7 @@ def test_reschedule_after_minutes(
 
 
 @patch("cloudformation_cli_python_lib.scheduler.LOG", autospec=True)
-def test_cleanup_cloudwatch_events(mock_logger, mock_boto3_session):
+def test_cleanup_cloudwatch_events_empty(mock_logger, mock_boto3_session):
     cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
 
     # cleanup should silently pass if rule/target are empty
@@ -81,14 +100,22 @@ def test_cleanup_cloudwatch_events(mock_logger, mock_boto3_session):
     assert cw_scheduler.client.delete_rule.called is False
     assert mock_logger.error.called is False
 
+
+@patch("cloudformation_cli_python_lib.scheduler.LOG", autospec=True)
+def test_cleanup_cloudwatch_events_success(mock_logger, mock_boto3_session):
+    cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
+
     # when rule_name and target_id are provided we should call events client and not
     # log errors if the deletion succeeds
     cw_scheduler.cleanup_cloudwatch_events("rulename", "targetid")
     assert mock_logger.error.called is False
     cw_scheduler.client.remove_targets.assert_called_once()
     cw_scheduler.client.delete_rule.assert_called_once()
-    cw_scheduler.client.remove_targets.reset_mock()
-    cw_scheduler.client.delete_rule.reset_mock()
+
+
+@patch("cloudformation_cli_python_lib.scheduler.LOG", autospec=True)
+def test_cleanup_cloudwatch_events_boto_error(mock_logger, mock_boto3_session):
+    cw_scheduler = CloudWatchScheduler(boto3_session=mock_boto3_session)
 
     # cleanup should catch and log boto failures
     err = ClientError(error_response={"Error": {"Code": "1"}}, operation_name="mock")

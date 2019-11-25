@@ -44,7 +44,7 @@ def test_default_unsupported_type_goes_to_base_class():
         json.dumps(Unserializable(), cls=KitchenSinkEncoder)
 
 
-def test_handler_request_serde_roudtrip():
+def test_handler_request_serde_roundtrip():
     payload = {
         "awsAccountId": "123456789012",
         "bearerToken": "123456",
