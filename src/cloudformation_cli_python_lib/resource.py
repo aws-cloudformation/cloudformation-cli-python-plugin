@@ -1,7 +1,11 @@
 import json
 import logging
 from functools import wraps
+from time import sleep
 from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
+
+# boto3 doesn't have stub files
+import boto3  # type: ignore
 
 from .boto3_proxy import SessionProxy, _get_boto_session
 from .exceptions import InvalidRequest, _HandlerError
@@ -9,19 +13,25 @@ from .interface import (
     Action,
     BaseResourceHandlerRequest,
     HandlerErrorCode,
+    OperationStatus,
     ProgressEvent,
 )
 from .log_delivery import ProviderLogHandler
+from .scheduler import CloudWatchScheduler
 from .utils import (
     BaseResourceModel,
     Credentials,
     HandlerRequest,
     KitchenSinkEncoder,
+    LambdaContext,
     TestEvent,
     UnmodelledRequest,
 )
 
 LOG = logging.getLogger(__name__)
+
+MUTATING_ACTIONS = [Action.CREATE, Action.UPDATE, Action.DELETE]
+INVOCATION_TIMEOUT_MS = 60000
 
 HandlerSignature = Callable[
     [Optional[SessionProxy], Any, MutableMapping[str, Any]], ProgressEvent
@@ -60,6 +70,44 @@ class Resource:
 
         return _add_handler
 
+    @staticmethod
+    def schedule_reinvocation(
+        handler_request: HandlerRequest,
+        handler_response: ProgressEvent,
+        context: LambdaContext,
+        credentials: Credentials,
+    ) -> bool:
+        if handler_response.status != OperationStatus.IN_PROGRESS:
+            return False
+        # modify requestContext dict in-place, so that invoke count is bumped on local
+        # reinvoke too
+        reinvoke_context = handler_request.requestContext
+        reinvoke_context["invocation"] = reinvoke_context.get("invocation", 0) + 1
+        callback_delay_s = handler_response.callbackDelaySeconds
+        remaining_ms = context.get_remaining_time_in_millis()
+        needed_ms_remaining = callback_delay_s * 1200 + INVOCATION_TIMEOUT_MS
+        if callback_delay_s < 60 and remaining_ms > needed_ms_remaining:
+            LOG.info(
+                "Scheduling re-invoke locally after %s seconds, with Context {%s}",
+                callback_delay_s,
+                reinvoke_context,
+            )
+            sleep(callback_delay_s)
+            return True
+        LOG.info("Scheduling re-invoke with Context {%s}", reinvoke_context)
+        callback_delay_min = int(callback_delay_s / 60)
+        session = boto3.Session(
+            aws_access_key_id=credentials.accessKeyId,
+            aws_secret_access_key=credentials.secretAccessKey,
+            aws_session_token=credentials.sessionToken,
+        )
+        CloudWatchScheduler(boto3_session=session).reschedule_after_minutes(
+            function_arn=context.invoked_function_arn,
+            minutes_from_now=callback_delay_min,
+            handler_request=handler_request,
+        )
+        return False
+
     def _invoke_handler(
         self,
         session: Optional[SessionProxy],
@@ -73,8 +121,12 @@ class Resource:
             return ProgressEvent.failed(
                 HandlerErrorCode.InternalFailure, f"No handler for {action}"
             )
-
-        return handler(session, request, callback_context)
+        progress = handler(session, request, callback_context)
+        is_in_progress = progress.status == OperationStatus.IN_PROGRESS
+        is_mutable = action in MUTATING_ACTIONS
+        if is_in_progress and not is_mutable:
+            raise Exception("READ and LIST handlers must return synchronously.")
+        return progress
 
     def _parse_test_request(
         self, event_data: MutableMapping[str, Any]
@@ -145,15 +197,23 @@ class Resource:
 
     @_ensure_serialize
     def __call__(
-        self, event_data: MutableMapping[str, Any], _context: Any
+        self, event_data: MutableMapping[str, Any], context: LambdaContext
     ) -> MutableMapping[str, Any]:
         try:
             ProviderLogHandler.setup(event_data)
             parsed = self._parse_request(event_data)
             session, request, action, callback_context = parsed
-            progress_event = self._invoke_handler(
-                session, request, action, callback_context
-            )
+            invoke = True
+            while invoke:
+                progress_event = self._invoke_handler(
+                    session, request, action, callback_context
+                )
+                invoke = self.schedule_reinvocation(
+                    HandlerRequest.deserialize(event_data),
+                    progress_event,
+                    context,
+                    Credentials(**event_data["requestData"]["platformCredentials"]),
+                )
         except _HandlerError as e:
             LOG.exception("Handler error", exc_info=True)
             progress_event = e.to_progress_event()

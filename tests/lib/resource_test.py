@@ -218,15 +218,32 @@ def test__invoke_handler_not_found(resource):
 
 
 def test__invoke_handler_was_found(resource):
-    mock_handler = resource.handler(Action.CREATE)(Mock(return_value=sentinel.response))
+    progress_event = Mock(
+        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
+    )()
+    mock_handler = resource.handler(Action.CREATE)(Mock(return_value=progress_event))
 
     resp = resource._invoke_handler(
         sentinel.session, sentinel.request, Action.CREATE, sentinel.context
     )
-    assert resp is sentinel.response
+    assert resp is progress_event
     mock_handler.assert_called_once_with(
         sentinel.session, sentinel.request, sentinel.context
     )
+
+
+@pytest.mark.parametrize("action", [Action.LIST, Action.READ])
+def test__invoke_handler_non_mutating_must_be_synchronous(resource, action):
+    progress_event = Mock(
+        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
+    )()
+    progress_event.status = OperationStatus.IN_PROGRESS
+    resource.handler(action)(Mock(return_value=progress_event))
+    with pytest.raises(Exception) as excinfo:
+        resource._invoke_handler(
+            sentinel.session, sentinel.request, action, sentinel.context
+        )
+    assert excinfo.value.args[0] == "READ and LIST handlers must return synchronously."
 
 
 @pytest.mark.parametrize("event,messages", [({}, ("missing", "credentials"))])
@@ -301,7 +318,10 @@ def test_test_entrypoint_success():
     mock_model._deserialize.side_effect = [None, None]
 
     resource = Resource(mock_model)
-    mock_handler = resource.handler(Action.CREATE)(Mock(return_value=sentinel.response))
+    progress_event = Mock(
+        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
+    )()
+    mock_handler = resource.handler(Action.CREATE)(Mock(return_value=progress_event))
 
     payload = {
         "credentials": {"accessKeyId": "", "secretAccessKey": "", "sessionToken": ""},
@@ -317,7 +337,94 @@ def test_test_entrypoint_success():
     event = resource.test_entrypoint.__wrapped__(  # pylint: disable=no-member
         resource, payload, None
     )
-    assert event is sentinel.response
+    assert event is progress_event
 
     mock_model._deserialize.assert_has_calls([call(None), call(None)])
     mock_handler.assert_called_once()
+
+
+def test_schedule_reinvocation_not_in_progress():
+    mock_progress_event = Mock(
+        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
+    )()
+    mock_progress_event.status = OperationStatus.SUCCESS
+    with patch(
+        "cloudformation_cli_python_lib.resource.boto3.Session", autospec=True
+    ) as mock_session, patch(
+        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
+    ) as mock_scheduler:
+        reinvoke = Resource.schedule_reinvocation(
+            sentinel.request,
+            mock_progress_event,
+            sentinel.context,
+            sentinel.credentials,
+        )
+    assert reinvoke is False
+    mock_session.assert_not_called()
+    mock_scheduler.assert_not_called()
+
+
+def test_schedule_reinvocation_local_callback():
+    mock_progress_event = Mock(
+        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
+    )()
+    mock_progress_event.status = OperationStatus.IN_PROGRESS
+    mock_progress_event.callbackDelaySeconds = 5
+    mock_request = Mock(
+        "cloudformation_cli_python_lib.interface.HandlerRequest", autospec=True
+    )()
+    mock_request.requestContext = {}
+    mock_context = Mock(
+        "cloudformation_cli_python_lib.interface.LambdaContext", autospec=True
+    )()
+    mock_context.get_remaining_time_in_millis.return_value = 600000
+    with patch(
+        "cloudformation_cli_python_lib.resource.boto3.Session", autospec=True
+    ) as mock_session, patch(
+        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
+    ) as mock_scheduler, patch(
+        "cloudformation_cli_python_lib.resource.sleep", autospec=True
+    ) as mock_sleep:
+        reinvoke = Resource.schedule_reinvocation(
+            mock_request, mock_progress_event, mock_context, sentinel.credentials
+        )
+    assert reinvoke is True
+    mock_session.assert_not_called()
+    mock_scheduler.assert_not_called()
+    mock_sleep.assert_called_once_with(5)
+    assert mock_request.requestContext.get("invocation") == 1
+
+
+def test_schedule_reinvocation_cloudwatch_callback():
+    mock_progress_event = Mock(
+        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
+    )()
+    mock_progress_event.status = OperationStatus.IN_PROGRESS
+    mock_progress_event.callbackDelaySeconds = 60
+    mock_request = Mock(
+        "cloudformation_cli_python_lib.interface.HandlerRequest", autospec=True
+    )()
+    mock_request.requestContext = {}
+    mock_context = Mock(
+        "cloudformation_cli_python_lib.interface.LambdaContext", autospec=True
+    )()
+    mock_context.get_remaining_time_in_millis.return_value = 6000
+    mock_credentials = Mock(
+        "cloudformation_cli_python_lib.interface.Credentials", autospec=True
+    )()
+    with patch(
+        "cloudformation_cli_python_lib.resource.boto3.Session", autospec=True
+    ) as mock_session, patch(
+        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
+    ) as mock_scheduler, patch(
+        "cloudformation_cli_python_lib.resource.sleep", autospec=True
+    ) as mock_sleep:
+        reinvoke = Resource.schedule_reinvocation(
+            mock_request, mock_progress_event, mock_context, mock_credentials
+        )
+    assert reinvoke is False
+    mock_session.assert_called_once()
+    mock_scheduler.assert_called_once()
+    assert mock_scheduler.method_calls[0][0] == "().reschedule_after_minutes"
+    mock_sleep.assert_not_called()
+    assert mock_request.requestContext.get("invocation") == 1
