@@ -149,12 +149,16 @@ def test__parse_request_valid_request():
 
     with patch(
         "cloudformation_cli_python_lib.resource._get_boto_session"
-    ) as mock_session:
+    ) as mock_caller_session, patch(
+        "cloudformation_cli_python_lib.resource.boto3.Session"
+    ) as mock_platform_session:
         ret = resource._parse_request(ENTRYPOINT_PAYLOAD)
-    session, request, action, callback_context = ret
+    caller_sess, platform_sess, request, action, callback_context, _event = ret
 
-    mock_session.assert_called_once()
-    assert session is mock_session.return_value
+    mock_caller_session.assert_called_once()
+    assert caller_sess is mock_caller_session.return_value
+    mock_platform_session.assert_called_once()
+    assert platform_sess is mock_platform_session.return_value
 
     mock_model._deserialize.assert_has_calls(
         [call(sentinel.state_in1), call(sentinel.state_in2)]
@@ -344,7 +348,7 @@ def test_schedule_reinvocation_not_in_progress():
         "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
     ) as mock_scheduler:
         reinvoke = Resource.schedule_reinvocation(
-            sentinel.request, progress, sentinel.context, sentinel.credentials
+            sentinel.request, progress, sentinel.context, sentinel.session
         )
     assert reinvoke is False
     mock_session.assert_not_called()
@@ -365,7 +369,7 @@ def test_schedule_reinvocation_local_callback():
         "cloudformation_cli_python_lib.resource.sleep", autospec=True
     ) as mock_sleep:
         reinvoke = Resource.schedule_reinvocation(
-            mock_request, progress, mock_context, sentinel.credentials
+            mock_request, progress, mock_context, sentinel.session
         )
     assert reinvoke is True
     mock_sleep.assert_called_once_with(5)
@@ -385,21 +389,15 @@ def test_schedule_reinvocation_cloudwatch_callback():
     )()
     mock_context.get_remaining_time_in_millis.return_value = 6000
     mock_context.invoked_function_arn = "arn:aaa:bbb:ccc"
-    mock_credentials = Mock(
-        "cloudformation_cli_python_lib.interface.Credentials", autospec=True
-    )()
     with patch(
-        "cloudformation_cli_python_lib.resource.boto3.Session", autospec=True
-    ) as mock_session, patch(
         "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
     ) as mock_scheduler, patch(
         "cloudformation_cli_python_lib.resource.sleep", autospec=True
     ) as mock_sleep:
         reinvoke = Resource.schedule_reinvocation(
-            mock_request, progress, mock_context, mock_credentials
+            mock_request, progress, mock_context, Mock()
         )
     assert reinvoke is False
-    mock_session.assert_called_once()
     mock_scheduler.assert_called_once()
     assert mock_scheduler.method_calls[0] == (
         "().reschedule_after_minutes",

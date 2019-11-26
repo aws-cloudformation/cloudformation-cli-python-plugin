@@ -75,7 +75,7 @@ class Resource:
         handler_request: HandlerRequest,
         handler_response: ProgressEvent,
         context: LambdaContext,
-        credentials: Credentials,
+        session: boto3.Session,
     ) -> bool:
         if handler_response.status != OperationStatus.IN_PROGRESS:
             return False
@@ -100,11 +100,6 @@ class Resource:
             return True
         LOG.info("Scheduling re-invoke with Context {%s}", reinvoke_context)
         callback_delay_min = int(callback_delay_s / 60)
-        session = boto3.Session(
-            aws_access_key_id=credentials.accessKeyId,
-            aws_secret_access_key=credentials.secretAccessKey,
-            aws_session_token=credentials.sessionToken,
-        )
         CloudWatchScheduler(boto3_session=session).reschedule_after_minutes(
             function_arn=context.invoked_function_arn,
             minutes_from_now=callback_delay_min,
@@ -177,27 +172,36 @@ class Resource:
         self, event_data: MutableMapping[str, Any]
     ) -> Tuple[
         Optional[SessionProxy],
+        boto3.Session,
         BaseResourceHandlerRequest,
         Action,
         MutableMapping[str, Any],
+        HandlerRequest,
     ]:
         try:
             event = HandlerRequest.deserialize(event_data)
-            creds = event.requestData.callerCredentials
+            caller_creds = event.requestData.callerCredentials
+            platform_creds = event.requestData.platformCredentials
             request: BaseResourceHandlerRequest = UnmodelledRequest(
                 clientRequestToken=event.bearerToken,
                 desiredResourceState=event.requestData.resourceProperties,
                 previousResourceState=event.requestData.previousResourceProperties,
                 logicalResourceIdentifier=event.requestData.logicalResourceId,
             ).to_modelled(self._model_cls)
-
-            session = _get_boto_session(creds, event.region)
+            caller_sess = _get_boto_session(caller_creds, event.region)
+            # No need to proxy as platform creds are required in the request
+            platform_sess = boto3.Session(
+                aws_access_key_id=platform_creds.accessKeyId,
+                aws_secret_access_key=platform_creds.secretAccessKey,
+                aws_session_token=platform_creds.sessionToken,
+            )
             action = Action[event.action]
             callback_context = event.requestContext.get("callbackContext", {})
+            Credentials(**event_data["requestData"]["platformCredentials"])
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
-        return session, request, action, callback_context
+        return caller_sess, platform_sess, request, action, callback_context, event
 
     @_ensure_serialize
     def __call__(
@@ -206,31 +210,22 @@ class Resource:
         try:
             ProviderLogHandler.setup(event_data)
             parsed = self._parse_request(event_data)
-            session, request, action, callback_context = parsed
+            caller_sess, platform_sess, request, action, callback, event = parsed
             invoke = True
             while invoke:
-                progress_event = self._invoke_handler(
-                    session, request, action, callback_context
-                )
+                progress = self._invoke_handler(caller_sess, request, action, callback)
                 invoke = self.schedule_reinvocation(
-                    HandlerRequest.deserialize(event_data),
-                    progress_event,
-                    context,
-                    Credentials(**event_data["requestData"]["platformCredentials"]),
+                    event, progress, context, platform_sess
                 )
         except _HandlerError as e:
             LOG.exception("Handler error", exc_info=True)
-            progress_event = e.to_progress_event()
+            progress = e.to_progress_event()
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Exception caught", exc_info=True)
-            progress_event = ProgressEvent.failed(
-                HandlerErrorCode.InternalFailure, str(e)
-            )
+            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure, str(e))
         except BaseException as e:  # pylint: disable=broad-except
             LOG.critical("Base exception caught (this is usually bad)", exc_info=True)
-            progress_event = ProgressEvent.failed(
-                HandlerErrorCode.InternalFailure, str(e)
-            )
-        return progress_event._serialize(  # pylint: disable=protected-access
+            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure, str(e))
+        return progress._serialize(  # pylint: disable=protected-access
             to_response=True, bearer_token=event_data.get("bearerToken")
         )
