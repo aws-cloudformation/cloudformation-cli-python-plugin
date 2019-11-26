@@ -313,9 +313,7 @@ def test_test_entrypoint_success():
     mock_model._deserialize.side_effect = [None, None]
 
     resource = Resource(mock_model)
-    progress_event = Mock(
-        "cloudformation_cli_python_lib.interface.ProgressEvent", autospec=True
-    )()
+    progress_event = ProgressEvent(status=OperationStatus.SUCCESS)
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=progress_event))
 
     payload = {

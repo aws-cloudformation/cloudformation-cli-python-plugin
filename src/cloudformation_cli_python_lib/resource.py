@@ -8,7 +8,7 @@ from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
 import boto3  # type: ignore
 
 from .boto3_proxy import SessionProxy, _get_boto_session
-from .exceptions import InvalidRequest, _HandlerError
+from .exceptions import InternalFailure, InvalidRequest, _HandlerError
 from .interface import (
     Action,
     BaseResourceHandlerRequest,
@@ -30,7 +30,7 @@ from .utils import (
 
 LOG = logging.getLogger(__name__)
 
-MUTATING_ACTIONS = [Action.CREATE, Action.UPDATE, Action.DELETE]
+MUTATING_ACTIONS = (Action.CREATE, Action.UPDATE, Action.DELETE)
 INVOCATION_TIMEOUT_MS = 60000
 
 HandlerSignature = Callable[
@@ -85,6 +85,10 @@ class Resource:
         reinvoke_context["invocation"] = reinvoke_context.get("invocation", 0) + 1
         callback_delay_s = handler_response.callbackDelaySeconds
         remaining_ms = context.get_remaining_time_in_millis()
+
+        # when a handler requests a sub-minute callback delay, and if the lambda
+        # invocation has enough runtime (with 20% buffer), we can re-run the handler
+        # locally otherwise we re-invoke through CloudWatchEvents
         needed_ms_remaining = callback_delay_s * 1200 + INVOCATION_TIMEOUT_MS
         if callback_delay_s < 60 and remaining_ms > needed_ms_remaining:
             LOG.info(
@@ -125,7 +129,7 @@ class Resource:
         is_in_progress = progress.status == OperationStatus.IN_PROGRESS
         is_mutable = action in MUTATING_ACTIONS
         if is_in_progress and not is_mutable:
-            raise Exception("READ and LIST handlers must return synchronously.")
+            raise InternalFailure("READ and LIST handlers must return synchronously.")
         return progress
 
     def _parse_test_request(

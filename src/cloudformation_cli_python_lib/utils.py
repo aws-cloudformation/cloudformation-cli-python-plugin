@@ -121,5 +121,5 @@ class UnmodelledRequest:
 
 
 class LambdaContext:
-    get_remaining_time_in_millis: Callable[[Any], int]
+    get_remaining_time_in_millis: Callable[["LambdaContext"], int]
     invoked_function_arn: str
