@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
-from typing import Any, Mapping, MutableMapping, Optional, Type
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Type
 
 from .interface import Action, BaseResourceHandlerRequest, BaseResourceModel
 
@@ -118,3 +118,8 @@ class UnmodelledRequest:
             logicalResourceIdentifier=self.logicalResourceIdentifier,
             nextToken=self.nextToken,
         )
+
+
+class LambdaContext:
+    get_remaining_time_in_millis: Callable[["LambdaContext"], int]
+    invoked_function_arn: str
