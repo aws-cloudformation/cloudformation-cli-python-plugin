@@ -58,10 +58,9 @@ def test_progress_event_serialize_to_response(message, bearer_token):
     )
 
     assert event._serialize(to_response=True, bearer_token=bearer_token) == {
-        "operationStatus": OperationStatus.SUCCESS.value,
+        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
         "message": message,
         "bearerToken": bearer_token,
-        "callbackDelaySeconds": 1,
     }
 
 

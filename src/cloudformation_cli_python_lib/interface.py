@@ -90,9 +90,20 @@ class ProgressEvent:
         # mutate to what's expected in the response
         if to_response:
             ser["bearerToken"] = bearer_token
-            ser["operationStatus"] = ser.pop("status")
-            if ser["callbackDelaySeconds"] == 0:
+            ser["operationStatus"] = ser.pop("status").name
+            if self.resourceModel:
+                # pylint: disable=protected-access
+                ser["resourceModel"] = self.resourceModel._serialize()
+            if self.resourceModels:
+                ser["resourceModels"] = [
+                    # pylint: disable=protected-access
+                    model._serialize()
+                    for model in self.resourceModels
+                ]
+            if ser.get("callbackDelaySeconds") or ser.get("callbackDelaySeconds") == 0:
                 del ser["callbackDelaySeconds"]
+            if ser.get("callbackContext"):
+                del ser["callbackContext"]
         return ser
 
     @classmethod
