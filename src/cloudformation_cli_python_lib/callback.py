@@ -34,7 +34,7 @@ def report_progress(  # pylint: disable=too-many-arguments
             cls=KitchenSinkEncoder,
         )
     if code:
-        request["ErrorCode"] = code
+        request["ErrorCode"] = code.name
     if current_status:
         request["CurrentOperationStatus"] = current_status.name
     response = client.record_handler_progress(**request)

@@ -100,6 +100,51 @@ def test_entrypoint_success():
     mock_handler.assert_called_once()
 
 
+def test_entrypoint_non_mutating_action():
+    payload = ENTRYPOINT_PAYLOAD.copy()
+    payload["action"] = "READ"
+    resource = Resource(Mock())
+    event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
+    resource.handler(Action.CREATE)(Mock(return_value=event))
+
+    with patch(
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
+    ), patch(
+        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
+    ) as mock_report_progress:
+        resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, payload, None
+        )
+    assert mock_report_progress.call_count == 1
+
+
+def test_entrypoint_with_context():
+    payload = ENTRYPOINT_PAYLOAD.copy()
+    payload["requestContext"] = {"a": "b"}
+    resource = Resource(Mock())
+    event = ProgressEvent(
+        status=OperationStatus.SUCCESS, message="", callbackContext={"c": "d"}
+    )
+    mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
+
+    with patch(
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
+    ), patch(
+        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
+    ), patch(
+        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
+    ) as mock_scheduler:
+        resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, payload, None
+        )
+    assert mock_scheduler.method_calls[0] == [
+        "().cleanup_cloudwatch_events",
+        ("", ""),
+        {},
+    ]
+    mock_handler.assert_called_once()
+
+
 def test_entrypoint_success_without_caller_provider_creds():
     resource = Resource(Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")

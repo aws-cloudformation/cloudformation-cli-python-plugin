@@ -100,10 +100,11 @@ class ProgressEvent:
                     model._serialize()
                     for model in self.resourceModels
                 ]
-            if ser.get("callbackDelaySeconds") or ser.get("callbackDelaySeconds") == 0:
-                del ser["callbackDelaySeconds"]
-            if ser.get("callbackContext"):
+            del ser["callbackDelaySeconds"]
+            if "callbackContext" in ser:
                 del ser["callbackContext"]
+            if self.errorCode:
+                ser["errorCode"] = self.errorCode.name
         return ser
 
     @classmethod
