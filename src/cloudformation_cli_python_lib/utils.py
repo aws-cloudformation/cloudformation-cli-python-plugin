@@ -43,7 +43,7 @@ class RequestData:
     logicalResourceId: str
     resourceProperties: Mapping[str, Any]
     systemTags: Mapping[str, Any]
-    stackTags: Mapping[str, Any]
+    stackTags: Optional[Mapping[str, Any]] = None
     callerCredentials: Optional[Credentials] = field(default=None)
     providerCredentials: Optional[Credentials] = field(default=None)
     previousResourceProperties: Optional[Mapping[str, Any]] = None
