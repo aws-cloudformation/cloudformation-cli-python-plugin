@@ -94,7 +94,7 @@ def test_entrypoint_success():
     assert event == {
         "message": "",
         "bearerToken": "123456",
-        "operationStatus": OperationStatus.SUCCESS,
+        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
     }
 
     mock_handler.assert_called_once()
