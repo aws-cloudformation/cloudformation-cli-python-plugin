@@ -75,7 +75,7 @@ class ProgressEvent:
     status: OperationStatus
     errorCode: Optional[HandlerErrorCode] = None
     message: str = ""
-    callbackContext: Optional[Mapping[str, Any]] = None
+    callbackContext: Optional[MutableMapping[str, Any]] = None
     callbackDelaySeconds: int = 0
     resourceModel: Optional[BaseResourceModel] = None
     resourceModels: Optional[List[BaseResourceModel]] = None

@@ -8,6 +8,7 @@ from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
 import boto3  # type: ignore
 
 from .boto3_proxy import SessionProxy, _get_boto_session
+from .callback import report_progress
 from .exceptions import InternalFailure, InvalidRequest, _HandlerError
 from .interface import (
     Action,
@@ -211,9 +212,40 @@ class Resource:
             ProviderLogHandler.setup(event_data)
             parsed = self._parse_request(event_data)
             caller_sess, platform_sess, request, action, callback, event = parsed
+            # Acknowledge the task for first time invocation
+            if not event.requestContext:
+                report_progress(
+                    platform_sess,
+                    event.bearerToken,
+                    None,
+                    OperationStatus.IN_PROGRESS,
+                    OperationStatus.PENDING,
+                    None,
+                    "",
+                )
+            else:
+                # If this invocation was triggered by a 're-invoke' CloudWatch Event,
+                # clean it up
+                CloudWatchScheduler(platform_sess).cleanup_cloudwatch_events(
+                    event.requestContext.get("cloudWatchEventsRuleName", ""),
+                    event.requestContext.get("cloudWatchEventsTargetId", ""),
+                )
             invoke = True
             while invoke:
                 progress = self._invoke_handler(caller_sess, request, action, callback)
+                if progress.callbackContext:
+                    callback = progress.callbackContext
+                    event.requestContext["callbackContext"] = callback
+                if event.action in MUTATING_ACTIONS:
+                    report_progress(
+                        platform_sess,
+                        event.bearerToken,
+                        progress.errorCode,
+                        progress.status,
+                        OperationStatus.IN_PROGRESS,
+                        progress.resourceModel,
+                        progress.message,
+                    )
                 invoke = self.schedule_reinvocation(
                     event, progress, context, platform_sess
                 )

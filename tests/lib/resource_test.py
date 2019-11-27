@@ -82,10 +82,13 @@ def test_entrypoint_success():
 
     with patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
-    ) as mock_log_delivery:
+    ) as mock_log_delivery, patch(
+        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
+    ) as mock_report_progress:
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, ENTRYPOINT_PAYLOAD, None
         )
+    assert mock_report_progress.call_count == 2
     mock_log_delivery.assert_called_once()
 
     assert event == {
@@ -111,7 +114,9 @@ def test_entrypoint_success_without_caller_provider_creds():
         "operationStatus": OperationStatus.SUCCESS,
     }
 
-    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
+    with patch(
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
+    ), patch("cloudformation_cli_python_lib.resource.report_progress", autospec=True):
         # Credentials are defined in payload, but null
         payload["requestData"]["providerCredentials"] = None
         payload["requestData"]["callerCredentials"] = None

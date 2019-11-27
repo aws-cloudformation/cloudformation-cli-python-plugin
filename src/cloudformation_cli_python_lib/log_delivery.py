@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 # boto3 doesn't have stub files
 import boto3  # type: ignore
@@ -29,6 +29,13 @@ class ProviderLogHandler(logging.Handler):
         self.sequence_token = ""
 
     @classmethod
+    def _get_existing_logger(cls) -> Optional["ProviderLogHandler"]:
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, cls):
+                return handler
+        return None
+
+    @classmethod
     def setup(cls, event_data: Mapping[str, Any]) -> None:
         try:
             log_creds = event_data["requestData"]["providerCredentials"]
@@ -46,12 +53,23 @@ class ProviderLogHandler(logging.Handler):
         except KeyError:
             stream_name = f'{event_data["awsAccountId"]}-{event_data["region"]}'
 
-        # filter provider messages from platform
-        ProviderFilter.PROVIDER = event_data["resourceType"].replace("::", "_").lower()
-        logging.getLogger().handlers[0].addFilter(ProviderFilter())
-
-        # add log handler to root, so that provider gets plugin logs too
+        log_handler = cls._get_existing_logger()
         if log_creds and log_group:
+            if log_handler:
+                # This is a re-used lambda container, log handler is already setup, so
+                # we just refresh the client with new creds
+                log_handler.client = boto3.client(
+                    "logs",
+                    aws_access_key_id=log_creds["accessKeyId"],
+                    aws_secret_access_key=log_creds["secretAccessKey"],
+                    aws_session_token=log_creds["sessionToken"],
+                )
+                return
+            # filter provider messages from platform
+            ProviderFilter.PROVIDER = (
+                event_data["resourceType"].replace("::", "_").lower()
+            )
+            logging.getLogger().handlers[0].addFilter(ProviderFilter())
             log_handler = cls(
                 group=log_group,
                 stream=stream_name,
@@ -61,6 +79,7 @@ class ProviderLogHandler(logging.Handler):
                     "aws_session_token": log_creds["sessionToken"],
                 },
             )
+            # add log handler to root, so that provider gets plugin logs too
             logging.getLogger().addHandler(log_handler)
 
     def _create_log_group(self) -> None:
