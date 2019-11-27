@@ -131,4 +131,4 @@ def test_cleanup_cloudwatch_events_boto_error(mock_logger, mock_boto3_session):
 def test__min_to_cron(mock_datetime):
     mock_datetime.now.return_value = datetime.fromisoformat("2019-01-01 01:01:01")
     cron = CloudWatchScheduler._min_to_cron(1)
-    assert cron == "cron('03 01 01 01 ? 2019')"
+    assert cron == "cron(03 01 01 01 ? 2019)"
