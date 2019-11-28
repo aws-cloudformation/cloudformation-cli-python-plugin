@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 from functools import wraps
 from time import sleep
 from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
@@ -18,6 +19,7 @@ from .interface import (
     ProgressEvent,
 )
 from .log_delivery import ProviderLogHandler
+from .metrics import MetricPublisher, MetricsPublisherProxy
 from .scheduler import CloudWatchScheduler
 from .utils import (
     BaseResourceModel,
@@ -95,14 +97,8 @@ class Resource:
         # locally otherwise we re-invoke through CloudWatchEvents
         needed_ms_remaining = callback_delay_s * 1200 + INVOCATION_TIMEOUT_MS
         if callback_delay_s < 60 and remaining_ms > needed_ms_remaining:
-            LOG.info(
-                "Scheduling re-invoke locally after %s seconds, with Context {%s}",
-                callback_delay_s,
-                reinvoke_context,
-            )
             sleep(callback_delay_s)
             return True
-        LOG.info("Scheduling re-invoke with Context {%s}", reinvoke_context)
         callback_delay_min = int(callback_delay_s / 60)
         CloudWatchScheduler(boto3_session=session).reschedule_after_minutes(
             function_arn=context.invoked_function_arn,
@@ -175,8 +171,7 @@ class Resource:
     def _parse_request(
         self, event_data: MutableMapping[str, Any]
     ) -> Tuple[
-        Optional[SessionProxy],
-        boto3.Session,
+        Tuple[Optional[SessionProxy], Optional[boto3.Session], boto3.Session],
         BaseResourceHandlerRequest,
         Action,
         MutableMapping[str, Any],
@@ -185,6 +180,7 @@ class Resource:
         try:
             event = HandlerRequest.deserialize(event_data)
             caller_creds = event.requestData.callerCredentials
+            provider_creds = event.requestData.providerCredentials
             platform_creds = event.requestData.platformCredentials
             request: BaseResourceHandlerRequest = UnmodelledRequest(
                 clientRequestToken=event.bearerToken,
@@ -199,22 +195,47 @@ class Resource:
                 aws_secret_access_key=platform_creds.secretAccessKey,
                 aws_session_token=platform_creds.sessionToken,
             )
+            provider_sess = (
+                boto3.Session(
+                    aws_access_key_id=provider_creds.accessKeyId,
+                    aws_secret_access_key=provider_creds.secretAccessKey,
+                    aws_session_token=provider_creds.sessionToken,
+                )
+                if provider_creds
+                else None
+            )
             action = Action[event.action]
             callback_context = event.requestContext.get("callbackContext", {})
-            Credentials(**event_data["requestData"]["platformCredentials"])
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
-        return caller_sess, platform_sess, request, action, callback_context, event
+        return (
+            (caller_sess, provider_sess, platform_sess),
+            request,
+            action,
+            callback_context,
+            event,
+        )
 
-    @_ensure_serialize
-    def __call__(
+    # TODO: refactor to reduce branching and locals
+    @_ensure_serialize  # noqa: C901
+    def __call__(  # pylint: disable=too-many-locals
         self, event_data: MutableMapping[str, Any], context: LambdaContext
     ) -> MutableMapping[str, Any]:
         try:
             ProviderLogHandler.setup(event_data)
-            parsed = self._parse_request(event_data)
-            caller_sess, platform_sess, request, action, callback, event = parsed
+            sessions, request, action, callback, event = self._parse_request(event_data)
+            caller_sess, provider_sess, platform_sess = sessions
+            metrics = MetricsPublisherProxy()
+            metrics.add_metrics_publisher(
+                MetricPublisher(event.awsAccountId, event.resourceType, platform_sess)
+            )
+            if provider_sess:
+                metrics.add_metrics_publisher(
+                    MetricPublisher(
+                        event.awsAccountId, event.resourceType, provider_sess
+                    )
+                )
             # Acknowledge the task for first time invocation
             if not event.requestContext:
                 report_progress(
@@ -235,7 +256,20 @@ class Resource:
                 )
             invoke = True
             while invoke:
-                progress = self._invoke_handler(caller_sess, request, action, callback)
+                metrics.publish_invocation_metric(datetime.now(), action)
+                start_time = datetime.now()
+                error = None
+                try:
+                    progress = self._invoke_handler(
+                        caller_sess, request, action, callback
+                    )
+                except Exception as e:  # pylint: disable=broad-except
+                    error = e
+                m_secs = (datetime.now() - start_time).total_seconds() * 1000.0
+                metrics.publish_duration_metric(datetime.now(), action, m_secs)
+                if error:
+                    metrics.publish_exception_metric(datetime.now(), action, error)
+                    raise error
                 if progress.callbackContext:
                     callback = progress.callbackContext
                     event.requestContext["callbackContext"] = callback
