@@ -15,8 +15,9 @@ from .models import ResourceHandlerRequest, ResourceModel
 
 # Use this logger to forward log messages to CloudWatch Logs.
 LOG = logging.getLogger(__name__)
+TYPE_NAME = "{{ type_name }}"
 
-resource = Resource(ResourceModel)
+resource = Resource(TYPE_NAME, ResourceModel)
 test_entrypoint = resource.test_entrypoint
 
 
