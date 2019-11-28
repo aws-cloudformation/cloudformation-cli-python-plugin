@@ -14,29 +14,29 @@ LOG = logging.getLogger(__name__)
 
 def report_progress(  # pylint: disable=too-many-arguments
     session: Session,
-    token: str,
-    code: Optional[HandlerErrorCode],
-    status: OperationStatus,
-    current_status: Optional[OperationStatus],
-    model: Optional[BaseResourceModel],
-    message: str,
+    bearer_token: str,
+    error_code: Optional[HandlerErrorCode],
+    operation_status: OperationStatus,
+    current_operation_status: Optional[OperationStatus],
+    resource_model: Optional[BaseResourceModel],
+    status_message: str,
 ) -> None:
     client = session.client("cloudformation")
     request = {
-        "BearerToken": token,
-        "OperationStatus": status.name,
-        "StatusMessage": message,
+        "BearerToken": bearer_token,
+        "OperationStatus": operation_status.name,
+        "StatusMessage": status_message,
         "ClientRequestToken": str(uuid4()),
     }
-    if model:
+    if resource_model:
         request["ResourceModel"] = json.dumps(
-            model._serialize(),  # pylint: disable=protected-access
+            resource_model._serialize(),  # pylint: disable=protected-access
             cls=KitchenSinkEncoder,
         )
-    if code:
-        request["ErrorCode"] = code.name
-    if current_status:
-        request["CurrentOperationStatus"] = current_status.name
+    if error_code:
+        request["ErrorCode"] = error_code.name
+    if current_operation_status:
+        request["CurrentOperationStatus"] = current_operation_status.name
     response = client.record_handler_progress(**request)
     LOG.info(
         "Record Handler Progress with Request Id %s and Request: {%s}",
