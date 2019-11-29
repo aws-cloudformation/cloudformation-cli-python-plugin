@@ -15,7 +15,7 @@ def default_assert(value):
     with pytest.raises(TypeError):
         json.dumps(value)
 
-    assert value == value.fromisoformat(roundtrip(value))
+    assert value.isoformat() == roundtrip(value)
 
 
 # apply decorator multiple times to create different tests

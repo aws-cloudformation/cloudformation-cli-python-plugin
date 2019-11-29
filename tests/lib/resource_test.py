@@ -254,7 +254,13 @@ def test__ensure_serialize_invalid_returns_progress_event():
         HandlerErrorCode.InternalFailure,
         "Object of type Unserializable is not JSON serializable",
     )
-    assert serialized == event._serialize()
+    try:
+        # Python 3.7/3.8
+        assert serialized == event._serialize()
+    except AssertionError:
+        # Python 3.6
+        event.message = "Object of type 'Unserializable' is not JSON serializable"
+        assert serialized == event._serialize()
 
 
 def test_handler_decorator(resource):
