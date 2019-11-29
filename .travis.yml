@@ -1,35 +1,21 @@
 language: python
 dist: bionic
 sudo: false
-python:
-  - "3.6"
-  - "3.7"
-  - "3.8"
 cache: pip
-stages:
-- Linting
-- Unit Tests
-jobs:
-  include:
-  - stage: Linting
-    python: 3.6
-    script: SKIP=pytest-local pre-commit run --all-files
-  - python: 3.7
-    script: SKIP=pytest-local pre-commit run --all-files
-  - python: 3.8
-    script: SKIP=pytest-local pre-commit run --all-files
-  - stage: Unit Tests
-    python: 3.6
-    script: pre-commit run --all-files pytest-local
-  - python: 3.7
-    script: pre-commit run --all-files pytest-local
-  - python: 3.8
-    script: pre-commit run --all-files pytest-local
 before_install:
 - >
-  pip install --upgrade pip mypy 'attrs==19.2.0'
+  pip install --upgrade pip mypy codecov 'attrs==19.2.0'
   -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
 install:
 - pip install . src/
 env:
-- AWS_DEFAULT_REGION="us-east-1"
+  global:
+  - AWS_DEFAULT_REGION="us-east-1"
+script:
+- pre-commit run --all-files
+jobs:
+  include:
+  - python: "3.6"
+  - python: "3.7"
+    after_success: codecov
+  - python: "3.8"

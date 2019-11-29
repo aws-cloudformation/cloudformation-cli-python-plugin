@@ -8,6 +8,8 @@ The CloudFormation Resource Provider Development Kit (RPDK) allows you to author
 
 This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation.
 
+[![Build Status](https://travis-ci.com/aws-cloudformation/cloudformation-cli-python-plugin.svg?branch=master)](https://travis-ci.com/aws-cloudformation/cloudformation-cli-python-plugin)
+
 Installation
 ------------
 
