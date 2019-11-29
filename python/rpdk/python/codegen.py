@@ -7,6 +7,7 @@ from tempfile import TemporaryFile
 
 import docker
 from docker.errors import APIError, ContainerError, ImageLoadError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import DownstreamError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
@@ -249,6 +250,15 @@ class Python36LanguagePlugin(LanguagePlugin):
                 volumes=volumes,
                 stream=True,
             )
+        except RequestsConnectionError as e:
+            # it seems quite hard to reliably extract the cause from
+            # ConnectionError. we replace it with a friendlier error message
+            # and preserve the cause for debug traceback
+            cause = RequestsConnectionError(
+                "Could not connect to docker - is it running?"
+            )
+            cause.__cause__ = e
+            raise DownstreamError("Error running docker build") from cause
         except (ContainerError, ImageLoadError, APIError) as e:
             raise DownstreamError("Error running docker build") from e
         LOG.debug("Build running. Output:")

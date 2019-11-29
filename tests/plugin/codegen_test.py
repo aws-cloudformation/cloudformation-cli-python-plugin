@@ -9,6 +9,7 @@ from zipfile import ZipFile
 import pytest
 
 from docker.errors import APIError, ContainerError, ImageLoadError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.exceptions import DownstreamError
 from rpdk.core.project import Project
 from rpdk.python.codegen import (
@@ -252,6 +253,9 @@ def test__docker_build_good_path(plugin, tmp_path):
         lambda: ContainerError("abcde", 255, "/bin/false", "image", ""),
         ImageLoadError,
         lambda: APIError("500"),
+        lambda: RequestsConnectionError(
+            "Connection aborted.", ConnectionRefusedError(61, "Connection refused")
+        ),
     ],
 )
 def test__docker_build_bad_path(plugin, tmp_path, exception):
