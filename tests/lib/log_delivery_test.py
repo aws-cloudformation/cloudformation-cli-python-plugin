@@ -15,6 +15,35 @@ def mock_logger():
 
 
 @pytest.fixture
+def setup_patches(mock_logger):
+    payload = {
+        "resourceType": "Foo::Bar::Baz",
+        "stackId": "an-arn",
+        "requestData": {
+            "logicalResourceId": "MyResourceId",
+            "providerCredentials": {
+                "accessKeyId": "AKI",
+                "secretAccessKey": "SAK",
+                "sessionToken": "ST",
+            },
+            "providerLogGroupName": "test_group",
+        },
+    }
+    patch_logger = patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    )
+    patch_client = patch(
+        "cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True
+    )
+    patch__get_logger = patch(
+        "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler."
+        "_get_existing_logger"
+    )
+    return payload, patch_logger, patch_client, patch__get_logger
+
+
+@pytest.fixture
 def mock_provider_handler():
     patch("cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True)
     plh = ProviderLogHandler(
@@ -52,29 +81,10 @@ def test_provider_filter(logger):
     assert log_filter.filter(record) == expected
 
 
-def test_setup_with_provider_creds(mock_logger):
-    payload = {
-        "resourceType": "Foo::Bar::Baz",
-        "stackId": "an-arn",
-        "requestData": {
-            "logicalResourceId": "MyResourceId",
-            "providerCredentials": {
-                "accessKeyId": "AKI",
-                "secretAccessKey": "SAK",
-                "sessionToken": "ST",
-            },
-            "providerLogGroupName": "test_group",
-        },
-    }
-    patch_logger = patch(
-        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
-        return_value=mock_logger,
-    )
-    patch_client = patch(
-        "cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True
-    )
-
-    with patch_logger as mock_log, patch_client as mock_client:
+def test_setup_with_provider_creds(setup_patches):
+    payload, p_logger, p_client, p__get_logger = setup_patches
+    with p_logger as mock_log, p_client as mock_client, p__get_logger as mock_get:
+        mock_get.return_value = None
         ProviderLogHandler.setup(payload)
     mock_client.assert_called_once_with(
         "logs",
@@ -83,6 +93,21 @@ def test_setup_with_provider_creds(mock_logger):
         aws_session_token="ST",
     )
     mock_log.return_value.addHandler.assert_called_once()
+
+
+def test_setup_existing_logger(setup_patches):
+    existing = ProviderLogHandler("g", "s", {})
+    payload, p_logger, p_client, p__get_logger = setup_patches
+    with p_logger as mock_log, p_client as mock_client, p__get_logger as mock_get:
+        mock_get.return_value = existing
+        ProviderLogHandler.setup(payload)
+    mock_client.assert_called_once_with(
+        "logs",
+        aws_access_key_id="AKI",
+        aws_secret_access_key="SAK",
+        aws_session_token="ST",
+    )
+    mock_log.return_value.addHandler.assert_not_called()
 
 
 def test_setup_without_provider_creds(mock_logger):
@@ -200,3 +225,24 @@ def test_emit_no_group_stream(mock_provider_handler):
     assert mock_provider_handler._put_log_event.call_count == 4
     mock_provider_handler._create_log_group.assert_called_once()
     assert mock_provider_handler._create_log_stream.call_count == 2
+
+
+def test__get_existing_logger_no_logger_present(mock_logger):
+    mock_logger.handlers = [logging.Handler()]
+    with patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    ):
+        actual = ProviderLogHandler._get_existing_logger()
+    assert actual is None
+
+
+def test__get_existing_logger_logger_present(mock_logger):
+    expected = ProviderLogHandler("g", "s", {})
+    mock_logger.handlers = [logging.Handler(), expected]
+    with patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    ):
+        actual = ProviderLogHandler._get_existing_logger()
+    assert actual == expected

@@ -55,4 +55,4 @@ class CloudWatchScheduler:
         schedule_time = datetime.now() + timedelta(minutes=minutes)
         # add another minute, as per java implementation
         schedule_time = schedule_time + timedelta(minutes=1)
-        return schedule_time.strftime("cron('%M %H %d %m ? %Y')")
+        return schedule_time.strftime("cron(%M %H %d %m ? %Y)")

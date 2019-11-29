@@ -1,5 +1,6 @@
-# pylint: disable=protected-access,redefined-outer-name
+# pylint: disable=protected-access,redefined-outer-name,abstract-method
 import json
+from dataclasses import dataclass
 from string import ascii_letters
 
 import boto3
@@ -24,6 +25,12 @@ def client():
         aws_session_token="",
         region_name="us-east-1",
     )
+
+
+@dataclass
+class TestModel(BaseResourceModel):
+    somekey: str
+    someotherkey: str
 
 
 def test_base_resource_model__deserialize():
@@ -52,16 +59,48 @@ def test_progress_event_failed_is_json_serializable(error_code, message):
 
 
 @given(s.text(ascii_letters), s.text(ascii_letters))
-def test_progress_event_serialize_to_response(message, bearer_token):
+def test_progress_event_serialize_to_response_with_context(message, bearer_token):
     event = ProgressEvent(
-        status=OperationStatus.SUCCESS, message=message, callbackDelaySeconds=1
+        status=OperationStatus.SUCCESS, message=message, callbackContext={"a": "b"}
     )
 
     assert event._serialize(to_response=True, bearer_token=bearer_token) == {
-        "operationStatus": OperationStatus.SUCCESS.value,
+        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
         "message": message,
         "bearerToken": bearer_token,
-        "callbackDelaySeconds": 1,
+    }
+
+
+@given(s.text(ascii_letters), s.text(ascii_letters))
+def test_progress_event_serialize_to_response_with_model(message, bearer_token):
+    model = TestModel("a", "b")
+    event = ProgressEvent(
+        status=OperationStatus.SUCCESS, message=message, resourceModel=model
+    )
+
+    assert event._serialize(to_response=True, bearer_token=bearer_token) == {
+        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "message": message,
+        "bearerToken": bearer_token,
+        "resourceModel": {"somekey": "a", "someotherkey": "b"},
+    }
+
+
+@given(s.text(ascii_letters), s.text(ascii_letters))
+def test_progress_event_serialize_to_response_with_models(message, bearer_token):
+    models = [TestModel("a", "b"), TestModel("c", "d")]
+    event = ProgressEvent(
+        status=OperationStatus.SUCCESS, message=message, resourceModels=models
+    )
+
+    assert event._serialize(to_response=True, bearer_token=bearer_token) == {
+        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "message": message,
+        "bearerToken": bearer_token,
+        "resourceModels": [
+            {"somekey": "a", "someotherkey": "b"},
+            {"somekey": "c", "someotherkey": "d"},
+        ],
     }
 
 
