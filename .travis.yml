@@ -27,7 +27,9 @@ jobs:
     script: pre-commit run --all-files pytest-local
 before_install:
 - >
-  pip install --upgrade pip mypy
+  pip install --upgrade pip mypy 'attrs==19.2.0'
   -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
 install:
 - pip install . src/
+env:
+- AWS_DEFAULT_REGION="us-east-1"
