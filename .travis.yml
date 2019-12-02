@@ -4,7 +4,7 @@ sudo: false
 cache: pip
 before_install:
 - >
-  pip install --upgrade pip mypy codecov 'attrs==19.2.0'
+  pip install --upgrade pip mypy 'attrs==19.2.0'
   -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
 install:
 - pip install . src/
@@ -17,5 +17,4 @@ jobs:
   include:
   - python: "3.6"
   - python: "3.7"
-    after_success: codecov
   - python: "3.8"
