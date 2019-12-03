@@ -95,7 +95,9 @@ class Python36LanguagePlugin(LanguagePlugin):
         handler_package_path.mkdir(parents=True, exist_ok=True)
         _copy_resource(handler_package_path / "__init__.py")
         _render_template(
-            handler_package_path / "handlers.py", support_lib_pkg=SUPPORT_LIB_PKG
+            handler_package_path / "handlers.py",
+            support_lib_pkg=SUPPORT_LIB_PKG,
+            type_name=project.type_name,
         )
         # models.py produced by generate
 

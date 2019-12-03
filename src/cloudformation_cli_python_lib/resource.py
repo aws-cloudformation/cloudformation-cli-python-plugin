@@ -60,7 +60,10 @@ def _ensure_serialize(
 
 
 class Resource:
-    def __init__(self, resouce_model_cls: Type[BaseResourceModel]) -> None:
+    def __init__(
+        self, type_name: str, resouce_model_cls: Type[BaseResourceModel]
+    ) -> None:
+        self.type_name = type_name
         self._model_cls: Type[BaseResourceModel] = resouce_model_cls
         self._handlers: MutableMapping[Action, HandlerSignature] = {}
 

@@ -51,11 +51,12 @@ ENTRYPOINT_PAYLOAD = {
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e"
     "722ae60-fe62-11e8-9a0e-0ae8cc519968",
 }
+TYPE_NAME = "Test::Foo::Bar"
 
 
 @pytest.fixture
 def resource():
-    return Resource(None)
+    return Resource(TYPE_NAME, None)
 
 
 def patch_and_raise(resource, str_to_patch, exc_cls, entrypoint):
@@ -76,7 +77,7 @@ def test_entrypoint_handler_error(resource):
 
 
 def test_entrypoint_success():
-    resource = Resource(Mock())
+    resource = Resource(TYPE_NAME, Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
@@ -146,7 +147,7 @@ def test_entrypoint_with_context():
 
 
 def test_entrypoint_success_without_caller_provider_creds():
-    resource = Resource(Mock())
+    resource = Resource(TYPE_NAME, Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     resource.handler(Action.CREATE)(Mock(return_value=event))
 
@@ -195,7 +196,7 @@ def test__parse_request_valid_request():
     mock_model = Mock(spec_set=["_deserialize"])
     mock_model._deserialize.side_effect = [sentinel.state_out1, sentinel.state_out2]
 
-    resource = Resource(mock_model)
+    resource = Resource(TYPE_NAME, mock_model)
 
     with patch(
         "cloudformation_cli_python_lib.resource._get_boto_session"
@@ -320,7 +321,7 @@ def test__parse_test_request_valid_request():
         "callbackContext": None,
     }
 
-    resource = Resource(mock_model)
+    resource = Resource(TYPE_NAME, mock_model)
 
     with patch(
         "cloudformation_cli_python_lib.resource._get_boto_session"
@@ -366,7 +367,7 @@ def test_test_entrypoint_success():
     mock_model = Mock(spec_set=["_deserialize"])
     mock_model._deserialize.side_effect = [None, None]
 
-    resource = Resource(mock_model)
+    resource = Resource(TYPE_NAME, mock_model)
     progress_event = ProgressEvent(status=OperationStatus.SUCCESS)
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=progress_event))
 
