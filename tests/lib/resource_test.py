@@ -104,7 +104,7 @@ def test_entrypoint_success():
 def test_entrypoint_non_mutating_action():
     payload = ENTRYPOINT_PAYLOAD.copy()
     payload["action"] = "READ"
-    resource = Resource(Mock())
+    resource = Resource(TYPE_NAME, Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     resource.handler(Action.CREATE)(Mock(return_value=event))
 
@@ -122,7 +122,7 @@ def test_entrypoint_non_mutating_action():
 def test_entrypoint_with_context():
     payload = ENTRYPOINT_PAYLOAD.copy()
     payload["requestContext"] = {"a": "b"}
-    resource = Resource(Mock())
+    resource = Resource(TYPE_NAME, Mock())
     event = ProgressEvent(
         status=OperationStatus.SUCCESS, message="", callbackContext={"c": "d"}
     )
