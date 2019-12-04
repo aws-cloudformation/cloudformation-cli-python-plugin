@@ -217,7 +217,7 @@ class Resource:
 
     # TODO: refactor to reduce branching and locals
     @_ensure_serialize  # noqa: C901
-    def __call__(  # pylint: disable=too-many-locals
+    def __call__(  # pylint: disable=too-many-locals  # noqa: C901
         self, event_data: MutableMapping[str, Any], context: LambdaContext
     ) -> MutableMapping[str, Any]:
         try:
