@@ -1,0 +1,20 @@
+language: python
+dist: bionic
+sudo: false
+cache: pip
+before_install:
+- >
+  pip install --upgrade pip mypy 'attrs==19.2.0'
+  -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
+install:
+- pip install . src/
+env:
+  global:
+  - AWS_DEFAULT_REGION="us-east-1"
+script:
+- pre-commit run --all-files
+jobs:
+  include:
+  - python: "3.6"
+  - python: "3.7"
+  - python: "3.8"

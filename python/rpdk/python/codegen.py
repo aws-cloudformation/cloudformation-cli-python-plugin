@@ -2,7 +2,7 @@ import logging
 import shutil
 import zipfile
 from pathlib import PurePosixPath
-from subprocess import CalledProcessError, run as subprocess_run  # nosec
+from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
 from tempfile import TemporaryFile
 
 import docker
@@ -276,7 +276,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.warning("Starting pip build.")
         try:
             completed_proc = subprocess_run(  # nosec
-                command, capture_output=True, cwd=base_path, check=True
+                command, stdout=PIPE, stderr=PIPE, cwd=base_path, check=True
             )
         except (FileNotFoundError, CalledProcessError) as e:
             raise DownstreamError("pip build failed") from e
