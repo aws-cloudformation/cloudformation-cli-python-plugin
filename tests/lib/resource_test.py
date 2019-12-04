@@ -1,4 +1,5 @@
 # pylint: disable=redefined-outer-name,protected-access
+from dataclasses import dataclass
 from datetime import datetime
 from unittest.mock import Mock, call, patch, sentinel
 
@@ -6,6 +7,7 @@ import pytest
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.interface import (
     Action,
+    BaseResourceModel,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
@@ -99,6 +101,40 @@ def test_entrypoint_success():
     }
 
     mock_handler.assert_called_once()
+
+
+def test_entrypoint_handler_raises():
+    @dataclass
+    class ResourceModel(BaseResourceModel):
+        a_string: str
+
+        @classmethod
+        def _deserialize(cls, json_data):
+            return cls("test")
+
+    resource = Resource(Mock(), ResourceModel)
+
+    with patch(
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
+    ), patch(
+        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
+    ), patch(
+        "cloudformation_cli_python_lib.resource.MetricsPublisherProxy"
+    ) as mock_metrics, patch(
+        "cloudformation_cli_python_lib.resource.Resource._invoke_handler"
+    ) as mock__invoke_handler:
+        mock__invoke_handler.side_effect = InvalidRequest("handler failed")
+        event = resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, ENTRYPOINT_PAYLOAD, None
+        )
+
+    mock_metrics.return_value.publish_exception_metric.assert_called_once()
+    assert event == {
+        "errorCode": "InvalidRequest",
+        "message": "handler failed",
+        "bearerToken": "123456",
+        "operationStatus": "FAILED",
+    }
 
 
 def test_entrypoint_non_mutating_action():
@@ -204,11 +240,11 @@ def test__parse_request_valid_request():
         "cloudformation_cli_python_lib.resource.boto3.Session"
     ) as mock_platform_session:
         ret = resource._parse_request(ENTRYPOINT_PAYLOAD)
-    caller_sess, platform_sess, request, action, callback_context, _event = ret
-
+    sessions, request, action, callback_context, _event = ret
+    caller_sess, _, platform_sess = sessions
     mock_caller_session.assert_called_once()
     assert caller_sess is mock_caller_session.return_value
-    mock_platform_session.assert_called_once()
+    assert mock_platform_session.call_count == 2
     assert platform_sess is mock_platform_session.return_value
 
     mock_model._deserialize.assert_has_calls(
