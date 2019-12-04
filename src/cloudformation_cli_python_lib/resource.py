@@ -256,8 +256,8 @@ class Resource:
                 )
             invoke = True
             while invoke:
-                metrics.publish_invocation_metric(datetime.now(), action)
-                start_time = datetime.now()
+                metrics.publish_invocation_metric(datetime.utcnow(), action)
+                start_time = datetime.utcnow()
                 error = None
                 try:
                     progress = self._invoke_handler(
@@ -265,10 +265,10 @@ class Resource:
                     )
                 except Exception as e:  # pylint: disable=broad-except
                     error = e
-                m_secs = (datetime.now() - start_time).total_seconds() * 1000.0
-                metrics.publish_duration_metric(datetime.now(), action, m_secs)
+                m_secs = (datetime.utcnow() - start_time).total_seconds() * 1000.0
+                metrics.publish_duration_metric(datetime.utcnow(), action, m_secs)
                 if error:
-                    metrics.publish_exception_metric(datetime.now(), action, error)
+                    metrics.publish_exception_metric(datetime.utcnow(), action, error)
                     raise error
                 if progress.callbackContext:
                     callback = progress.callbackContext
