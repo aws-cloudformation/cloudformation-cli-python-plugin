@@ -195,15 +195,13 @@ class Resource:
                 aws_secret_access_key=platform_creds.secretAccessKey,
                 aws_session_token=platform_creds.sessionToken,
             )
-            provider_sess = (
-                boto3.Session(
+            provider_sess = None
+            if provider_creds:
+                provider_sess = boto3.Session(
                     aws_access_key_id=provider_creds.accessKeyId,
                     aws_secret_access_key=provider_creds.secretAccessKey,
                     aws_session_token=provider_creds.sessionToken,
                 )
-                if provider_creds
-                else None
-            )
             action = Action[event.action]
             callback_context = event.requestContext.get("callbackContext", {})
         except Exception as e:  # pylint: disable=broad-except
