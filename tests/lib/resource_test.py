@@ -1,4 +1,5 @@
 # pylint: disable=redefined-outer-name,protected-access
+from dataclasses import dataclass
 from datetime import datetime
 from unittest.mock import Mock, call, patch, sentinel
 
@@ -6,6 +7,7 @@ import pytest
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.interface import (
     Action,
+    BaseResourceModel,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
@@ -102,7 +104,15 @@ def test_entrypoint_success():
 
 
 def test_entrypoint_handler_raises():
-    resource = Resource(Mock())
+    @dataclass
+    class ResourceModel(BaseResourceModel):
+        a_string: str
+
+        @classmethod
+        def _deserialize(cls, json_data):
+            return cls("test")
+
+    resource = Resource(Mock(), ResourceModel)
 
     with patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
