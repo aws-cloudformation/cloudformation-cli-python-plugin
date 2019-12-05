@@ -1,12 +1,10 @@
 import datetime
 import logging
-from typing import Any, List, Mapping
-
-# boto3 doesn't have stub files
-from boto3.session import Session  # type: ignore
+from typing import Any, List, Mapping, Optional
 
 from botocore.exceptions import ClientError  # type: ignore
 
+from .boto3_proxy import SessionProxy
 from .interface import Action, MetricTypes, StandardUnit
 
 LOG = logging.getLogger(__name__)
@@ -19,11 +17,9 @@ def format_dimensions(dimensions: Mapping[str, str]) -> List[Mapping[str, str]]:
 
 
 class MetricPublisher:
-    def __init__(self, account_id: str, resource_type: str, session: Session) -> None:
-        suffix = resource_type.replace("::", "/")
-        self.namespace = f"{METRIC_NAMESPACE_ROOT}/{account_id}/{suffix}"
-        self.resource_type = resource_type
+    def __init__(self, session: SessionProxy, namespace: str) -> None:
         self.client = session.client("cloudwatch")
+        self.namespace = namespace
 
     def publish_metric(  # pylint: disable-msg=too-many-arguments
         self,
@@ -52,21 +48,29 @@ class MetricPublisher:
 
 
 class MetricsPublisherProxy:
-    def __init__(self) -> None:
+    @staticmethod
+    def _make_namespace(account_id: str, resource_type: str) -> str:
+        suffix = resource_type.replace("::", "/")
+        return f"{METRIC_NAMESPACE_ROOT}/{account_id}/{suffix}"
+
+    def __init__(self, account_id: str, resource_type: str) -> None:
+        self.namespace = self._make_namespace(account_id, resource_type)
+        self.resource_type = resource_type
         self._publishers: List[MetricPublisher] = []
 
-    def add_metrics_publisher(self, publisher: MetricPublisher) -> None:
-        self._publishers.append(publisher)
+    def add_metrics_publisher(self, session: Optional[SessionProxy]) -> None:
+        if session:
+            self._publishers.append(MetricPublisher(session, self.namespace))
 
     def publish_exception_metric(
         self, timestamp: datetime.datetime, action: Action, error: Any
     ) -> None:
+        dimensions: Mapping[str, str] = {
+            "DimensionKeyActionType": action.name,
+            "DimensionKeyExceptionType": str(type(error)),
+            "DimensionKeyResourceType": self.resource_type,
+        }
         for publisher in self._publishers:
-            dimensions: Mapping[str, str] = {
-                "DimensionKeyActionType": action.name,
-                "DimensionKeyExceptionType": str(type(error)),
-                "DimensionKeyResourceType": publisher.resource_type,
-            }
             publisher.publish_metric(
                 metric_name=MetricTypes.HandlerException,
                 dimensions=dimensions,
@@ -78,11 +82,11 @@ class MetricsPublisherProxy:
     def publish_invocation_metric(
         self, timestamp: datetime.datetime, action: Action
     ) -> None:
+        dimensions = {
+            "DimensionKeyActionType": action.name,
+            "DimensionKeyResourceType": self.resource_type,
+        }
         for publisher in self._publishers:
-            dimensions = {
-                "DimensionKeyActionType": action.name,
-                "DimensionKeyResourceType": publisher.resource_type,
-            }
             publisher.publish_metric(
                 metric_name=MetricTypes.HandlerInvocationCount,
                 dimensions=dimensions,
@@ -94,11 +98,11 @@ class MetricsPublisherProxy:
     def publish_duration_metric(
         self, timestamp: datetime.datetime, action: Action, milliseconds: float
     ) -> None:
+        dimensions = {
+            "DimensionKeyActionType": action.name,
+            "DimensionKeyResourceType": self.resource_type,
+        }
         for publisher in self._publishers:
-            dimensions = {
-                "DimensionKeyActionType": action.name,
-                "DimensionKeyResourceType": publisher.resource_type,
-            }
             publisher.publish_metric(
                 metric_name=MetricTypes.HandlerInvocationDuration,
                 dimensions=dimensions,
@@ -110,12 +114,12 @@ class MetricsPublisherProxy:
     def publish_log_delivery_exception_metric(
         self, timestamp: datetime.datetime, error: Any
     ) -> None:
+        dimensions = {
+            "DimensionKeyActionType": "ProviderLogDelivery",
+            "DimensionKeyExceptionType": str(type(error)),
+            "DimensionKeyResourceType": self.resource_type,
+        }
         for publisher in self._publishers:
-            dimensions: Mapping[str, str] = {
-                "DimensionKeyActionType": "ProviderLogDelivery",
-                "DimensionKeyExceptionType": str(type(error)),
-                "DimensionKeyResourceType": publisher.resource_type,
-            }
             publisher.publish_metric(
                 metric_name=MetricTypes.HandlerException,
                 dimensions=dimensions,

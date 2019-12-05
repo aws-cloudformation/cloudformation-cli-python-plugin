@@ -72,6 +72,7 @@ repos:
       --cov-report=html
       --cov="rpdk.python"
       --cov="cloudformation_cli_python_lib"
+      --durations=5
       "tests/"
     language: system
     # ignore all files, run on hard-coded modules instead

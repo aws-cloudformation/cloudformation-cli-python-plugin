@@ -1,10 +1,10 @@
 # pylint: disable=redefined-outer-name,protected-access
 from dataclasses import dataclass
 from datetime import datetime
-from unittest.mock import Mock, call, patch, sentinel
+from unittest.mock import ANY, Mock, call, patch, sentinel
 
 import pytest
-from cloudformation_cli_python_lib.exceptions import InvalidRequest
+from cloudformation_cli_python_lib.exceptions import InternalFailure, InvalidRequest
 from cloudformation_cli_python_lib.interface import (
     Action,
     BaseResourceModel,
@@ -13,6 +13,7 @@ from cloudformation_cli_python_lib.interface import (
     ProgressEvent,
 )
 from cloudformation_cli_python_lib.resource import Resource, _ensure_serialize
+from cloudformation_cli_python_lib.utils import Credentials, HandlerRequest
 
 ENTRYPOINT_PAYLOAD = {
     "awsAccountId": "123456789012",
@@ -169,16 +170,14 @@ def test_entrypoint_with_context():
     ), patch(
         "cloudformation_cli_python_lib.resource.report_progress", autospec=True
     ), patch(
-        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
-    ) as mock_scheduler:
+        "cloudformation_cli_python_lib.resource.cleanup_cloudwatch_events",
+        autospec=True,
+    ) as mock_cleanup:
         resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, payload, None
         )
-    assert mock_scheduler.method_calls[0] == [
-        "().cleanup_cloudwatch_events",
-        ("", ""),
-        {},
-    ]
+
+    mock_cleanup.assert_called_once_with(ANY, "", "")
     mock_handler.assert_called_once()
 
 
@@ -217,6 +216,19 @@ def test_entrypoint_success_without_caller_provider_creds():
         assert event == expected
 
 
+def test__parse_request_fail_without_platform_creds():
+    resource = Resource(TYPE_NAME, Mock())
+
+    payload = ENTRYPOINT_PAYLOAD.copy()
+    payload["requestData"] = payload["requestData"].copy()
+    payload["requestData"]["platformCredentials"] = None
+
+    with pytest.raises(InvalidRequest) as excinfo:
+        resource._parse_request(payload)
+
+    assert "ValueError" in str(excinfo.value)
+
+
 @pytest.mark.parametrize(
     "event,messages", [({}, ("missing", "awsAccountId", "bearerToken", "requestData"))]
 )
@@ -228,7 +240,16 @@ def test__parse_request_invalid_request(resource, event, messages):
         assert msg in str(excinfo.value), msg
 
 
-def test__parse_request_valid_request():
+def test_cast_resource_request_invalid_request(resource):
+    request = HandlerRequest.deserialize(ENTRYPOINT_PAYLOAD)
+    request.requestData = None
+    with pytest.raises(InvalidRequest) as excinfo:
+        resource._cast_resource_request(request)
+
+    assert "AttributeError" in str(excinfo.value)
+
+
+def test__parse_request_valid_request_and__cast_resource_request():
     mock_model = Mock(spec_set=["_deserialize"])
     mock_model._deserialize.side_effect = [sentinel.state_out1, sentinel.state_out2]
 
@@ -236,26 +257,45 @@ def test__parse_request_valid_request():
 
     with patch(
         "cloudformation_cli_python_lib.resource._get_boto_session"
-    ) as mock_caller_session, patch(
-        "cloudformation_cli_python_lib.resource.boto3.Session"
-    ) as mock_platform_session:
+    ) as mock_session:
         ret = resource._parse_request(ENTRYPOINT_PAYLOAD)
-    sessions, request, action, callback_context, _event = ret
-    caller_sess, _, platform_sess = sessions
-    mock_caller_session.assert_called_once()
-    assert caller_sess is mock_caller_session.return_value
-    assert mock_platform_session.call_count == 2
-    assert platform_sess is mock_platform_session.return_value
+    sessions, action, callback_context, request = ret
+
+    mock_session.assert_has_calls(
+        [
+            call(Credentials(**ENTRYPOINT_PAYLOAD["requestData"]["callerCredentials"])),
+            call(
+                Credentials(**ENTRYPOINT_PAYLOAD["requestData"]["providerCredentials"])
+            ),
+            call(
+                Credentials(**ENTRYPOINT_PAYLOAD["requestData"]["platformCredentials"])
+            ),
+        ],
+        any_order=True,
+    )
+
+    assert request.requestData.callerCredentials is None
+    assert request.requestData.providerCredentials is None
+    assert request.requestData.platformCredentials is None
+
+    caller_sess, provider_sess, platform_sess = sessions
+    assert caller_sess is mock_session.return_value
+    assert provider_sess is mock_session.return_value
+    assert platform_sess is mock_session.return_value
+
+    assert action == Action.CREATE
+    assert callback_context == {}
+
+    modeled_request = resource._cast_resource_request(request)
 
     mock_model._deserialize.assert_has_calls(
         [call(sentinel.state_in1), call(sentinel.state_in2)]
     )
-    assert request.desiredResourceState is sentinel.state_out1
-    assert request.previousResourceState is sentinel.state_out2
-    assert request.logicalResourceIdentifier == "myBucket"
-
-    assert action == Action.CREATE
-    assert callback_context == {}
+    assert modeled_request.clientRequestToken == request.bearerToken
+    assert modeled_request.desiredResourceState is sentinel.state_out1
+    assert modeled_request.previousResourceState is sentinel.state_out2
+    assert modeled_request.logicalResourceIdentifier == "myBucket"
+    assert modeled_request.nextToken is None
 
 
 @pytest.mark.parametrize("exc_cls", [Exception, BaseException])
@@ -340,7 +380,7 @@ def test__invoke_handler_non_mutating_must_be_synchronous(resource, action):
 
 @pytest.mark.parametrize("event,messages", [({}, ("missing", "credentials"))])
 def test__parse_test_request_invalid_request(resource, event, messages):
-    with pytest.raises(InvalidRequest) as excinfo:
+    with pytest.raises(InternalFailure) as excinfo:
         resource._parse_test_request(event)
 
     for msg in messages:
@@ -392,7 +432,7 @@ def test_test_entrypoint_handler_error(resource):
         resource, {}, None
     )
     assert event.status == OperationStatus.FAILED
-    assert event.errorCode == HandlerErrorCode.InvalidRequest
+    assert event.errorCode == HandlerErrorCode.InternalFailure
 
 
 @pytest.mark.parametrize("exc_cls", [Exception, BaseException])
@@ -436,16 +476,16 @@ def test_test_entrypoint_success():
 def test_schedule_reinvocation_not_in_progress():
     progress = ProgressEvent(status=OperationStatus.SUCCESS)
     with patch(
-        "cloudformation_cli_python_lib.resource.boto3.Session", autospec=True
+        "cloudformation_cli_python_lib.resource._get_boto_session", autospec=True
     ) as mock_session, patch(
-        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
-    ) as mock_scheduler:
+        "cloudformation_cli_python_lib.resource.reschedule_after_minutes", autospec=True
+    ) as mock_reschedule:
         reinvoke = Resource.schedule_reinvocation(
             sentinel.request, progress, sentinel.context, sentinel.session
         )
     assert reinvoke is False
     mock_session.assert_not_called()
-    mock_scheduler.assert_not_called()
+    mock_reschedule.assert_not_called()
 
 
 def test_schedule_reinvocation_local_callback():
@@ -483,23 +523,19 @@ def test_schedule_reinvocation_cloudwatch_callback():
     mock_context.get_remaining_time_in_millis.return_value = 6000
     mock_context.invoked_function_arn = "arn:aaa:bbb:ccc"
     with patch(
-        "cloudformation_cli_python_lib.resource.CloudWatchScheduler", autospec=True
-    ) as mock_scheduler, patch(
+        "cloudformation_cli_python_lib.resource.reschedule_after_minutes", autospec=True
+    ) as mock_reschedule, patch(
         "cloudformation_cli_python_lib.resource.sleep", autospec=True
     ) as mock_sleep:
         reinvoke = Resource.schedule_reinvocation(
             mock_request, progress, mock_context, Mock()
         )
     assert reinvoke is False
-    mock_scheduler.assert_called_once()
-    assert mock_scheduler.method_calls[0] == (
-        "().reschedule_after_minutes",
-        (),
-        {
-            "function_arn": "arn:aaa:bbb:ccc",
-            "minutes_from_now": 1,
-            "handler_request": mock_request,
-        },
+    mock_reschedule.assert_called_once_with(
+        ANY,
+        function_arn="arn:aaa:bbb:ccc",
+        minutes_from_now=1,
+        handler_request=mock_request,
     )
     mock_sleep.assert_not_called()
     assert mock_request.requestContext.get("invocation") == 1

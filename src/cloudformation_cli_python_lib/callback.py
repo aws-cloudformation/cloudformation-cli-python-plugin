@@ -3,9 +3,7 @@ import logging
 from typing import Optional
 from uuid import uuid4
 
-# boto3 doesn't have stub files
-from boto3 import Session  # type: ignore
-
+from .boto3_proxy import SessionProxy
 from .interface import BaseResourceModel, HandlerErrorCode, OperationStatus
 from .utils import KitchenSinkEncoder
 
@@ -13,7 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 def report_progress(  # pylint: disable=too-many-arguments
-    session: Session,
+    session: SessionProxy,
     bearer_token: str,
     error_code: Optional[HandlerErrorCode],
     operation_status: OperationStatus,
