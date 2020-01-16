@@ -274,9 +274,10 @@ def test__parse_request_valid_request_and__cast_resource_request():
         any_order=True,
     )
 
-    assert request.requestData.callerCredentials is None
-    assert request.requestData.providerCredentials is None
-    assert request.requestData.platformCredentials is None
+    # credentials are used when rescheduling, so can't zero them out (for now)
+    assert request.requestData.callerCredentials is not None
+    assert request.requestData.providerCredentials is not None
+    assert request.requestData.platformCredentials is not None
 
     caller_sess, provider_sess, platform_sess = sessions
     assert caller_sess is mock_session.return_value

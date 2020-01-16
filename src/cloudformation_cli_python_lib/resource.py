@@ -181,11 +181,7 @@ class Resource:
             platform_sess = _get_boto_session(event.requestData.platformCredentials)
             caller_sess = _get_boto_session(event.requestData.callerCredentials)
             provider_sess = _get_boto_session(event.requestData.providerCredentials)
-            # zero out credentials. this isn't so much to prevent targeted abuse,
-            # but to prevent accidental logging and re-use
-            event.requestData.platformCredentials = None
-            event.requestData.callerCredentials = None
-            event.requestData.providerCredentials = None
+            # credentials are used when rescheduling, so can't zero them out (for now)
             if platform_sess is None:
                 raise ValueError("No platform credentials")
             action = Action[event.action]
