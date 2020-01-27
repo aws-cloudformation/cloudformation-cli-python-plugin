@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name
 import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
@@ -18,17 +19,15 @@ class KitchenSinkEncoder(json.JSONEncoder):
 
 @dataclass
 class TestEvent:
-    # pylint: disable=invalid-name
     credentials: Mapping[str, str]
     action: Action
     request: Mapping[str, Any]
     callbackContext: MutableMapping[str, Any] = field(default_factory=dict)
-    region_name: Optional[str] = None
+    region: Optional[str] = None
 
 
 @dataclass
 class Credentials:
-    # pylint: disable=invalid-name
     accessKeyId: str
     secretAccessKey: str
     sessionToken: str
@@ -37,15 +36,16 @@ class Credentials:
 # pylint: disable=too-many-instance-attributes
 @dataclass
 class RequestData:
-    # pylint: disable=invalid-name
-    platformCredentials: Credentials
     providerLogGroupName: str
     logicalResourceId: str
     resourceProperties: Mapping[str, Any]
     systemTags: Mapping[str, Any]
     stackTags: Optional[Mapping[str, Any]] = None
-    callerCredentials: Optional[Credentials] = field(default=None)
-    providerCredentials: Optional[Credentials] = field(default=None)
+    # platform credentials aren't really optional, but this is used to
+    # zero them out to prevent e.g. accidental logging
+    platformCredentials: Optional[Credentials] = None
+    callerCredentials: Optional[Credentials] = None
+    providerCredentials: Optional[Credentials] = None
     previousResourceProperties: Optional[Mapping[str, Any]] = None
     previousStackTags: Optional[Mapping[str, Any]] = None
 
@@ -71,11 +71,10 @@ class RequestData:
 # pylint: disable=too-many-instance-attributes
 @dataclass
 class HandlerRequest:
-    # pylint: disable=invalid-name
+    action: str
     awsAccountId: str
     bearerToken: str
     region: str
-    action: str
     responseEndpoint: str
     resourceType: str
     resourceTypeVersion: str
@@ -100,7 +99,6 @@ class HandlerRequest:
 
 @dataclass
 class UnmodelledRequest:
-    # pylint: disable=invalid-name
     clientRequestToken: str
     desiredResourceState: Optional[Mapping[str, Any]] = None
     previousResourceState: Optional[Mapping[str, Any]] = None

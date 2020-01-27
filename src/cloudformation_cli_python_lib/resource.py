@@ -1,12 +1,10 @@
 import json
 import logging
+import traceback
 from datetime import datetime
 from functools import wraps
 from time import sleep
 from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
-
-# boto3 doesn't have stub files
-import boto3  # type: ignore
 
 from .boto3_proxy import SessionProxy, _get_boto_session
 from .callback import report_progress
@@ -19,8 +17,8 @@ from .interface import (
     ProgressEvent,
 )
 from .log_delivery import ProviderLogHandler
-from .metrics import MetricPublisher, MetricsPublisherProxy
-from .scheduler import CloudWatchScheduler
+from .metrics import MetricsPublisherProxy
+from .scheduler import cleanup_cloudwatch_events, reschedule_after_minutes
 from .utils import (
     BaseResourceModel,
     Credentials,
@@ -81,7 +79,7 @@ class Resource:
         handler_request: HandlerRequest,
         handler_response: ProgressEvent,
         context: LambdaContext,
-        session: boto3.Session,
+        session: SessionProxy,
     ) -> bool:
         if handler_response.status != OperationStatus.IN_PROGRESS:
             return False
@@ -100,7 +98,8 @@ class Resource:
             sleep(callback_delay_s)
             return True
         callback_delay_min = int(callback_delay_s / 60)
-        CloudWatchScheduler(boto3_session=session).reschedule_after_minutes(
+        reschedule_after_minutes(
+            session,
             function_arn=context.invoked_function_arn,
             minutes_from_now=callback_delay_min,
             handler_request=handler_request,
@@ -142,11 +141,11 @@ class Resource:
                 **event.request
             ).to_modelled(self._model_cls)
 
-            session = _get_boto_session(creds, event.region_name)
+            session = _get_boto_session(creds, event.region)
             action = Action[event.action]
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")
-            raise InvalidRequest(f"{e} ({type(e).__name__})") from e
+            raise InternalFailure(f"{e} ({type(e).__name__})") from e
         return session, request, action, event.callbackContext or {}
 
     @_ensure_serialize
@@ -168,40 +167,23 @@ class Resource:
             msg = str(e)
         return ProgressEvent.failed(HandlerErrorCode.InternalFailure, msg)
 
+    @staticmethod
     def _parse_request(
-        self, event_data: MutableMapping[str, Any]
+        event_data: MutableMapping[str, Any]
     ) -> Tuple[
-        Tuple[Optional[SessionProxy], Optional[boto3.Session], boto3.Session],
-        BaseResourceHandlerRequest,
+        Tuple[Optional[SessionProxy], Optional[SessionProxy], SessionProxy],
         Action,
         MutableMapping[str, Any],
         HandlerRequest,
     ]:
         try:
             event = HandlerRequest.deserialize(event_data)
-            caller_creds = event.requestData.callerCredentials
-            provider_creds = event.requestData.providerCredentials
-            platform_creds = event.requestData.platformCredentials
-            request: BaseResourceHandlerRequest = UnmodelledRequest(
-                clientRequestToken=event.bearerToken,
-                desiredResourceState=event.requestData.resourceProperties,
-                previousResourceState=event.requestData.previousResourceProperties,
-                logicalResourceIdentifier=event.requestData.logicalResourceId,
-            ).to_modelled(self._model_cls)
-            caller_sess = _get_boto_session(caller_creds, event.region)
-            # No need to proxy as platform creds are required in the request
-            platform_sess = boto3.Session(
-                aws_access_key_id=platform_creds.accessKeyId,
-                aws_secret_access_key=platform_creds.secretAccessKey,
-                aws_session_token=platform_creds.sessionToken,
-            )
-            provider_sess = None
-            if provider_creds:
-                provider_sess = boto3.Session(
-                    aws_access_key_id=provider_creds.accessKeyId,
-                    aws_secret_access_key=provider_creds.secretAccessKey,
-                    aws_session_token=provider_creds.sessionToken,
-                )
+            platform_sess = _get_boto_session(event.requestData.platformCredentials)
+            caller_sess = _get_boto_session(event.requestData.callerCredentials)
+            provider_sess = _get_boto_session(event.requestData.providerCredentials)
+            # credentials are used when rescheduling, so can't zero them out (for now)
+            if platform_sess is None:
+                raise ValueError("No platform credentials")
             action = Action[event.action]
             callback_context = event.requestContext.get("callbackContext", {})
         except Exception as e:  # pylint: disable=broad-except
@@ -209,31 +191,50 @@ class Resource:
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
         return (
             (caller_sess, provider_sess, platform_sess),
-            request,
             action,
             callback_context,
             event,
         )
+
+    def _cast_resource_request(
+        self, request: HandlerRequest
+    ) -> BaseResourceHandlerRequest:
+        try:
+            return UnmodelledRequest(
+                clientRequestToken=request.bearerToken,
+                desiredResourceState=request.requestData.resourceProperties,
+                previousResourceState=request.requestData.previousResourceProperties,
+                logicalResourceIdentifier=request.requestData.logicalResourceId,
+            ).to_modelled(self._model_cls)
+        except Exception as e:  # pylint: disable=broad-except
+            LOG.exception("Invalid request")
+            raise InvalidRequest(f"{e} ({type(e).__name__})") from e
 
     # TODO: refactor to reduce branching and locals
     @_ensure_serialize  # noqa: C901
     def __call__(  # pylint: disable=too-many-locals  # noqa: C901
         self, event_data: MutableMapping[str, Any], context: LambdaContext
     ) -> MutableMapping[str, Any]:
+        logs_setup = False
+
+        def print_or_log(message: str) -> None:
+            if logs_setup:
+                LOG.exception(message, exc_info=True)
+            else:
+                print(message)
+                traceback.print_exc()
+
         try:
-            ProviderLogHandler.setup(event_data)
-            sessions, request, action, callback, event = self._parse_request(event_data)
+            sessions, action, callback, event = self._parse_request(event_data)
             caller_sess, provider_sess, platform_sess = sessions
-            metrics = MetricsPublisherProxy()
-            metrics.add_metrics_publisher(
-                MetricPublisher(event.awsAccountId, event.resourceType, platform_sess)
-            )
-            if provider_sess:
-                metrics.add_metrics_publisher(
-                    MetricPublisher(
-                        event.awsAccountId, event.resourceType, provider_sess
-                    )
-                )
+            ProviderLogHandler.setup(event, provider_sess)
+            logs_setup = True
+
+            request = self._cast_resource_request(event)
+
+            metrics = MetricsPublisherProxy(event.awsAccountId, event.resourceType)
+            metrics.add_metrics_publisher(platform_sess)
+            metrics.add_metrics_publisher(provider_sess)
             # Acknowledge the task for first time invocation
             if not event.requestContext:
                 report_progress(
@@ -248,7 +249,8 @@ class Resource:
             else:
                 # If this invocation was triggered by a 're-invoke' CloudWatch Event,
                 # clean it up
-                CloudWatchScheduler(platform_sess).cleanup_cloudwatch_events(
+                cleanup_cloudwatch_events(
+                    platform_sess,
                     event.requestContext.get("cloudWatchEventsRuleName", ""),
                     event.requestContext.get("cloudWatchEventsTargetId", ""),
                 )
@@ -285,14 +287,17 @@ class Resource:
                     event, progress, context, platform_sess
                 )
         except _HandlerError as e:
-            LOG.exception("Handler error", exc_info=True)
+            print_or_log("Handler error")
             progress = e.to_progress_event()
         except Exception as e:  # pylint: disable=broad-except
-            LOG.exception("Exception caught", exc_info=True)
+            print_or_log("Exception caught")
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure, str(e))
         except BaseException as e:  # pylint: disable=broad-except
-            LOG.critical("Base exception caught (this is usually bad)", exc_info=True)
+            print_or_log("Base exception caught (this is usually bad)")
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure, str(e))
+
+        # use the raw event_data as a last-ditch attempt to call back if the
+        # request is invalid
         return progress._serialize(  # pylint: disable=protected-access
             to_response=True, bearer_token=event_data.get("bearerToken")
         )

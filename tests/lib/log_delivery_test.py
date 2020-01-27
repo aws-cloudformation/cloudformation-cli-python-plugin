@@ -1,12 +1,16 @@
 # pylint: disable=redefined-outer-name,protected-access
 import logging
 from unittest.mock import DEFAULT, Mock, create_autospec, patch
+from uuid import uuid4
 
 import pytest
+from boto3.session import Session
+from cloudformation_cli_python_lib.boto3_proxy import SessionProxy
 from cloudformation_cli_python_lib.log_delivery import (
     ProviderFilter,
     ProviderLogHandler,
 )
+from cloudformation_cli_python_lib.utils import HandlerRequest, RequestData
 
 
 @pytest.fixture
@@ -15,45 +19,52 @@ def mock_logger():
 
 
 @pytest.fixture
+def mock_session():
+    return Mock(spec_set=["client"])
+
+
+def make_payload() -> HandlerRequest:
+    return HandlerRequest(
+        action="CREATE",
+        awsAccountId="123412341234",
+        bearerToken=str(uuid4()),
+        region="us-east-1",
+        responseEndpoint="",
+        resourceType="Foo::Bar::Baz",
+        resourceTypeVersion="4",
+        requestData=RequestData(
+            providerLogGroupName="test_group",
+            logicalResourceId="MyResourceId",
+            resourceProperties={},
+            systemTags={},
+        ),
+        stackId="an-arn",
+    )
+
+
+@pytest.fixture
 def setup_patches(mock_logger):
-    payload = {
-        "resourceType": "Foo::Bar::Baz",
-        "stackId": "an-arn",
-        "requestData": {
-            "logicalResourceId": "MyResourceId",
-            "providerCredentials": {
-                "accessKeyId": "AKI",
-                "secretAccessKey": "SAK",
-                "sessionToken": "ST",
-            },
-            "providerLogGroupName": "test_group",
-        },
-    }
     patch_logger = patch(
         "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
         return_value=mock_logger,
-    )
-    patch_client = patch(
-        "cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True
     )
     patch__get_logger = patch(
         "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler."
         "_get_existing_logger"
     )
-    return payload, patch_logger, patch_client, patch__get_logger
+    return make_payload(), patch_logger, patch__get_logger
 
 
 @pytest.fixture
 def mock_provider_handler():
-    patch("cloudformation_cli_python_lib.log_delivery.boto3.client", autospec=True)
     plh = ProviderLogHandler(
         group="test-group",
         stream="test-stream",
-        creds={
-            "aws_access_key_id": "",
-            "aws_secret_access_key": "",
-            "aws_session_token": "",
-        },
+        session=SessionProxy(
+            Session(
+                aws_access_key_id="", aws_secret_access_key="", aws_session_token=""
+            )
+        ),
     )
     # not mocking the whole client because that replaces generated exception classes to
     # be replaced with mocks
@@ -67,8 +78,7 @@ def mock_provider_handler():
 )
 def test_provider_filter(logger):
     log_name, expected = logger
-    ProviderFilter.PROVIDER = "aa_bb_cc"
-    log_filter = ProviderFilter()
+    log_filter = ProviderFilter("aa_bb_cc")
     record = logging.LogRecord(
         name=log_name,
         level=123,
@@ -81,63 +91,88 @@ def test_provider_filter(logger):
     assert log_filter.filter(record) == expected
 
 
-def test_setup_with_provider_creds(setup_patches):
-    payload, p_logger, p_client, p__get_logger = setup_patches
-    with p_logger as mock_log, p_client as mock_client, p__get_logger as mock_get:
+def test_setup_with_provider_creds_and_stack_id_and_logical_resource_id(
+    setup_patches, mock_session
+):
+    payload, p_logger, p__get_logger = setup_patches
+    with p_logger as mock_log, p__get_logger as mock_get:
         mock_get.return_value = None
-        ProviderLogHandler.setup(payload)
-    mock_client.assert_called_once_with(
-        "logs",
-        aws_access_key_id="AKI",
-        aws_secret_access_key="SAK",
-        aws_session_token="ST",
-    )
+        ProviderLogHandler.setup(payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
     mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert payload.stackId in plh.stream
+    assert payload.requestData.logicalResourceId in plh.stream
 
 
-def test_setup_existing_logger(setup_patches):
-    existing = ProviderLogHandler("g", "s", {})
-    payload, p_logger, p_client, p__get_logger = setup_patches
-    with p_logger as mock_log, p_client as mock_client, p__get_logger as mock_get:
+def test_setup_with_provider_creds_without_stack_id(setup_patches, mock_session):
+    payload, p_logger, p__get_logger = setup_patches
+    payload.stackId = None
+    with p_logger as mock_log, p__get_logger as mock_get:
+        mock_get.return_value = None
+        ProviderLogHandler.setup(payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert payload.awsAccountId in plh.stream
+    assert payload.region in plh.stream
+
+
+def test_setup_with_provider_creds_without_logical_resource_id(
+    setup_patches, mock_session
+):
+    payload, p_logger, p__get_logger = setup_patches
+    payload.requestData.logicalResourceId = None
+    with p_logger as mock_log, p__get_logger as mock_get:
+        mock_get.return_value = None
+        ProviderLogHandler.setup(payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert payload.awsAccountId in plh.stream
+    assert payload.region in plh.stream
+
+
+def test_setup_existing_logger(setup_patches, mock_session):
+    existing = ProviderLogHandler("g", "s", mock_session)
+    mock_session.reset_mock()
+    payload, p_logger, p__get_logger = setup_patches
+    with p_logger as mock_log, p__get_logger as mock_get:
         mock_get.return_value = existing
-        ProviderLogHandler.setup(payload)
-    mock_client.assert_called_once_with(
-        "logs",
-        aws_access_key_id="AKI",
-        aws_secret_access_key="SAK",
-        aws_session_token="ST",
-    )
+        ProviderLogHandler.setup(payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
     mock_log.return_value.addHandler.assert_not_called()
 
 
-def test_setup_without_provider_creds(mock_logger):
+def test_setup_without_log_group_should_not_set_up(mock_logger, mock_session):
     patch_logger = patch(
         "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
         return_value=mock_logger,
     )
     patch___init__ = patch(
-        "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler" ".__init__",
+        "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler.__init__",
         autospec=True,
     )
     with patch_logger as mock_log, patch___init__ as mock___init__:
-        payload = {
-            "resourceType": "Foo::Bar::Baz",
-            "region": "us-east-1",
-            "awsAccountId": "123123123123",
-        }
-        ProviderLogHandler.setup(payload)
-        payload["requestData"] = {}
-        ProviderLogHandler.setup(payload)
-        payload["requestData"] = {"providerLogGroupName": "test"}
-        ProviderLogHandler.setup(payload)
-        payload["requestData"] = {
-            "providerCredentials": {
-                "accessKeyId": "AKI",
-                "secretAccessKey": "SAK",
-                "sessionToken": "ST",
-            }
-        }
-        ProviderLogHandler.setup(payload)
+        payload = make_payload()
+        payload.requestData.providerLogGroupName = ""
+        ProviderLogHandler.setup(payload, mock_session)
+    mock___init__.assert_not_called()
+    mock_session.assert_not_called()
+    mock_log.return_value.addHandler.assert_not_called()
+
+
+def test_setup_without_session_should_not_set_up(mock_logger):
+    patch_logger = patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    )
+    patch___init__ = patch(
+        "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler.__init__",
+        autospec=True,
+    )
+    with patch_logger as mock_log, patch___init__ as mock___init__:
+        ProviderLogHandler.setup(make_payload(), None)
     mock___init__.assert_not_called()
     mock_log.return_value.addHandler.assert_not_called()
 
@@ -237,8 +272,8 @@ def test__get_existing_logger_no_logger_present(mock_logger):
     assert actual is None
 
 
-def test__get_existing_logger_logger_present(mock_logger):
-    expected = ProviderLogHandler("g", "s", {})
+def test__get_existing_logger_logger_present(mock_logger, mock_session):
+    expected = ProviderLogHandler("g", "s", mock_session)
     mock_logger.handlers = [logging.Handler(), expected]
     with patch(
         "cloudformation_cli_python_lib.log_delivery.logging.getLogger",

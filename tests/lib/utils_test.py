@@ -1,7 +1,14 @@
+# pylint: disable=protected-access
 import json
+from unittest.mock import Mock, call, sentinel
 
 import pytest
-from cloudformation_cli_python_lib.utils import HandlerRequest, KitchenSinkEncoder
+from cloudformation_cli_python_lib.interface import BaseResourceModel
+from cloudformation_cli_python_lib.utils import (
+    HandlerRequest,
+    KitchenSinkEncoder,
+    UnmodelledRequest,
+)
 
 import hypothesis.strategies as s
 from hypothesis import given
@@ -98,3 +105,26 @@ def test_handler_request_serde_roundtrip():
     }
 
     assert ser == expected
+
+
+def test_unmodelled_request_to_modelled():
+    model_cls = Mock(spec_set=BaseResourceModel)
+    model_cls._deserialize.side_effect = [sentinel.new, sentinel.old]
+
+    unmodelled = UnmodelledRequest(
+        clientRequestToken="foo",
+        desiredResourceState={"state": "new"},
+        previousResourceState={"state": "old"},
+        logicalResourceIdentifier="bar",
+        nextToken="baz",
+    )
+    modelled = unmodelled.to_modelled(model_cls)
+
+    model_cls.assert_has_calls(
+        [call._deserialize({"state": "new"}), call._deserialize({"state": "old"})]
+    )
+    assert modelled.clientRequestToken == "foo"
+    assert modelled.desiredResourceState == sentinel.new
+    assert modelled.previousResourceState == sentinel.old
+    assert modelled.logicalResourceIdentifier == "bar"
+    assert modelled.nextToken == "baz"

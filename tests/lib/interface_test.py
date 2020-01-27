@@ -2,6 +2,7 @@
 import json
 from dataclasses import dataclass
 from string import ascii_letters
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -16,7 +17,7 @@ import hypothesis.strategies as s
 from hypothesis import given
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def client():
     return boto3.client(
         "cloudformation",
@@ -27,8 +28,14 @@ def client():
     )
 
 
+@pytest.fixture
+def bearer_token():
+    return str(uuid4())
+
+
+# don't call this TestModel, or pytest will try and execute it
 @dataclass
-class TestModel(BaseResourceModel):
+class ResourceModel(BaseResourceModel):
     somekey: str
     someotherkey: str
 
@@ -58,8 +65,8 @@ def test_progress_event_failed_is_json_serializable(error_code, message):
     }
 
 
-@given(s.text(ascii_letters), s.text(ascii_letters))
-def test_progress_event_serialize_to_response_with_context(message, bearer_token):
+@given(s.text(ascii_letters))
+def test_progress_event_serialize_to_response_with_context(bearer_token, message):
     event = ProgressEvent(
         status=OperationStatus.SUCCESS, message=message, callbackContext={"a": "b"}
     )
@@ -71,9 +78,9 @@ def test_progress_event_serialize_to_response_with_context(message, bearer_token
     }
 
 
-@given(s.text(ascii_letters), s.text(ascii_letters))
-def test_progress_event_serialize_to_response_with_model(message, bearer_token):
-    model = TestModel("a", "b")
+@given(s.text(ascii_letters))
+def test_progress_event_serialize_to_response_with_model(bearer_token, message):
+    model = ResourceModel("a", "b")
     event = ProgressEvent(
         status=OperationStatus.SUCCESS, message=message, resourceModel=model
     )
@@ -86,9 +93,9 @@ def test_progress_event_serialize_to_response_with_model(message, bearer_token):
     }
 
 
-@given(s.text(ascii_letters), s.text(ascii_letters))
-def test_progress_event_serialize_to_response_with_models(message, bearer_token):
-    models = [TestModel("a", "b"), TestModel("c", "d")]
+@given(s.text(ascii_letters))
+def test_progress_event_serialize_to_response_with_models(bearer_token, message):
+    models = [ResourceModel("a", "b"), ResourceModel("c", "d")]
     event = ProgressEvent(
         status=OperationStatus.SUCCESS, message=message, resourceModels=models
     )
@@ -101,6 +108,22 @@ def test_progress_event_serialize_to_response_with_models(message, bearer_token)
             {"somekey": "a", "someotherkey": "b"},
             {"somekey": "c", "someotherkey": "d"},
         ],
+    }
+
+
+@given(s.text(ascii_letters))
+def test_progress_event_serialize_to_response_with_error_code(bearer_token, message):
+    event = ProgressEvent(
+        status=OperationStatus.SUCCESS,
+        message=message,
+        errorCode=HandlerErrorCode.InvalidRequest,
+    )
+
+    assert event._serialize(to_response=True, bearer_token=bearer_token) == {
+        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "message": message,
+        "bearerToken": bearer_token,
+        "errorCode": HandlerErrorCode.InvalidRequest.name,  # pylint: disable=no-member
     }
 
 

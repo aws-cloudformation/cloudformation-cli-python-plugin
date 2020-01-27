@@ -1,8 +1,10 @@
-# pylint: disable=no-member
+# auto enums `.name` causes no-member
+# pylint: disable=redefined-outer-name,no-member
 from datetime import datetime
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import Mock, call, patch
 
 import boto3
+import pytest
 from cloudformation_cli_python_lib.interface import Action, MetricTypes, StandardUnit
 from cloudformation_cli_python_lib.metrics import (
     MetricPublisher,
@@ -12,44 +14,53 @@ from cloudformation_cli_python_lib.metrics import (
 
 from botocore.stub import Stubber
 
+ACCOUNT_ID = "123412341234"
+RESOURCE_TYPE = "Aa::Bb::Cc"
+NAMESPACE = MetricsPublisherProxy._make_namespace(  # pylint: disable=protected-access
+    ACCOUNT_ID, RESOURCE_TYPE
+)
 
-class MockSession:
-    def __init__(self, client):
-        self._client = client
 
-    def client(self, _name):
-        return self._client
+@pytest.fixture
+def mock_session():
+    return Mock(spec_set=["client"])
 
 
 def test_format_dimensions():
     dimensions = {"MyDimensionKey": "val_1", "MyDimensionKey2": "val_2"}
     result = format_dimensions(dimensions)
-    assert [
+    assert result == [
         {"Name": "MyDimensionKey", "Value": "val_1"},
         {"Name": "MyDimensionKey2", "Value": "val_2"},
-    ] == result
+    ]
 
 
-@patch("cloudformation_cli_python_lib.metrics.LOG", auto_spec=True)
-def test_put_metric_catches_error(mock_logger):
+def test_put_metric_catches_error(mock_session):
     client = boto3.client("cloudwatch")
     stubber = Stubber(client)
 
     stubber.add_client_error("put_metric_data", "InternalServiceError")
     stubber.activate()
 
-    publisher = MetricPublisher("123412341234", "Aa::Bb::Cc", MockSession(client))
+    mock_session.client.return_value = client
+
+    publisher = MetricPublisher(mock_session, NAMESPACE)
     dimensions = {
         "DimensionKeyActionType": Action.CREATE.name,
-        "DimensionKeyResourceType": publisher.resource_type,
+        "DimensionKeyResourceType": RESOURCE_TYPE,
     }
-    publisher.publish_metric(
-        MetricTypes.HandlerInvocationCount,
-        dimensions,
-        StandardUnit.Count,
-        1.0,
-        datetime.now(),
-    )
+
+    with patch(
+        "cloudformation_cli_python_lib.metrics.LOG", auto_spec=True
+    ) as mock_logger:
+        publisher.publish_metric(
+            MetricTypes.HandlerInvocationCount,
+            dimensions,
+            StandardUnit.Count,
+            1.0,
+            datetime.now(),
+        )
+
     stubber.deactivate()
     expected_calls = [
         call.error(
@@ -58,17 +69,13 @@ def test_put_metric_catches_error(mock_logger):
             "PutMetricData operation: ",
         )
     ]
-    assert expected_calls == mock_logger.mock_calls
+    assert mock_logger.mock_calls == expected_calls
 
 
-def test_publish_exception_metric():
-    mock_client = patch("boto3.client")
-    mock_client.return_value = MagicMock()
-
+def test_publish_exception_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    publisher = MetricPublisher("123412341234", "Aa::Bb::Cc", mock_client.return_value)
-    proxy = MetricsPublisherProxy()
-    proxy.add_metrics_publisher(publisher)
+    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy.add_metrics_publisher(mock_session)
     proxy.publish_exception_metric(fake_datetime, Action.CREATE, Exception("fake-err"))
     expected_calls = [
         call.client("cloudwatch"),
@@ -92,17 +99,13 @@ def test_publish_exception_metric():
             ],
         ),
     ]
-    assert expected_calls == mock_client.return_value.mock_calls
+    assert mock_session.mock_calls == expected_calls
 
 
-def test_publish_invocation_metric():
-    mock_client = patch("boto3.client")
-    mock_client.return_value = MagicMock()
-
+def test_publish_invocation_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    publisher = MetricPublisher("123412341234", "Aa::Bb::Cc", mock_client.return_value)
-    proxy = MetricsPublisherProxy()
-    proxy.add_metrics_publisher(publisher)
+    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy.add_metrics_publisher(mock_session)
     proxy.publish_invocation_metric(fake_datetime, Action.CREATE)
 
     expected_calls = [
@@ -123,17 +126,13 @@ def test_publish_invocation_metric():
             ],
         ),
     ]
-    assert expected_calls == mock_client.return_value.mock_calls
+    assert mock_session.mock_calls == expected_calls
 
 
-def test_publish_duration_metric():
-    mock_client = patch("boto3.client")
-    mock_client.return_value = MagicMock()
-
+def test_publish_duration_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    publisher = MetricPublisher("123412341234", "Aa::Bb::Cc", mock_client.return_value)
-    proxy = MetricsPublisherProxy()
-    proxy.add_metrics_publisher(publisher)
+    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy.add_metrics_publisher(mock_session)
     proxy.publish_duration_metric(fake_datetime, Action.CREATE, 100)
 
     expected_calls = [
@@ -154,17 +153,13 @@ def test_publish_duration_metric():
             ],
         ),
     ]
-    assert expected_calls == mock_client.return_value.mock_calls
+    assert mock_session.mock_calls == expected_calls
 
 
-def test_publish_log_delivery_exception_metric():
-    mock_client = patch("boto3.client")
-    mock_client.return_value = MagicMock()
-
+def test_publish_log_delivery_exception_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    publisher = MetricPublisher("123412341234", "Aa::Bb::Cc", mock_client.return_value)
-    proxy = MetricsPublisherProxy()
-    proxy.add_metrics_publisher(publisher)
+    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy.add_metrics_publisher(mock_session)
     proxy.publish_log_delivery_exception_metric(fake_datetime, TypeError("test"))
 
     expected_calls = [
@@ -192,4 +187,10 @@ def test_publish_log_delivery_exception_metric():
             ],
         ),
     ]
-    assert expected_calls == mock_client.return_value.mock_calls
+    assert mock_session.mock_calls == expected_calls
+
+
+def test_metrics_publisher_proxy_add_metrics_publisher_none_safe():
+    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy.add_metrics_publisher(None)
+    assert proxy._publishers == []  # pylint: disable=protected-access

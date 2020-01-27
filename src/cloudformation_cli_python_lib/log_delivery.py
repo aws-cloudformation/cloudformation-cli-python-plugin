@@ -1,31 +1,28 @@
 import logging
 import time
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
-# boto3 doesn't have stub files
-import boto3  # type: ignore
+from .boto3_proxy import SessionProxy
+from .utils import HandlerRequest
 
 
 class ProviderFilter(logging.Filter):
-    PROVIDER = ""
+    def __init__(self, provider: str):
+        super().__init__()
+        self.provider = provider
 
     def filter(self, record: logging.LogRecord) -> bool:
-        return not record.name.startswith(self.PROVIDER)
+        return not record.name.startswith(self.provider)
 
 
 class ProviderLogHandler(logging.Handler):
     def __init__(
-        self,
-        group: str,
-        stream: str,
-        creds: Mapping[str, str],
-        *args: Any,
-        **kwargs: Any,
+        self, group: str, stream: str, session: SessionProxy, *args: Any, **kwargs: Any
     ):
         super(ProviderLogHandler, self).__init__(*args, **kwargs)
         self.group = group
         self.stream = stream.replace(":", "__")
-        self.client = boto3.client("logs", **creds)
+        self.client = session.client("logs")
         self.sequence_token = ""
 
     @classmethod
@@ -36,48 +33,27 @@ class ProviderLogHandler(logging.Handler):
         return None
 
     @classmethod
-    def setup(cls, event_data: Mapping[str, Any]) -> None:
-        try:
-            log_creds = event_data["requestData"]["providerCredentials"]
-        except KeyError:
-            log_creds = {}
-        try:
-            log_group = event_data["requestData"]["providerLogGroupName"]
-        except KeyError:
-            log_group = ""
-        try:
-            stream_name = (
-                f'{event_data["stackId"]}/'
-                f'{event_data["requestData"]["logicalResourceId"]}'
-            )
-        except KeyError:
-            stream_name = f'{event_data["awsAccountId"]}-{event_data["region"]}'
+    def setup(
+        cls, request: HandlerRequest, provider_sess: Optional[SessionProxy]
+    ) -> None:
+        log_group = request.requestData.providerLogGroupName
+        if request.stackId and request.requestData.logicalResourceId:
+            stream_name = f"{request.stackId}/{request.requestData.logicalResourceId}"
+        else:
+            stream_name = f"{request.awsAccountId}-{request.region}"
 
         log_handler = cls._get_existing_logger()
-        if log_creds and log_group:
+        if provider_sess and log_group:
             if log_handler:
                 # This is a re-used lambda container, log handler is already setup, so
                 # we just refresh the client with new creds
-                log_handler.client = boto3.client(
-                    "logs",
-                    aws_access_key_id=log_creds["accessKeyId"],
-                    aws_secret_access_key=log_creds["secretAccessKey"],
-                    aws_session_token=log_creds["sessionToken"],
-                )
+                log_handler.client = provider_sess.client("logs")
                 return
             # filter provider messages from platform
-            ProviderFilter.PROVIDER = (
-                event_data["resourceType"].replace("::", "_").lower()
-            )
-            logging.getLogger().handlers[0].addFilter(ProviderFilter())
+            provider = request.resourceType.replace("::", "_").lower()
+            logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))
             log_handler = cls(
-                group=log_group,
-                stream=stream_name,
-                creds={
-                    "aws_access_key_id": log_creds["accessKeyId"],
-                    "aws_secret_access_key": log_creds["secretAccessKey"],
-                    "aws_session_token": log_creds["sessionToken"],
-                },
+                group=log_group, stream=stream_name, session=provider_sess
             )
             # add log handler to root, so that provider gets plugin logs too
             logging.getLogger().addHandler(log_handler)
