@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 import zipfile
 from pathlib import PurePosixPath
@@ -251,6 +252,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 auto_remove=True,
                 volumes=volumes,
                 stream=True,
+                user=f"{os.geteuid()}:{os.getgid()}",
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from
