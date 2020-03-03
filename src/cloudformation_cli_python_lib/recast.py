@@ -1,6 +1,5 @@
-# ignoring mypy on the import as it catches ForwardRef as invalid, and we are using it
-# for introspection https://docs.python.org/3/library/typing.html#typing.ForwardRef
-from typing import Any, Dict, ForwardRef, List, Mapping  # type: ignore
+import typing
+from typing import Any, Dict, List, Mapping
 
 from .exceptions import InvalidRequest
 
@@ -57,7 +56,7 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
     if field in [int, float, str, bool]:
         return field
     # If it's a ForwardRef we need to find base type
-    if isinstance(field, ForwardRef):
+    if isinstance(field, get_forward_ref_type()):
         # Assuming codegen added an _ as a prefix, removing it and then gettting the
         # class from model classes
         return classes[field.__forward_arg__[1:]]
@@ -77,11 +76,21 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
     if field in [int, float, str, bool]:
         return field
     # If it's a ForwardRef we need to find base type
-    if isinstance(field, ForwardRef):
+    if isinstance(field, get_forward_ref_type()):
         # Assuming codegen added an _ as a prefix, removing it and then gettting the
         # class from model classes
         return classes[field.__forward_arg__[1:]]
     # If it's not a type we don't know how to handle we bail
-    if field._name not in ["Sequence"]:  # pylint: disable=protected-access
-        raise InvalidRequest(f"Cannot process type {field.__repr__()} for field {key}")
+    if not str(field).startswith("typing.Sequence"):
+        raise InvalidRequest(f"Cannot process type {field} for field {key}")
     return _field_to_type(field.__args__[0], key, classes)
+
+
+# pylint: disable=protected-access,no-member
+def get_forward_ref_type() -> Any:
+    # ignoring mypy on the import as it catches (_)ForwardRef as invalid, use for
+    # introspection is valid:
+    # https://docs.python.org/3/library/typing.html#typing.ForwardRef
+    if "ForwardRef" in dir(typing):
+        return typing.ForwardRef  # type: ignore
+    return typing._ForwardRef  # type: ignore
