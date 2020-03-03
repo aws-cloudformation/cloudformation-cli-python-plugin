@@ -57,7 +57,7 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
         return field
     # If it's a ForwardRef we need to find base type
     if isinstance(field, get_forward_ref_type()):
-        # Assuming codegen added an _ as a prefix, removing it and then gettting the
+        # Assuming codegen added an _ as a prefix, removing it and then getting the
         # class from model classes
         return classes[field.__forward_arg__[1:]]
     # Assuming this is a generic object created by typing.Union
@@ -77,7 +77,7 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
         return field
     # If it's a ForwardRef we need to find base type
     if isinstance(field, get_forward_ref_type()):
-        # Assuming codegen added an _ as a prefix, removing it and then gettting the
+        # Assuming codegen added an _ as a prefix, removing it and then getting the
         # class from model classes
         return classes[field.__forward_arg__[1:]]
     # If it's not a type we don't know how to handle we bail
