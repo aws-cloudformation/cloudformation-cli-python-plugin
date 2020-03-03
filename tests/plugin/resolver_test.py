@@ -1,7 +1,7 @@
 import pytest
 
 from rpdk.core.jsonutils.resolver import ContainerType, ResolvedType
-from rpdk.python.resolver import PRIMITIVE_TYPES, translate_type
+from rpdk.python.resolver import PRIMITIVE_TYPES, contains_model, translate_type
 
 RESOLVED_TYPES = [
     (ResolvedType(ContainerType.PRIMITIVE, item_type), native_type)
@@ -46,3 +46,16 @@ def test_translate_type_set(resolved_type, native_type):
 def test_translate_type_unknown(resolved_type, _native_type):
     with pytest.raises(ValueError):
         translate_type(ResolvedType("foo", resolved_type))
+
+
+@pytest.mark.parametrize("resolved_type,_native_type", RESOLVED_TYPES)
+def test_contains_model_list_containing_primitive(resolved_type, _native_type):
+    assert contains_model(ResolvedType(ContainerType.LIST, resolved_type)) is False
+
+
+def test_contains_model_list_containing_model():
+    resolved_type = ResolvedType(
+        ContainerType.LIST,
+        ResolvedType(ContainerType.LIST, ResolvedType(ContainerType.MODEL, "Foo")),
+    )
+    assert contains_model(resolved_type) is True

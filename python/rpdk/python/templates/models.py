@@ -1,5 +1,7 @@
 # DO NOT modify this file by hand, changes will be overwritten
+import sys
 from dataclasses import dataclass
+from inspect import getmembers, isclass
 from typing import (
     AbstractSet,
     Any,
@@ -16,6 +18,8 @@ from cloudformation_cli_python_lib.interface import (
     BaseResourceHandlerRequest,
     BaseResourceModel,
 )
+from cloudformation_cli_python_lib.recast import recast_object
+from cloudformation_cli_python_lib.utils import deserialize_list
 
 T = TypeVar("T")
 
@@ -35,7 +39,7 @@ class ResourceHandlerRequest(BaseResourceHandlerRequest):
 
 {% for model, properties in models.items() %}
 @dataclass
-class {{ model }}{% if model == "ResourceModel" %}(BaseResourceModel){% endif %}:
+class {{ model }}(BaseResourceModel):
     {% for name, type in properties.items() %}
     {{ name }}: Optional[{{ type|translate_type }}]
     {% endfor %}
@@ -47,12 +51,22 @@ class {{ model }}{% if model == "ResourceModel" %}(BaseResourceModel){% endif %}
     ) -> Optional["_{{ model }}"]:
         if not json_data:
             return None
+        {% if model == "ResourceModel" %}
+        dataclasses = {n: o for n, o in getmembers(sys.modules[__name__]) if isclass(o)}
+        recast_object(cls, json_data, dataclasses)
+        {% endif %}
         return cls(
             {% for name, type in properties.items() %}
             {% if type.container == ContainerType.MODEL %}
             {{ name }}={{ type.type }}._deserialize(json_data.get("{{ name }}")),
             {% elif type.container == ContainerType.SET %}
             {{ name }}=set_or_none(json_data.get("{{ name }}")),
+            {% elif type.container == ContainerType.LIST %}
+            {% if type | contains_model %}
+            {{name}}=deserialize_list(json_data.get("{{ name }}"), {{name}}),
+            {% else %}
+            {{ name }}=json_data.get("{{ name }}"),
+            {% endif %}
             {% else %}
             {{ name }}=json_data.get("{{ name }}"),
             {% endif %}

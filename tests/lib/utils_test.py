@@ -3,11 +3,13 @@ import json
 from unittest.mock import Mock, call, sentinel
 
 import pytest
+from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.interface import BaseResourceModel
 from cloudformation_cli_python_lib.utils import (
     HandlerRequest,
     KitchenSinkEncoder,
     UnmodelledRequest,
+    deserialize_list,
 )
 
 import hypothesis.strategies as s
@@ -128,3 +130,13 @@ def test_unmodelled_request_to_modelled():
     assert modelled.previousResourceState == sentinel.old
     assert modelled.logicalResourceIdentifier == "bar"
     assert modelled.nextToken == "baz"
+
+
+def test_deserialize_list_empty():
+    assert deserialize_list(None, BaseResourceModel) is None
+    assert deserialize_list([], BaseResourceModel) is None
+
+
+def test_deserialize_list_invalid():
+    with pytest.raises(InvalidRequest):
+        deserialize_list([(1, 2)], BaseResourceModel)

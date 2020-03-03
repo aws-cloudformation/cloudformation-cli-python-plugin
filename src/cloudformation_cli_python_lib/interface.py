@@ -59,7 +59,29 @@ class HandlerErrorCode(str, _AutoName):
 
 class BaseResourceModel:
     def _serialize(self) -> Mapping[str, Any]:
-        return self.__dict__
+        ser = self.__dict__
+        del_keys = []
+        for k, v in ser.items():
+            if isinstance(v, list):
+                ser[k] = self._serialize_list(v)
+            elif isinstance(v, BaseResourceModel):
+                ser[k] = v._serialize()  # pylint: disable=protected-access
+            elif v is None:
+                del_keys.append(k)
+        for k in del_keys:
+            del ser[k]
+        return ser
+
+    def _serialize_list(self, v: List[Any]) -> List[Any]:
+        ser: List[Any] = []
+        for i in v:
+            if isinstance(i, list):
+                ser.append(self._serialize_list(i))
+            elif isinstance(i, BaseResourceModel):
+                ser.append(i._serialize())  # pylint: disable=protected-access
+            else:
+                ser.append(i)
+        return ser
 
     @classmethod
     def _deserialize(
