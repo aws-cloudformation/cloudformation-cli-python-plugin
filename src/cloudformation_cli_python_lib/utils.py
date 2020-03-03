@@ -2,8 +2,19 @@
 import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Type,
+    Union,
+)
 
+from .exceptions import InvalidRequest
 from .interface import Action, BaseResourceHandlerRequest, BaseResourceModel
 
 
@@ -121,3 +132,20 @@ class UnmodelledRequest:
 class LambdaContext:
     get_remaining_time_in_millis: Callable[["LambdaContext"], int]
     invoked_function_arn: str
+
+
+def deserialize_list(
+    json_data: Union[List[Any], Dict[str, Any]], inner_dataclass: Any
+) -> Optional[List[Any]]:
+    if not json_data:
+        return None
+    output = []
+    for item in json_data:
+        if isinstance(item, list):
+            output.append(deserialize_list(item, inner_dataclass))
+        elif isinstance(item, dict):
+            # pylint: disable=protected-access
+            output.append(inner_dataclass._deserialize(item))
+        else:
+            raise InvalidRequest(f"cannot deserialize lists of {type(item)}")
+    return output
