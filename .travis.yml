@@ -1,7 +1,10 @@
 language: python
 dist: bionic
 sudo: false
-cache: pip
+cache:
+  pip: true
+  directories:
+    - $HOME/.cache/pre-commit
 before_install:
 - >
   pip install --upgrade pip mypy 'attrs==19.2.0'
