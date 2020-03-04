@@ -90,12 +90,14 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
     # Assuming this is a generic object created by typing.Union
     try:
         possible_types = field.__args__
+        if not possible_types:
+            raise InvalidRequest(f"Cannot process type {field} for field {key}")
     except AttributeError:
         raise InvalidRequest(f"Cannot process type {field} for field {key}")
     # Assuming that the union is generated from typing.Optional, so only
     # contains one type and None
     # pylint: disable=unidiomatic-typecheck
-    fields = [t for t in possible_types if type(None) != t] if possible_types else []
+    fields = [t for t in possible_types if type(None) != t]
     if len(fields) != 1:
         raise InvalidRequest(f"Cannot process type {field} for field {key}")
     field = fields[0]
