@@ -121,6 +121,28 @@ def test_field_to_type_unhandled_types():
         assert str(excinfo.value).startswith("Cannot process type ")
 
 
+def test_field_to_type_unhandled_types_36():
+    k = "key"
+
+    class SixType:
+        __args__ = None
+
+    with pytest.raises(InvalidRequest) as excinfo:
+        _field_to_type(SixType, k, {})
+    assert str(excinfo.value).startswith("Cannot process type ")
+
+
+def test_field_to_type_unhandled_types_37():
+    k = "key"
+
+    class SevenType:
+        pass
+
+    with pytest.raises(InvalidRequest) as excinfo:
+        _field_to_type(SevenType, k, {})
+    assert str(excinfo.value).startswith("Cannot process type ")
+
+
 def test_get_forward_ref_type():
     with patch("cloudformation_cli_python_lib.recast.typing") as mock_typing:
         mock_typing.ForwardRef = "3.7+"
