@@ -79,7 +79,8 @@ def _recast_primitive(cls: Any, k: str, v: str) -> Any:
     return cls(v)
 
 
-def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
+# yes, introspecting type hints is ugly, but hopefully only needed temporarily
+def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:  # noqa: C901
     if field in [int, float, str, bool, typing.Any]:
         return field
     # If it's a ForwardRef we need to find base type
