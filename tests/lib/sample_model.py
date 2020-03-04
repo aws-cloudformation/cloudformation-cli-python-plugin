@@ -5,7 +5,16 @@
 import sys
 from dataclasses import dataclass
 from inspect import getmembers, isclass
-from typing import Any, Mapping, Optional, Sequence, Type, TypeVar
+from typing import (
+    AbstractSet,
+    Any,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+)
 
 from cloudformation_cli_python_lib.interface import (
     BaseResourceHandlerRequest,
@@ -26,6 +35,12 @@ class ResourceHandlerRequest(BaseResourceHandlerRequest):
 
 @dataclass
 class ResourceModel(BaseResourceModel):
+    ListListAny: Optional[Sequence[Sequence[Any]]]
+    ListSetInt: Optional[Sequence[AbstractSet[int]]]
+    ListListInt: Optional[Sequence[Sequence[int]]]
+    ASet: Optional[AbstractSet[Any]]
+    AnotherSet: Optional[AbstractSet[str]]
+    AFreeformDict: Optional[MutableMapping[str, Any]]
     AnInt: Optional[int]
     ABool: Optional[bool]
     NestedList: Optional[Sequence[Sequence["_NestedList"]]]
@@ -47,6 +62,12 @@ class ResourceModel(BaseResourceModel):
         dataclasses = {n: o for n, o in getmembers(sys.modules[__name__]) if isclass(o)}
         recast_object(cls, json_data, dataclasses)
         return cls(
+            ListSetInt=json_data.get("ListSetInt"),
+            ListListInt=json_data.get("ListListInt"),
+            ListListAny=json_data.get("ListListAny"),
+            ASet=json_data.get("ASet"),
+            AnotherSet=json_data.get("AnotherSet"),
+            AFreeformDict=json_data.get("AFreeformDict"),
             AnInt=json_data.get("AnInt"),
             ABool=json_data.get("ABool"),
             NestedList=deserialize_list(json_data.get("NestedList"), NestedList),

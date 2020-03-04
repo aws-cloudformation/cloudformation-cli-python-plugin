@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping, Set
 
 from .exceptions import InvalidRequest
 
@@ -11,12 +11,17 @@ def recast_object(
 ) -> None:
     if not isinstance(json_data, dict):
         raise InvalidRequest(f"Can only parse dict items, not {type(json_data)}")
+    # if type is Any, we leave it as is
+    if cls == typing.Any:
+        return
     for k, v in json_data.items():
         if isinstance(v, dict):
             child_cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
             recast_object(child_cls, v, classes)
         elif isinstance(v, list):
             json_data[k] = _recast_lists(cls, k, v, classes)
+        elif isinstance(v, set):
+            json_data[k] = _recast_sets(cls, k, v, classes)
         elif isinstance(v, str):
             dest_type = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
             json_data[k] = _recast_primitive(dest_type, k, v)
@@ -25,24 +30,46 @@ def recast_object(
 
 
 def _recast_lists(cls: Any, k: str, v: List[Any], classes: Dict[str, Any]) -> List[Any]:
+    # Leave as is if type is Any
+    if cls == typing.Any:
+        return v
     casted_list: List[Any] = []
-    if k in cls.__dataclass_fields__:
+    if "__dataclass_fields__" not in dir(cls):
+        pass
+    elif k in cls.__dataclass_fields__:
         cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
     for item in v:
-        if isinstance(item, str):
-            casted_item: Any = _recast_primitive(cls, k, item)
-        elif isinstance(item, list):
-            casted_item = _recast_lists(cls, k, item, classes)
-        elif isinstance(item, dict):
-            recast_object(cls, item, classes)
-            casted_item = item
-        else:
-            raise InvalidRequest(f"Unsupported type: {type(v)} for {k}")
-        casted_list.append(casted_item)
+        casted_list.append(cast_sequence_item(cls, k, item, classes))
     return casted_list
 
 
+def _recast_sets(cls: Any, k: str, v: Set[Any], classes: Dict[str, Any]) -> Set[Any]:
+    casted_set: Set[Any] = set()
+    if "__dataclass_fields__" in dir(cls):
+        cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
+    for item in v:
+        casted_set.add(cast_sequence_item(cls, k, item, classes))
+    return casted_set
+
+
+def cast_sequence_item(cls: Any, k: str, item: Any, classes: Dict[str, Any]) -> Any:
+    if isinstance(item, str):
+        return _recast_primitive(cls, k, item)
+    if isinstance(item, list):
+        return _recast_lists(cls, k, item, classes)
+    if isinstance(item, set):
+        return _recast_sets(cls, k, item, classes)
+    if isinstance(item, dict):
+        recast_object(cls, item, classes)
+        return item
+    raise InvalidRequest(f"Unsupported type: {type(item)} for {k}")
+
+
 def _recast_primitive(cls: Any, k: str, v: str) -> Any:
+    if cls == typing.Any:
+        # If the type is Any, we cannot guess what the original type was, so we leave
+        # it as a string
+        return v
     if cls == bool:
         if v.lower() == "true":
             return True
@@ -53,7 +80,7 @@ def _recast_primitive(cls: Any, k: str, v: str) -> Any:
 
 
 def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
-    if field in [int, float, str, bool]:
+    if field in [int, float, str, bool, typing.Any]:
         return field
     # If it's a ForwardRef we need to find base type
     if isinstance(field, get_forward_ref_type()):
@@ -64,26 +91,31 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:
     try:
         possible_types = field.__args__
     except AttributeError:
-        raise InvalidRequest(f"Cannot process type {field.__repr__()} for field {key}")
+        raise InvalidRequest(f"Cannot process type {field} for field {key}")
     # Assuming that the union is generated from typing.Optional, so only
     # contains one type and None
     # pylint: disable=unidiomatic-typecheck
-    fields = [t for t in possible_types if type(None) != t]
+    fields = [t for t in possible_types if type(None) != t] if possible_types else []
     if len(fields) != 1:
-        raise InvalidRequest(f"Cannot process type {field.__repr__()} for field {key}")
+        raise InvalidRequest(f"Cannot process type {field} for field {key}")
     field = fields[0]
     # If it's a primitive we're done
-    if field in [int, float, str, bool]:
+    if field in [int, float, str, bool, typing.Any]:
         return field
     # If it's a ForwardRef we need to find base type
     if isinstance(field, get_forward_ref_type()):
         # Assuming codegen added an _ as a prefix, removing it and then getting the
         # class from model classes
         return classes[field.__forward_arg__[1:]]
-    # If it's not a type we don't know how to handle we bail
-    if not str(field).startswith("typing.Sequence"):
-        raise InvalidRequest(f"Cannot process type {field} for field {key}")
-    return _field_to_type(field.__args__[0], key, classes)
+    # reduce Sequence/AbstractSet to inner type
+    if str(field).startswith("typing.Sequence") or str(field).startswith(
+        "typing.AbstractSet"
+    ):
+        return _field_to_type(field.__args__[0], key, classes)
+    if str(field).startswith("typing.MutableMapping"):
+        return _field_to_type(field.__args__[1], key, classes)
+    # If it's a type we don't know how to handle, we bail
+    raise InvalidRequest(f"Cannot process type {field} for field {key}")
 
 
 # pylint: disable=protected-access,no-member

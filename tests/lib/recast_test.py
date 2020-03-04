@@ -1,5 +1,5 @@
 # pylint: disable=protected-access
-from typing import Any, Optional, Union
+from typing import Awaitable, Generic, Optional, Union
 from unittest.mock import patch
 
 import pytest
@@ -15,8 +15,14 @@ from cloudformation_cli_python_lib.recast import (
 from .sample_model import ResourceModel as ComplexResourceModel, SimpleResourceModel
 
 
-def test_recast_object_simple():
+def test_recast_complex_object():
     payload = {
+        "ListListAny": [[{"key": "val"}]],
+        "ListListInt": [["1", "2", "3"]],
+        "ListSetInt": [{"1", "2", "3"}],
+        "ASet": {"1", "2", "3"},
+        "AnotherSet": {"a", "b", "c"},
+        "AFreeformDict": {"somekey": "somevalue", "someotherkey": "1"},
         "AnInt": "1",
         "ABool": "true",
         "AList": [
@@ -42,6 +48,12 @@ def test_recast_object_simple():
         ],
     }
     expected = {
+        "ListSetInt": [{1, 2, 3}],
+        "ListListInt": [[1, 2, 3]],
+        "ListListAny": [[{"key": "val"}]],
+        "ASet": {"1", "2", "3"},
+        "AnotherSet": {"a", "b", "c"},
+        "AFreeformDict": {"somekey": "somevalue", "someotherkey": "1"},
         "AnInt": 1,
         "ABool": True,
         "AList": [
@@ -87,10 +99,10 @@ def test_recast_object_invalid_sub_type():
 
 def test_recast_list_invalid_sub_type():
     k = "key"
-    v = (1, 2)
+    v = [(1, 2)]
     with pytest.raises(InvalidRequest) as excinfo:
         _recast_lists(SimpleResourceModel, k, v, {})
-    assert str(excinfo.value) == f"Unsupported type: {type(v)} for {k}"
+    assert str(excinfo.value) == f"Unsupported type: {type(v[0])} for {k}"
 
 
 def test_recast_boolean_invalid_value():
@@ -103,7 +115,7 @@ def test_recast_boolean_invalid_value():
 
 def test_field_to_type_unhandled_types():
     k = "key"
-    for field in [Union[str, list], Any, Optional[Any]]:
+    for field in [Union[str, list], Generic, Optional[Awaitable]]:
         with pytest.raises(InvalidRequest) as excinfo:
             _field_to_type(field, k, {})
         assert str(excinfo.value).startswith("Cannot process type ")

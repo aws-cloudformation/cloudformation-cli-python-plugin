@@ -68,6 +68,8 @@ class BaseResourceModel:
                 ser[k] = v._serialize()  # pylint: disable=protected-access
             elif v is None:
                 del_keys.append(k)
+            else:
+                ser[k] = v
         for k in del_keys:
             del ser[k]
         return ser
