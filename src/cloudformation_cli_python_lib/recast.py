@@ -33,23 +33,17 @@ def _recast_lists(cls: Any, k: str, v: List[Any], classes: Dict[str, Any]) -> Li
     # Leave as is if type is Any
     if cls == typing.Any:
         return v
-    casted_list: List[Any] = []
     if "__dataclass_fields__" not in dir(cls):
         pass
     elif k in cls.__dataclass_fields__:
         cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
-    for item in v:
-        casted_list.append(cast_sequence_item(cls, k, item, classes))
-    return casted_list
+    return [cast_sequence_item(cls, k, item, classes) for item in v]
 
 
 def _recast_sets(cls: Any, k: str, v: Set[Any], classes: Dict[str, Any]) -> Set[Any]:
-    casted_set: Set[Any] = set()
     if "__dataclass_fields__" in dir(cls):
         cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
-    for item in v:
-        casted_set.add(cast_sequence_item(cls, k, item, classes))
-    return casted_set
+    return {cast_sequence_item(cls, k, item, classes) for item in v}
 
 
 def cast_sequence_item(cls: Any, k: str, item: Any, classes: Dict[str, Any]) -> Any:
