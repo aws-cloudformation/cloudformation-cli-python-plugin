@@ -139,13 +139,12 @@ def deserialize_list(
 ) -> Optional[List[Any]]:
     if not json_data:
         return None
-    output = []
-    for item in json_data:
-        if isinstance(item, list):
-            output.append(deserialize_list(item, inner_dataclass))
-        elif isinstance(item, dict):
-            # pylint: disable=protected-access
-            output.append(inner_dataclass._deserialize(item))
-        else:
-            raise InvalidRequest(f"cannot deserialize lists of {type(item)}")
-    return output
+    return [_deser_item(item, inner_dataclass) for item in json_data]
+
+
+def _deser_item(item: Any, inner_dataclass: Any) -> Any:
+    if isinstance(item, list):
+        return deserialize_list(item, inner_dataclass)
+    if isinstance(item, dict):
+        return inner_dataclass._deserialize(item)  # pylint: disable=protected-access
+    raise InvalidRequest(f"cannot deserialize lists of {type(item)}")
