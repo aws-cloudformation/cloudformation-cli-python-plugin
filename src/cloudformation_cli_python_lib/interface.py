@@ -57,7 +57,7 @@ class HandlerErrorCode(str, _AutoName):
     InternalFailure = auto()
 
 
-class BaseResourceModel:
+class BaseModel:
     def _serialize(self) -> Mapping[str, Any]:
         return {
             k: self._serialize_item(v)
@@ -68,7 +68,7 @@ class BaseResourceModel:
     def _serialize_item(self, v: Any) -> Any:
         if isinstance(v, list):
             return self._serialize_list(v)
-        if isinstance(v, BaseResourceModel):
+        if isinstance(v, BaseModel):
             return v._serialize()  # pylint: disable=protected-access
         return v
 
@@ -77,8 +77,8 @@ class BaseResourceModel:
 
     @classmethod
     def _deserialize(
-        cls: Type["BaseResourceModel"], json_data: Optional[Mapping[str, Any]]
-    ) -> Optional["BaseResourceModel"]:
+        cls: Type["BaseModel"], json_data: Optional[Mapping[str, Any]]
+    ) -> Optional["BaseModel"]:
         raise NotImplementedError()
 
 
@@ -91,8 +91,8 @@ class ProgressEvent:
     message: str = ""
     callbackContext: Optional[MutableMapping[str, Any]] = None
     callbackDelaySeconds: int = 0
-    resourceModel: Optional[BaseResourceModel] = None
-    resourceModels: Optional[List[BaseResourceModel]] = None
+    resourceModel: Optional[BaseModel] = None
+    resourceModels: Optional[List[BaseModel]] = None
     nextToken: Optional[str] = None
 
     def _serialize(
@@ -132,7 +132,7 @@ class ProgressEvent:
 class BaseResourceHandlerRequest:
     # pylint: disable=invalid-name
     clientRequestToken: str
-    desiredResourceState: Optional[BaseResourceModel]
-    previousResourceState: Optional[BaseResourceModel]
+    desiredResourceState: Optional[BaseModel]
+    previousResourceState: Optional[BaseModel]
     logicalResourceIdentifier: Optional[str]
     nextToken: Optional[str]

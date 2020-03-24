@@ -5,7 +5,7 @@ from uuid import uuid4
 import boto3
 from cloudformation_cli_python_lib.callback import report_progress
 from cloudformation_cli_python_lib.interface import (
-    BaseResourceModel,
+    BaseModel,
     HandlerErrorCode,
     OperationStatus,
 )
@@ -47,7 +47,7 @@ def test_report_progress_full():
             HandlerErrorCode.InternalFailure,
             OperationStatus.FAILED,
             OperationStatus.IN_PROGRESS,
-            BaseResourceModel(),
+            BaseModel(),
             "test message",
         )
     session._cfn.record_handler_progress.assert_called_once_with(

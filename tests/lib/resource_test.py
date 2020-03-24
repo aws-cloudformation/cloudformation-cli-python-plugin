@@ -7,7 +7,7 @@ import pytest
 from cloudformation_cli_python_lib.exceptions import InternalFailure, InvalidRequest
 from cloudformation_cli_python_lib.interface import (
     Action,
-    BaseResourceModel,
+    BaseModel,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
@@ -106,7 +106,7 @@ def test_entrypoint_success():
 
 def test_entrypoint_handler_raises():
     @dataclass
-    class ResourceModel(BaseResourceModel):
+    class ResourceModel(BaseModel):
         a_string: str
 
         @classmethod
