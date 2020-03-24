@@ -39,7 +39,7 @@ class RequestData:
     providerLogGroupName: str
     logicalResourceId: str
     resourceProperties: Mapping[str, Any]
-    systemTags: Mapping[str, Any]
+    systemTags: Optional[Mapping[str, Any]] = None
     stackTags: Optional[Mapping[str, Any]] = None
     # platform credentials aren't really optional, but this is used to
     # zero them out to prevent e.g. accidental logging
