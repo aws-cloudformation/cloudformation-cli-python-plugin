@@ -15,8 +15,8 @@ from typing import (
 )
 
 from cloudformation_cli_python_lib.interface import (
+    BaseModel,
     BaseResourceHandlerRequest,
-    BaseResourceModel,
 )
 from cloudformation_cli_python_lib.recast import recast_object
 from cloudformation_cli_python_lib.utils import deserialize_list
@@ -39,7 +39,7 @@ class ResourceHandlerRequest(BaseResourceHandlerRequest):
 
 {% for model, properties in models.items() %}
 @dataclass
-class {{ model }}(BaseResourceModel):
+class {{ model }}(BaseModel):
     {% for name, type in properties.items() %}
     {{ name }}: Optional[{{ type|translate_type }}]
     {% endfor %}

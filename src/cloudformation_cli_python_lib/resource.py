@@ -20,7 +20,7 @@ from .log_delivery import ProviderLogHandler
 from .metrics import MetricsPublisherProxy
 from .scheduler import cleanup_cloudwatch_events, reschedule_after_minutes
 from .utils import (
-    BaseResourceModel,
+    BaseModel,
     Credentials,
     HandlerRequest,
     KitchenSinkEncoder,
@@ -60,11 +60,9 @@ def _ensure_serialize(
 
 
 class Resource:
-    def __init__(
-        self, type_name: str, resouce_model_cls: Type[BaseResourceModel]
-    ) -> None:
+    def __init__(self, type_name: str, resouce_model_cls: Type[BaseModel]) -> None:
         self.type_name = type_name
-        self._model_cls: Type[BaseResourceModel] = resouce_model_cls
+        self._model_cls: Type[BaseModel] = resouce_model_cls
         self._handlers: MutableMapping[Action, HandlerSignature] = {}
 
     def handler(self, action: Action) -> Callable[[HandlerSignature], HandlerSignature]:

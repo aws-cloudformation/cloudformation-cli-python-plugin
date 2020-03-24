@@ -17,8 +17,8 @@ from typing import (
 )
 
 from cloudformation_cli_python_lib.interface import (
+    BaseModel,
     BaseResourceHandlerRequest,
-    BaseResourceModel,
 )
 from cloudformation_cli_python_lib.recast import recast_object
 from cloudformation_cli_python_lib.utils import deserialize_list
@@ -34,7 +34,7 @@ class ResourceHandlerRequest(BaseResourceHandlerRequest):
 
 
 @dataclass
-class ResourceModel(BaseResourceModel):
+class ResourceModel(BaseModel):
     ListListAny: Optional[Sequence[Sequence[Any]]]
     ListSetInt: Optional[Sequence[AbstractSet[int]]]
     ListListInt: Optional[Sequence[Sequence[int]]]
@@ -89,7 +89,7 @@ _ResourceModel = ResourceModel
 
 
 @dataclass
-class NestedList(BaseResourceModel):
+class NestedList(BaseModel):
     NestedListInt: Optional[bool]
     NestedListList: Optional[Sequence[float]]
 
@@ -108,7 +108,7 @@ _NestedList = NestedList
 
 
 @dataclass
-class AList(BaseResourceModel):
+class AList(BaseModel):
     DeeperBool: Optional[bool]
     DeeperList: Optional[Sequence[int]]
     DeeperDictInList: Optional["_DeeperDictInList"]
@@ -131,7 +131,7 @@ _AList = AList
 
 
 @dataclass
-class DeeperDictInList(BaseResourceModel):
+class DeeperDictInList(BaseModel):
     DeepestBool: Optional[bool]
     DeepestList: Optional[Sequence[int]]
 
@@ -150,7 +150,7 @@ _DeeperDictInList = DeeperDictInList
 
 
 @dataclass
-class ADict(BaseResourceModel):
+class ADict(BaseModel):
     DeepBool: Optional[bool]
     DeepList: Optional[Sequence[int]]
     DeepDict: Optional["_DeepDict"]
@@ -171,7 +171,7 @@ _ADict = ADict
 
 
 @dataclass
-class DeepDict(BaseResourceModel):
+class DeepDict(BaseModel):
     DeeperBool: Optional[bool]
     DeeperList: Optional[Sequence[int]]
     DeeperDict: Optional["_DeeperDict"]
@@ -192,7 +192,7 @@ _DeepDict = DeepDict
 
 
 @dataclass
-class DeeperDict(BaseResourceModel):
+class DeeperDict(BaseModel):
     DeepestBool: Optional[bool]
     DeepestList: Optional[Sequence[int]]
 
@@ -211,7 +211,7 @@ _DeeperDict = DeeperDict
 
 
 @dataclass
-class SimpleResourceModel(BaseResourceModel):
+class SimpleResourceModel(BaseModel):
     AnInt: Optional[int]
     ABool: Optional[bool]
 

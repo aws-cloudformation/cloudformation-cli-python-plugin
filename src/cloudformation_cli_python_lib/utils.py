@@ -15,7 +15,7 @@ from typing import (
 )
 
 from .exceptions import InvalidRequest
-from .interface import Action, BaseResourceHandlerRequest, BaseResourceModel
+from .interface import Action, BaseModel, BaseResourceHandlerRequest
 
 
 class KitchenSinkEncoder(json.JSONEncoder):
@@ -116,9 +116,7 @@ class UnmodelledRequest:
     logicalResourceIdentifier: Optional[str] = None
     nextToken: Optional[str] = None
 
-    def to_modelled(
-        self, model_cls: Type[BaseResourceModel]
-    ) -> BaseResourceHandlerRequest:
+    def to_modelled(self, model_cls: Type[BaseModel]) -> BaseResourceHandlerRequest:
         # pylint: disable=protected-access
         return BaseResourceHandlerRequest(
             clientRequestToken=self.clientRequestToken,

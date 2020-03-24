@@ -4,7 +4,7 @@ from unittest.mock import Mock, call, sentinel
 
 import pytest
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
-from cloudformation_cli_python_lib.interface import BaseResourceModel
+from cloudformation_cli_python_lib.interface import BaseModel
 from cloudformation_cli_python_lib.utils import (
     HandlerRequest,
     KitchenSinkEncoder,
@@ -110,7 +110,7 @@ def test_handler_request_serde_roundtrip():
 
 
 def test_unmodelled_request_to_modelled():
-    model_cls = Mock(spec_set=BaseResourceModel)
+    model_cls = Mock(spec_set=BaseModel)
     model_cls._deserialize.side_effect = [sentinel.new, sentinel.old]
 
     unmodelled = UnmodelledRequest(
@@ -133,10 +133,10 @@ def test_unmodelled_request_to_modelled():
 
 
 def test_deserialize_list_empty():
-    assert deserialize_list(None, BaseResourceModel) is None
-    assert deserialize_list([], BaseResourceModel) is None
+    assert deserialize_list(None, BaseModel) is None
+    assert deserialize_list([], BaseModel) is None
 
 
 def test_deserialize_list_invalid():
     with pytest.raises(InvalidRequest):
-        deserialize_list([(1, 2)], BaseResourceModel)
+        deserialize_list([(1, 2)], BaseModel)

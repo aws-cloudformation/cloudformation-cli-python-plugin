@@ -7,7 +7,7 @@ from uuid import uuid4
 import boto3
 import pytest
 from cloudformation_cli_python_lib.interface import (
-    BaseResourceModel,
+    BaseModel,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
@@ -35,18 +35,18 @@ def bearer_token():
 
 # don't call this TestModel, or pytest will try and execute it
 @dataclass
-class ResourceModel(BaseResourceModel):
+class ResourceModel(BaseModel):
     somekey: str
     someotherkey: str
 
 
 def test_base_resource_model__deserialize():
     with pytest.raises(NotImplementedError):
-        BaseResourceModel()._deserialize({})
+        BaseModel()._deserialize({})
 
 
 def test_base_resource_model__serialize():
-    brm = BaseResourceModel()
+    brm = BaseModel()
     assert brm._serialize() == brm.__dict__
 
 

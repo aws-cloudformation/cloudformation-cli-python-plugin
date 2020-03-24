@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import uuid4
 
 from .boto3_proxy import SessionProxy
-from .interface import BaseResourceModel, HandlerErrorCode, OperationStatus
+from .interface import BaseModel, HandlerErrorCode, OperationStatus
 from .utils import KitchenSinkEncoder
 
 LOG = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ def report_progress(  # pylint: disable=too-many-arguments
     error_code: Optional[HandlerErrorCode],
     operation_status: OperationStatus,
     current_operation_status: Optional[OperationStatus],
-    resource_model: Optional[BaseResourceModel],
+    resource_model: Optional[BaseModel],
     status_message: str,
 ) -> None:
     client = session.client("cloudformation")
