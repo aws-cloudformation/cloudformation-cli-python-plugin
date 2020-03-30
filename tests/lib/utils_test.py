@@ -89,7 +89,6 @@ def test_handler_request_serde_roundtrip():
             "logicalResourceId": "myBucket",
             "resourceProperties": {},
             "previousResourceProperties": None,
-            "systemTags": {"aws:cloudformation:stack-id": "SampleStack"},
             "stackTags": {"tag1": "abc"},
             "previousStackTags": {"tag1": "def"},
         },
