@@ -92,7 +92,7 @@ def test__remove_build_artifacts_file_not_found(tmp_path):
 
 
 def test_initialize(project):
-    assert project.settings == {"use_docker": False}
+    assert project.settings == {"use_docker": False, "protocolVersion": "2.0.0"}
 
     files = get_files_in_project(project)
     assert set(files) == {

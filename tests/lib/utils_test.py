@@ -73,12 +73,6 @@ def test_handler_request_serde_roundtrip():
         },
         "requestData": {
             "callerCredentials": None,
-            "platformCredentials": {
-                "accessKeyId": "32IEHAHFIAG538KYASAI",
-                "secretAccessKey": "0O2hop/5vllVHjbA8u52hK8rLcroZpnL5NPGOi66",
-                "sessionToken": "gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6LPK"
-                "549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal",
-            },
             "providerCredentials": {
                 "accessKeyId": "HDI0745692Y45IUTYR78",
                 "secretAccessKey": "4976TUYVI234/5GW87ERYG823RF87GY9EIUH452I3",

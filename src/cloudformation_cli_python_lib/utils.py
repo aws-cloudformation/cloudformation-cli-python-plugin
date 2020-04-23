@@ -54,7 +54,6 @@ class RequestData:
     stackTags: Optional[Mapping[str, Any]] = None
     # platform credentials aren't really optional, but this is used to
     # zero them out to prevent e.g. accidental logging
-    platformCredentials: Optional[Credentials] = None
     callerCredentials: Optional[Credentials] = None
     providerCredentials: Optional[Credentials] = None
     previousResourceProperties: Optional[Mapping[str, Any]] = None
@@ -91,6 +90,7 @@ class HandlerRequest:
     resourceTypeVersion: str
     requestData: RequestData
     stackId: str
+    callbackContext: Optional[MutableMapping[str, Any]] = None
     nextToken: Optional[str] = None
     requestContext: MutableMapping[str, Any] = field(default_factory=dict)
 

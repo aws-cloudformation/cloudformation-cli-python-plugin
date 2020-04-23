@@ -50,6 +50,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         self.package_name = None
         self.package_root = None
         self._use_docker = True
+        self._protocol_version = "2.0.0"
 
     def _init_from_project(self, project):
         self.namespace = tuple(s.lower() for s in project.type_info)
@@ -57,7 +58,8 @@ class Python36LanguagePlugin(LanguagePlugin):
         self._use_docker = project.settings.get("use_docker", True)
         self.package_root = project.root / "src"
 
-    def _prompt_for_use_docker(self, project):
+    def _init_settings(self, project):
+        LOG.debug("Writing settings")
         self._use_docker = input_with_validation(
             "Use docker for platform-independent packaging (Y/n)?\n",
             validate_no,
@@ -65,12 +67,13 @@ class Python36LanguagePlugin(LanguagePlugin):
             "with cross-platform Python packaging.",
         )
         project.settings["use_docker"] = self._use_docker
+        project.settings["protocolVersion"] = self._protocol_version
 
     def init(self, project):
         LOG.debug("Init started")
 
         self._init_from_project(project)
-        self._prompt_for_use_docker(project)
+        self._init_settings(project)
 
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.package_name)
