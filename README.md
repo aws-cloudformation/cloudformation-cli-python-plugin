@@ -56,7 +56,8 @@ $ cat test.json
   "request": {
     "clientRequestToken": "ecba020e-b2e6-4742-a7d0-8a06ae7c4b2b",
     "desiredResourceState": {
-      "Title": "foo",
+      "Title": "This_Is_The_Title_For_My_Example",
+      "TestCode": "NOT_STARTED",
       "Description": "bar"
     },
     "previousResourceState": null,
