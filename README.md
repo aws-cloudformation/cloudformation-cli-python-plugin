@@ -45,7 +45,7 @@ with cross-platform Python packaging.
 Initialized a new project in <>
 $ cp ../cloudformation-cli-python-lib-0.0.1.tar.gz .
 $ cfn submit --dry-run
-$ cat test.json
+$ cat <<EOT > test.json
 {
   "credentials": {
     "accessKeyId": "",
@@ -65,6 +65,7 @@ $ cat test.json
   },
   "callbackContext": null
 }
+EOT
 $ sam local invoke TestEntrypoint --event test.json
 ```
 
