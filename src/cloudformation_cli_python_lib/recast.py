@@ -22,7 +22,7 @@ def recast_object(
             json_data[k] = _recast_lists(cls, k, v, classes)
         elif isinstance(v, set):
             json_data[k] = _recast_sets(cls, k, v, classes)
-        elif isinstance(v, str):
+        elif isinstance(v, str) or isinstance(v, int):
             dest_type = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
             json_data[k] = _recast_primitive(dest_type, k, v)
         else:
@@ -70,6 +70,8 @@ def _recast_primitive(cls: Any, k: str, v: str) -> Any:
         if v.lower() == "false":
             return False
         raise InvalidRequest(f'value for {k} "{v}" is not boolean')
+    if cls == int:
+        return int(v)
     return cls(v)
 
 
