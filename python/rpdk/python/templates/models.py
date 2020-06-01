@@ -57,13 +57,15 @@ class {{ model }}(BaseModel):
         {% endif %}
         return cls(
             {% for name, type in properties.items() %}
-            {% if type.container == ContainerType.MODEL %}
-            {{ name }}={{ type.type }}._deserialize(json_data.get("{{ name }}")),
-            {% elif type.container == ContainerType.SET %}
-            {{ name }}=set_or_none(json_data.get("{{ name }}")),
-            {% elif type.container == ContainerType.LIST %}
+            {% set container = type.container %}
+            {% set resolved_type = type.type %}
+            {% if container == ContainerType.MODEL %}
+            {{ name }}={{ resolved_type }}._deserialize(json_data.get("{{ resolved_type }}")),
+            {% elif container == ContainerType.SET %}
+            {{ name }}=set_or_none(json_data.get("{{ resolved_type.type }}")),
+            {% elif container == ContainerType.LIST %}
             {% if type | contains_model %}
-            {{name}}=deserialize_list(json_data.get("{{ name }}"), {{name}}),
+            {{name}}=deserialize_list(json_data.get("{{ resolved_type.type }}"), {{resolved_type.type}}),
             {% else %}
             {{ name }}=json_data.get("{{ name }}"),
             {% endif %}
