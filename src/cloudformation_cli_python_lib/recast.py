@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Mapping, Set
 
 from .exceptions import InvalidRequest
 
+PRIMITIVES = (str, bool, int, float)
+
 
 # CloudFormation recasts all primitive types as strings, this tries to set them back to
 # the types in the type hints
@@ -22,7 +24,7 @@ def recast_object(
             json_data[k] = _recast_lists(cls, k, v, classes)
         elif isinstance(v, set):
             json_data[k] = _recast_sets(cls, k, v, classes)
-        elif isinstance(v, str):
+        elif isinstance(v, PRIMITIVES):
             dest_type = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
             json_data[k] = _recast_primitive(dest_type, k, v)
         else:
@@ -47,7 +49,7 @@ def _recast_sets(cls: Any, k: str, v: Set[Any], classes: Dict[str, Any]) -> Set[
 
 
 def cast_sequence_item(cls: Any, k: str, item: Any, classes: Dict[str, Any]) -> Any:
-    if isinstance(item, str):
+    if isinstance(item, PRIMITIVES):
         return _recast_primitive(cls, k, item)
     if isinstance(item, list):
         return _recast_lists(cls, k, item, classes)
@@ -59,12 +61,12 @@ def cast_sequence_item(cls: Any, k: str, item: Any, classes: Dict[str, Any]) -> 
     raise InvalidRequest(f"Unsupported type: {type(item)} for {k}")
 
 
-def _recast_primitive(cls: Any, k: str, v: str) -> Any:
+def _recast_primitive(cls: Any, k: str, v: Any) -> Any:
     if cls == typing.Any:
         # If the type is Any, we cannot guess what the original type was, so we leave
         # it as a string
         return v
-    if cls == bool:
+    if cls == bool and isinstance(v, str):
         if v.lower() == "true":
             return True
         if v.lower() == "false":

@@ -79,8 +79,10 @@ def test_recast_complex_object():
         ],
     }
     model = ComplexResourceModel._deserialize(payload)
-    assert expected == payload
-    assert expected == model._serialize()
+    assert payload == expected
+    assert model._serialize() == expected
+    # re-invocations should not fail because they already type-cast payloads
+    assert ComplexResourceModel._deserialize(payload)._serialize() == expected
 
 
 def test_recast_object_invalid_json_type():
