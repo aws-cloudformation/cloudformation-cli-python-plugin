@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name,protected-access
 from dataclasses import dataclass
 from datetime import datetime
-from unittest.mock import ANY, Mock, call, patch, sentinel
+from unittest.mock import Mock, call, patch, sentinel
 
 import pytest
 from cloudformation_cli_python_lib.exceptions import InternalFailure, InvalidRequest
@@ -20,7 +20,7 @@ ENTRYPOINT_PAYLOAD = {
     "bearerToken": "123456",
     "region": "us-east-1",
     "action": "CREATE",
-    "responseEndpoint": "cloudformation.us-west-2.amazonaws.com",
+    "responseEndpoint": None,
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
     "requestContext": {},
@@ -30,12 +30,6 @@ ENTRYPOINT_PAYLOAD = {
             "secretAccessKey": "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0",
             "sessionToken": "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DH"
             "fW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg",
-        },
-        "platformCredentials": {
-            "accessKeyId": "32IEHAHFIAG538KYASAI",
-            "secretAccessKey": "0O2hop/5vllVHjbA8u52hK8rLcroZpnL5NPGOi66",
-            "sessionToken": "gqe6eIsFPHOlfhc3RKl5s5Y6Dy9PYvN1CEYsswz5TQUsE8WfHD6L"
-            "PK549euXm4Vn4INBY9nMJ1cJe2mxTYFdhWHSnkOQv2SHemal",
         },
         "providerCredentials": {
             "accessKeyId": "HDI0745692Y45IUTYR78",
@@ -75,7 +69,7 @@ def test_entrypoint_handler_error(resource):
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, {}, None
         )
-    assert event["operationStatus"] == OperationStatus.FAILED.value
+    assert event["status"] == OperationStatus.FAILED.value
     assert event["errorCode"] == HandlerErrorCode.InvalidRequest
 
 
@@ -86,19 +80,16 @@ def test_entrypoint_success():
 
     with patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
-    ) as mock_log_delivery, patch(
-        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
-    ) as mock_report_progress:
+    ) as mock_log_delivery:
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, ENTRYPOINT_PAYLOAD, None
         )
-    assert mock_report_progress.call_count == 2
     mock_log_delivery.assert_called_once()
 
     assert event == {
         "message": "",
-        "bearerToken": "123456",
-        "operationStatus": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "status": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "callbackDelaySeconds": 0,
     }
 
     mock_handler.assert_called_once()
@@ -118,8 +109,6 @@ def test_entrypoint_handler_raises():
     with patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
     ), patch(
-        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
-    ), patch(
         "cloudformation_cli_python_lib.resource.MetricsPublisherProxy"
     ) as mock_metrics, patch(
         "cloudformation_cli_python_lib.resource.Resource._invoke_handler"
@@ -133,8 +122,8 @@ def test_entrypoint_handler_raises():
     assert event == {
         "errorCode": "InvalidRequest",
         "message": "handler failed",
-        "bearerToken": "123456",
-        "operationStatus": "FAILED",
+        "status": "FAILED",
+        "callbackDelaySeconds": 0,
     }
 
 
@@ -147,13 +136,11 @@ def test_entrypoint_non_mutating_action():
 
     with patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
-    ), patch(
-        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
-    ) as mock_report_progress:
+    ) as mock_return_progress:
         resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, payload, None
         )
-    assert mock_report_progress.call_count == 1
+    assert mock_return_progress.call_count == 1
 
 
 def test_entrypoint_with_context():
@@ -165,19 +152,11 @@ def test_entrypoint_with_context():
     )
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
-    with patch(
-        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
-    ), patch(
-        "cloudformation_cli_python_lib.resource.report_progress", autospec=True
-    ), patch(
-        "cloudformation_cli_python_lib.resource.cleanup_cloudwatch_events",
-        autospec=True,
-    ) as mock_cleanup:
+    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
         resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, payload, None
         )
 
-    mock_cleanup.assert_called_once_with(ANY, "", "")
     mock_handler.assert_called_once()
 
 
@@ -191,13 +170,11 @@ def test_entrypoint_success_without_caller_provider_creds():
 
     expected = {
         "message": "",
-        "bearerToken": "123456",
-        "operationStatus": OperationStatus.SUCCESS,
+        "status": OperationStatus.SUCCESS,
+        "callbackDelaySeconds": 0,
     }
 
-    with patch(
-        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
-    ), patch("cloudformation_cli_python_lib.resource.report_progress", autospec=True):
+    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
         # Credentials are defined in payload, but null
         payload["requestData"]["providerCredentials"] = None
         payload["requestData"]["callerCredentials"] = None
@@ -214,19 +191,6 @@ def test_entrypoint_success_without_caller_provider_creds():
             resource, payload, None
         )
         assert event == expected
-
-
-def test__parse_request_fail_without_platform_creds():
-    resource = Resource(TYPE_NAME, Mock())
-
-    payload = ENTRYPOINT_PAYLOAD.copy()
-    payload["requestData"] = payload["requestData"].copy()
-    payload["requestData"]["platformCredentials"] = None
-
-    with pytest.raises(InvalidRequest) as excinfo:
-        resource._parse_request(payload)
-
-    assert "ValueError" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -267,9 +231,6 @@ def test__parse_request_valid_request_and__cast_resource_request():
             call(
                 Credentials(**ENTRYPOINT_PAYLOAD["requestData"]["providerCredentials"])
             ),
-            call(
-                Credentials(**ENTRYPOINT_PAYLOAD["requestData"]["platformCredentials"])
-            ),
         ],
         any_order=True,
     )
@@ -277,12 +238,10 @@ def test__parse_request_valid_request_and__cast_resource_request():
     # credentials are used when rescheduling, so can't zero them out (for now)
     assert request.requestData.callerCredentials is not None
     assert request.requestData.providerCredentials is not None
-    assert request.requestData.platformCredentials is not None
 
-    caller_sess, provider_sess, platform_sess = sessions
+    caller_sess, provider_sess = sessions
     assert caller_sess is mock_session.return_value
     assert provider_sess is mock_session.return_value
-    assert platform_sess is mock_session.return_value
 
     assert action == Action.CREATE
     assert callback_context == {}
@@ -303,7 +262,7 @@ def test__parse_request_valid_request_and__cast_resource_request():
 def test_entrypoint_uncaught_exception(resource, exc_cls):
     with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
         event = patch_and_raise(resource, "_parse_request", exc_cls, resource.__call__)
-    assert event["operationStatus"] == OperationStatus.FAILED
+    assert event["status"] == OperationStatus.FAILED
     assert event["errorCode"] == HandlerErrorCode.InternalFailure
     assert event["message"] == "hahaha"
 
@@ -472,71 +431,3 @@ def test_test_entrypoint_success():
 
     mock_model._deserialize.assert_has_calls([call(None), call(None)])
     mock_handler.assert_called_once()
-
-
-def test_schedule_reinvocation_not_in_progress():
-    progress = ProgressEvent(status=OperationStatus.SUCCESS)
-    with patch(
-        "cloudformation_cli_python_lib.resource._get_boto_session", autospec=True
-    ) as mock_session, patch(
-        "cloudformation_cli_python_lib.resource.reschedule_after_minutes", autospec=True
-    ) as mock_reschedule:
-        reinvoke = Resource.schedule_reinvocation(
-            sentinel.request, progress, sentinel.context, sentinel.session
-        )
-    assert reinvoke is False
-    mock_session.assert_not_called()
-    mock_reschedule.assert_not_called()
-
-
-def test_schedule_reinvocation_local_callback():
-    progress = ProgressEvent(status=OperationStatus.IN_PROGRESS, callbackDelaySeconds=5)
-    mock_request = Mock(
-        "cloudformation_cli_python_lib.interface.HandlerRequest", autospec=True
-    )()
-    mock_request.requestContext = {}
-    mock_context = Mock(
-        "cloudformation_cli_python_lib.interface.LambdaContext", autospec=True
-    )()
-    mock_context.get_remaining_time_in_millis.return_value = 600000
-    with patch(
-        "cloudformation_cli_python_lib.resource.sleep", autospec=True
-    ) as mock_sleep:
-        reinvoke = Resource.schedule_reinvocation(
-            mock_request, progress, mock_context, sentinel.session
-        )
-    assert reinvoke is True
-    mock_sleep.assert_called_once_with(5)
-    assert mock_request.requestContext.get("invocation") == 1
-
-
-def test_schedule_reinvocation_cloudwatch_callback():
-    progress = ProgressEvent(
-        status=OperationStatus.IN_PROGRESS, callbackDelaySeconds=60
-    )
-    mock_request = Mock(
-        "cloudformation_cli_python_lib.interface.HandlerRequest", autospec=True
-    )()
-    mock_request.requestContext = {}
-    mock_context = Mock(
-        "cloudformation_cli_python_lib.interface.LambdaContext", autospec=True
-    )()
-    mock_context.get_remaining_time_in_millis.return_value = 6000
-    mock_context.invoked_function_arn = "arn:aaa:bbb:ccc"
-    with patch(
-        "cloudformation_cli_python_lib.resource.reschedule_after_minutes", autospec=True
-    ) as mock_reschedule, patch(
-        "cloudformation_cli_python_lib.resource.sleep", autospec=True
-    ) as mock_sleep:
-        reinvoke = Resource.schedule_reinvocation(
-            mock_request, progress, mock_context, Mock()
-        )
-    assert reinvoke is False
-    mock_reschedule.assert_called_once_with(
-        ANY,
-        function_arn="arn:aaa:bbb:ccc",
-        minutes_from_now=1,
-        handler_request=mock_request,
-    )
-    mock_sleep.assert_not_called()
-    assert mock_request.requestContext.get("invocation") == 1

@@ -95,30 +95,26 @@ class ProgressEvent:
     resourceModels: Optional[List[BaseModel]] = None
     nextToken: Optional[str] = None
 
-    def _serialize(
-        self, to_response: bool = False, bearer_token: Optional[str] = None
-    ) -> MutableMapping[str, Any]:
+    def _serialize(self) -> MutableMapping[str, Any]:
         # to match Java serialization, which drops `null` values, and the
         # contract tests currently expect this also
         ser = {k: v for k, v in self.__dict__.items() if v is not None}
+
         # mutate to what's expected in the response
-        if to_response:
-            ser["bearerToken"] = bearer_token
-            ser["operationStatus"] = ser.pop("status").name
-            if self.resourceModel:
+
+        ser["status"] = ser.pop("status").name
+
+        if self.resourceModel:
+            # pylint: disable=protected-access
+            ser["resourceModel"] = self.resourceModel._serialize()
+        if self.resourceModels:
+            ser["resourceModels"] = [
                 # pylint: disable=protected-access
-                ser["resourceModel"] = self.resourceModel._serialize()
-            if self.resourceModels:
-                ser["resourceModels"] = [
-                    # pylint: disable=protected-access
-                    model._serialize()
-                    for model in self.resourceModels
-                ]
-            del ser["callbackDelaySeconds"]
-            if "callbackContext" in ser:
-                del ser["callbackContext"]
-            if self.errorCode:
-                ser["errorCode"] = self.errorCode.name
+                model._serialize()
+                for model in self.resourceModels
+            ]
+        if self.errorCode:
+            ser["errorCode"] = self.errorCode.name
         return ser
 
     @classmethod
