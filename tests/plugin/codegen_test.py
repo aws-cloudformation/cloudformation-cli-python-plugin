@@ -16,7 +16,6 @@ from rpdk.python.codegen import (
     SUPPORT_LIB_NAME,
     SUPPORT_LIB_PKG,
     Python36LanguagePlugin as PythonLanguagePlugin,
-    StandardDistNotFoundError,
     validate_no,
 )
 
@@ -69,12 +68,6 @@ def get_files_in_project(project):
 )
 def test_validate_no(value, result):
     assert validate_no(value) is result
-
-
-def test__check_for_support_lib_sdist(tmp_path):
-    with pytest.raises(StandardDistNotFoundError):
-        PythonLanguagePlugin._check_for_support_lib_sdist(tmp_path)
-    # good path tested in generate
 
 
 def test__remove_build_artifacts_file_found(tmp_path):
@@ -172,32 +165,28 @@ def test_package_pip(project):
 
 def test__pip_build_executable_not_found(tmp_path):
     executable_name = str(uuid4())
-    patch_sdist = patch.object(PythonLanguagePlugin, "_check_for_support_lib_sdist")
     patch_cmd = patch.object(
         PythonLanguagePlugin, "_make_pip_command", return_value=[executable_name]
     )
 
-    with patch_sdist as mock_sdist, patch_cmd as mock_cmd:
+    with patch_cmd as mock_cmd:
         with pytest.raises(DownstreamError) as excinfo:
             PythonLanguagePlugin._pip_build(tmp_path)
 
-    mock_sdist.assert_called_once_with(tmp_path)
     mock_cmd.assert_called_once_with(tmp_path)
 
     assert isinstance(excinfo.value.__cause__, FileNotFoundError)
 
 
 def test__pip_build_called_process_error(tmp_path):
-    patch_sdist = patch.object(PythonLanguagePlugin, "_check_for_support_lib_sdist")
     patch_cmd = patch.object(
         PythonLanguagePlugin, "_make_pip_command", return_value=["false"]
     )
 
-    with patch_sdist as mock_sdist, patch_cmd as mock_cmd:
+    with patch_cmd as mock_cmd:
         with pytest.raises(DownstreamError) as excinfo:
             PythonLanguagePlugin._pip_build(tmp_path)
 
-    mock_sdist.assert_called_once_with(tmp_path)
     mock_cmd.assert_called_once_with(tmp_path)
 
     assert isinstance(excinfo.value.__cause__, CalledProcessError)
@@ -228,15 +217,13 @@ def test__build_docker(plugin):
 
 
 def test__docker_build_good_path(plugin, tmp_path):
-    patch_sdist = patch.object(PythonLanguagePlugin, "_check_for_support_lib_sdist")
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
 
-    with patch_sdist as mock_sdist, patch_from_env as mock_from_env:
+    with patch_from_env as mock_from_env:
         mock_run = mock_from_env.return_value.containers.run
         mock_run.return_value = [b"output\n\n"]
         plugin._docker_build(tmp_path)
 
-    mock_sdist.assert_called_once_with(tmp_path)
     mock_from_env.assert_called_once_with()
     mock_run.assert_called_once_with(
         image=ANY,
@@ -260,17 +247,15 @@ def test__docker_build_good_path(plugin, tmp_path):
     ],
 )
 def test__docker_build_bad_path(plugin, tmp_path, exception):
-    patch_sdist = patch.object(PythonLanguagePlugin, "_check_for_support_lib_sdist")
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
 
-    with patch_sdist as mock_sdist, patch_from_env as mock_from_env:
+    with patch_from_env as mock_from_env:
         mock_run = mock_from_env.return_value.containers.run
         mock_run.side_effect = exception()
 
         with pytest.raises(DownstreamError):
             plugin._docker_build(tmp_path)
 
-    mock_sdist.assert_called_once_with(tmp_path)
     mock_from_env.assert_called_once_with()
     mock_run.assert_called_once_with(
         image=ANY,

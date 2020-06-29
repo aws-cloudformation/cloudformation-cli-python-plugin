@@ -205,17 +205,6 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Dependencies build finished")
 
     @staticmethod
-    def _check_for_support_lib_sdist(base_path):
-        # TODO: remove this check (and exception) when published to PyPI
-        sdist = base_path / f"{SUPPORT_LIB_NAME}-0.0.1.tar.gz"
-        try:
-            sdist.resolve(strict=True)
-        except FileNotFoundError:
-            raise StandardDistNotFoundError(
-                f"Could not find packaged CloudFormation support library: {sdist}\n"
-            )
-
-    @staticmethod
     def _make_pip_command(base_path):
         return [
             "pip",
@@ -224,9 +213,6 @@ class Python36LanguagePlugin(LanguagePlugin):
             "--no-color",
             "--disable-pip-version-check",
             "--upgrade",
-            # TODO: remove find-links when published to PyPI
-            "--find-links",
-            str(base_path),
             "--requirement",
             str(base_path / "requirements.txt"),
             "--target",
@@ -235,8 +221,6 @@ class Python36LanguagePlugin(LanguagePlugin):
 
     @classmethod
     def _docker_build(cls, external_path):
-        cls._check_for_support_lib_sdist(external_path)
-
         internal_path = PurePosixPath("/project")
         command = " ".join(cls._make_pip_command(internal_path))
         LOG.debug("command is '%s'", command)
@@ -275,7 +259,6 @@ class Python36LanguagePlugin(LanguagePlugin):
 
     @classmethod
     def _pip_build(cls, base_path):
-        cls._check_for_support_lib_sdist(base_path)
         command = cls._make_pip_command(base_path)
         LOG.debug("command is '%s'", command)
 
