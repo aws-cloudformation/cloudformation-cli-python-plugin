@@ -130,5 +130,10 @@ class BaseResourceHandlerRequest:
     clientRequestToken: str
     desiredResourceState: Optional[BaseModel]
     previousResourceState: Optional[BaseModel]
+    desiredResourceTags: Optional[Mapping[str, Any]]
+    systemTags: Optional[Mapping[str, Any]]
+    awsAccountId: Optional[str]
     logicalResourceIdentifier: Optional[str]
     nextToken: Optional[str]
+    region: Optional[str]
+    # awsPartition: Optional[str]
