@@ -66,10 +66,6 @@ def test_handler_request_serde_roundtrip():
         "requestContext": {
             "invocation": 2,
             "callbackContext": {"contextPropertyA": "Value"},
-            "cloudWatchEventsRuleName": "reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394"
-            "118a8be",
-            "cloudWatchEventsTargetId": "reinvoke-target-4754ac8a-623b-45fe-84bc-f53941"
-            "18a8be",
         },
         "requestData": {
             "callerCredentials": None,
@@ -102,7 +98,8 @@ def test_handler_request_serde_roundtrip():
     assert ser == expected
 
 
-def test_unmodelled_request_to_modelled():
+@pytest.mark.parametrize("region", ("us-east-1", "cn-region1", "us-gov-region1"))
+def test_unmodelled_request_to_modelled(region):
     model_cls = Mock(spec_set=BaseModel)
     model_cls._deserialize.side_effect = [sentinel.new, sentinel.old]
 
@@ -112,6 +109,7 @@ def test_unmodelled_request_to_modelled():
         previousResourceState={"state": "old"},
         logicalResourceIdentifier="bar",
         nextToken="baz",
+        region=region,
     )
     modelled = unmodelled.to_modelled(model_cls)
 

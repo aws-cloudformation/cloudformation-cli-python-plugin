@@ -132,8 +132,20 @@ class UnmodelledRequest:
             logicalResourceIdentifier=self.logicalResourceIdentifier,
             nextToken=self.nextToken,
             region=self.region,
-            # awsPartition
+            awsPartition=self.get_partition(self.region),
         )
+
+    @staticmethod
+    def get_partition(region: Optional[str]) -> Optional[str]:
+        if region is None:
+            return None
+
+        if region.startswith("cn"):
+            return "aws-cn"
+
+        if region.startswith("us-gov"):
+            return "aws-gov"
+        return "aws"
 
 
 class LambdaContext:

@@ -136,4 +136,4 @@ class BaseResourceHandlerRequest:
     logicalResourceIdentifier: Optional[str]
     nextToken: Optional[str]
     region: Optional[str]
-    # awsPartition: Optional[str]
+    awsPartition: Optional[str]
