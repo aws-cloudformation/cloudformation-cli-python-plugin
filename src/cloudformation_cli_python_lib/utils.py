@@ -113,8 +113,12 @@ class UnmodelledRequest:
     clientRequestToken: str
     desiredResourceState: Optional[Mapping[str, Any]] = None
     previousResourceState: Optional[Mapping[str, Any]] = None
+    desiredResourceTags: Optional[Mapping[str, Any]] = None
+    systemTags: Optional[Mapping[str, Any]] = None
+    awsAccountId: Optional[str] = None
     logicalResourceIdentifier: Optional[str] = None
     nextToken: Optional[str] = None
+    region: Optional[str] = None
 
     def to_modelled(self, model_cls: Type[BaseModel]) -> BaseResourceHandlerRequest:
         # pylint: disable=protected-access
@@ -122,9 +126,26 @@ class UnmodelledRequest:
             clientRequestToken=self.clientRequestToken,
             desiredResourceState=model_cls._deserialize(self.desiredResourceState),
             previousResourceState=model_cls._deserialize(self.previousResourceState),
+            desiredResourceTags=self.desiredResourceTags,
+            systemTags=self.systemTags,
+            awsAccountId=self.awsAccountId,
             logicalResourceIdentifier=self.logicalResourceIdentifier,
             nextToken=self.nextToken,
+            region=self.region,
+            awsPartition=self.get_partition(self.region),
         )
+
+    @staticmethod
+    def get_partition(region: Optional[str]) -> Optional[str]:
+        if region is None:
+            return None
+
+        if region.startswith("cn"):
+            return "aws-cn"
+
+        if region.startswith("us-gov"):
+            return "aws-gov"
+        return "aws"
 
 
 class LambdaContext:

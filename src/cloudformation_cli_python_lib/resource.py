@@ -163,7 +163,11 @@ class Resource:
                 clientRequestToken=request.bearerToken,
                 desiredResourceState=request.requestData.resourceProperties,
                 previousResourceState=request.requestData.previousResourceProperties,
+                desiredResourceTags=request.requestData.stackTags,
+                systemTags=request.requestData.systemTags,
+                awsAccountId=request.awsAccountId,
                 logicalResourceIdentifier=request.requestData.logicalResourceId,
+                region=request.region,
             ).to_modelled(self._model_cls)
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")
