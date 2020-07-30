@@ -49,12 +49,12 @@ class MetricPublisher:
 
 class MetricsPublisherProxy:
     @staticmethod
-    def _make_namespace(account_id: str, resource_type: str) -> str:
+    def _make_namespace(resource_type: str) -> str:
         suffix = resource_type.replace("::", "/")
-        return f"{METRIC_NAMESPACE_ROOT}/{account_id}/{suffix}"
+        return f"{METRIC_NAMESPACE_ROOT}/{suffix}"
 
-    def __init__(self, account_id: str, resource_type: str) -> None:
-        self.namespace = self._make_namespace(account_id, resource_type)
+    def __init__(self, resource_type: str) -> None:
+        self.namespace = self._make_namespace(resource_type)
         self.resource_type = resource_type
         self._publishers: List[MetricPublisher] = []
 

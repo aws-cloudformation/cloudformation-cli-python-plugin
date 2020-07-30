@@ -195,7 +195,7 @@ class Resource:
 
             request = self._cast_resource_request(event)
 
-            metrics = MetricsPublisherProxy(event.awsAccountId, event.resourceType)
+            metrics = MetricsPublisherProxy(event.resourceType)
             metrics.add_metrics_publisher(provider_sess)
 
             metrics.publish_invocation_metric(datetime.utcnow(), action)

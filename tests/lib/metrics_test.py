@@ -14,10 +14,9 @@ from cloudformation_cli_python_lib.metrics import (
 
 from botocore.stub import Stubber
 
-ACCOUNT_ID = "123412341234"
 RESOURCE_TYPE = "Aa::Bb::Cc"
 NAMESPACE = MetricsPublisherProxy._make_namespace(  # pylint: disable=protected-access
-    ACCOUNT_ID, RESOURCE_TYPE
+    RESOURCE_TYPE
 )
 
 
@@ -74,13 +73,13 @@ def test_put_metric_catches_error(mock_session):
 
 def test_publish_exception_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
     proxy.add_metrics_publisher(mock_session)
     proxy.publish_exception_metric(fake_datetime, Action.CREATE, Exception("fake-err"))
     expected_calls = [
         call.client("cloudwatch"),
         call.client().put_metric_data(
-            Namespace="AWS/CloudFormation/123412341234/Aa/Bb/Cc",
+            Namespace="AWS/CloudFormation/Aa/Bb/Cc",
             MetricData=[
                 {
                     "MetricName": MetricTypes.HandlerException.name,
@@ -104,14 +103,14 @@ def test_publish_exception_metric(mock_session):
 
 def test_publish_invocation_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
     proxy.add_metrics_publisher(mock_session)
     proxy.publish_invocation_metric(fake_datetime, Action.CREATE)
 
     expected_calls = [
         call.client("cloudwatch"),
         call.client().put_metric_data(
-            Namespace="AWS/CloudFormation/123412341234/Aa/Bb/Cc",
+            Namespace="AWS/CloudFormation/Aa/Bb/Cc",
             MetricData=[
                 {
                     "MetricName": MetricTypes.HandlerInvocationCount.name,
@@ -131,14 +130,14 @@ def test_publish_invocation_metric(mock_session):
 
 def test_publish_duration_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
     proxy.add_metrics_publisher(mock_session)
     proxy.publish_duration_metric(fake_datetime, Action.CREATE, 100)
 
     expected_calls = [
         call.client("cloudwatch"),
         call.client().put_metric_data(
-            Namespace="AWS/CloudFormation/123412341234/Aa/Bb/Cc",
+            Namespace="AWS/CloudFormation/Aa/Bb/Cc",
             MetricData=[
                 {
                     "MetricName": MetricTypes.HandlerInvocationDuration.name,
@@ -158,14 +157,14 @@ def test_publish_duration_metric(mock_session):
 
 def test_publish_log_delivery_exception_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
     proxy.add_metrics_publisher(mock_session)
     proxy.publish_log_delivery_exception_metric(fake_datetime, TypeError("test"))
 
     expected_calls = [
         call.client("cloudwatch"),
         call.client().put_metric_data(
-            Namespace="AWS/CloudFormation/123412341234/Aa/Bb/Cc",
+            Namespace="AWS/CloudFormation/Aa/Bb/Cc",
             MetricData=[
                 {
                     "MetricName": MetricTypes.HandlerException.name,
@@ -191,6 +190,6 @@ def test_publish_log_delivery_exception_metric(mock_session):
 
 
 def test_metrics_publisher_proxy_add_metrics_publisher_none_safe():
-    proxy = MetricsPublisherProxy(ACCOUNT_ID, RESOURCE_TYPE)
+    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
     proxy.add_metrics_publisher(None)
     assert proxy._publishers == []  # pylint: disable=protected-access
