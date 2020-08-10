@@ -125,3 +125,5 @@ dmypy.json
 
 # contains credentials
 sam-tests/
+
+rpdk.log
