@@ -65,7 +65,7 @@ class {{ model }}(BaseModel):
             {{ name }}=set_or_none(json_data.get("{{ resolved_type.type }}")),
             {% elif container == ContainerType.LIST %}
             {% if type | contains_model %}
-            {{name}}=deserialize_list(json_data.get("{{ resolved_type.type }}"), {{resolved_type.type}}),
+            {{name}}=deserialize_list(json_data.get("{{ name }}"), {{resolved_type.type}}),
             {% else %}
             {{ name }}=json_data.get("{{ name }}"),
             {% endif %}
