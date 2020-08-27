@@ -60,12 +60,12 @@ class {{ model }}(BaseModel):
             {% set container = type.container %}
             {% set resolved_type = type.type %}
             {% if container == ContainerType.MODEL %}
-            {{ name }}={{ resolved_type }}._deserialize(json_data.get("{{ resolved_type }}")),
+            {{ name }}={{ resolved_type }}._deserialize(json_data.get("{{ name }}")),
             {% elif container == ContainerType.SET %}
-            {{ name }}=set_or_none(json_data.get("{{ resolved_type.type }}")),
+            {{ name }}=set_or_none(json_data.get("{{ name }}")),
             {% elif container == ContainerType.LIST %}
             {% if type | contains_model %}
-            {{name}}=deserialize_list(json_data.get("{{ resolved_type.type }}"), {{resolved_type.type}}),
+            {{name}}=deserialize_list(json_data.get("{{ name }}"), {{resolved_type.type}}),
             {% else %}
             {{ name }}=json_data.get("{{ name }}"),
             {% endif %}
