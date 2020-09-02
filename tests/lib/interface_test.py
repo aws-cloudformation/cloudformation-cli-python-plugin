@@ -5,15 +5,14 @@ from string import ascii_letters
 
 import boto3
 import pytest
+import hypothesis.strategies as s
+from hypothesis import given
 from cloudformation_cli_python_lib.interface import (
     BaseModel,
     HandlerErrorCode,
     OperationStatus,
     ProgressEvent,
 )
-
-import hypothesis.strategies as s
-from hypothesis import given
 
 
 @pytest.fixture(scope="module")

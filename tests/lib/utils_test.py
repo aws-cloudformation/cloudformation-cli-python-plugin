@@ -3,6 +3,8 @@ import json
 from unittest.mock import Mock, call, sentinel
 
 import pytest
+import hypothesis.strategies as s
+from hypothesis import given
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.interface import BaseModel
 from cloudformation_cli_python_lib.utils import (
@@ -11,9 +13,6 @@ from cloudformation_cli_python_lib.utils import (
     UnmodelledRequest,
     deserialize_list,
 )
-
-import hypothesis.strategies as s
-from hypothesis import given
 
 
 def roundtrip(value):

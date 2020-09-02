@@ -5,14 +5,13 @@ from unittest.mock import Mock, call, patch
 
 import boto3
 import pytest
+from botocore.stub import Stubber
 from cloudformation_cli_python_lib.interface import Action, MetricTypes, StandardUnit
 from cloudformation_cli_python_lib.metrics import (
     MetricPublisher,
     MetricsPublisherProxy,
     format_dimensions,
 )
-
-from botocore.stub import Stubber
 
 RESOURCE_TYPE = "Aa::Bb::Cc"
 NAMESPACE = MetricsPublisherProxy._make_namespace(  # pylint: disable=protected-access
