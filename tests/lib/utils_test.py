@@ -12,8 +12,8 @@ from cloudformation_cli_python_lib.utils import (
     deserialize_list,
 )
 
-import hypothesis.strategies as s
-from hypothesis import given
+import hypothesis.strategies as s  # pylint: disable=C0411
+from hypothesis import given  # pylint: disable=C0411
 
 
 def roundtrip(value):

@@ -21,3 +21,23 @@ jobs:
   - python: "3.6"
   - python: "3.7"
   - python: "3.8"
+  - stage: "integ python 3.6"
+    language: python
+    python: "3.6"
+    script:
+      - DIR=$(mktemp -d)
+      - cd "$DIR"
+      - ls -la
+      - printf "AWS::Foo::Bar\n1\ny" | cfn init -vv
+      - ls -la
+      - mypy src/aws_foo_bar/ --strict --implicit-reexport
+  - stage: "integ python 3.7"
+    language: python
+    python: "3.7"
+    script:
+      - DIR=$(mktemp -d)
+      - cd "$DIR"
+      - ls -la
+      - printf "AWS::Foo::Bar\n2\ny" | cfn init -vv
+      - ls -la
+      - mypy src/aws_foo_bar/ --strict --implicit-reexport

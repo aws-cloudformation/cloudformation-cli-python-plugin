@@ -1,6 +1,6 @@
+# boto3 doesn't have stub files
 from typing import Optional
 
-# boto3 doesn't have stub files
 from boto3.session import Session  # type: ignore
 
 from .utils import Credentials
