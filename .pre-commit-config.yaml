@@ -1,10 +1,13 @@
+exclude: ^(buildspec.yml|.pre-commit-config.yaml)$
+fail_fast: true
 repos:
 - repo: https://github.com/pre-commit/mirrors-isort
   rev: v4.3.17
   hooks:
   - id: isort
+    # language_version: python3.6
 - repo: https://github.com/ambv/black
-  rev: stable
+  rev: 20.8b1
   hooks:
   - id: black
     exclude: templates/

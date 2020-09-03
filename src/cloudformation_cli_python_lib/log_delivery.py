@@ -19,7 +19,7 @@ class ProviderLogHandler(logging.Handler):
     def __init__(
         self, group: str, stream: str, session: SessionProxy, *args: Any, **kwargs: Any
     ):
-        super(ProviderLogHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.group = group
         self.stream = stream.replace(":", "__")
         self.client = session.client("logs")

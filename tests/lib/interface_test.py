@@ -12,8 +12,8 @@ from cloudformation_cli_python_lib.interface import (
     ProgressEvent,
 )
 
-import hypothesis.strategies as s
-from hypothesis import given
+import hypothesis.strategies as s  # pylint: disable=C0411
+from hypothesis import given  # pylint: disable=C0411
 
 
 @pytest.fixture(scope="module")

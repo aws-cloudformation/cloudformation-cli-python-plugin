@@ -12,7 +12,7 @@ from cloudformation_cli_python_lib.metrics import (
     format_dimensions,
 )
 
-from botocore.stub import Stubber
+from botocore.stub import Stubber  # pylint: disable=C0411
 
 RESOURCE_TYPE = "Aa::Bb::Cc"
 NAMESPACE = MetricsPublisherProxy._make_namespace(  # pylint: disable=protected-access
