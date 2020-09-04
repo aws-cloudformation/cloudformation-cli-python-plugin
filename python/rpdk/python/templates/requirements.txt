@@ -1,1 +1,1 @@
-{{ support_lib_name }}==2.1.0
+{{ support_lib_name }}==2.1.1

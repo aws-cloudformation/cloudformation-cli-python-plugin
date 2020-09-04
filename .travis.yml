@@ -25,12 +25,21 @@ jobs:
     language: python
     python: "3.6"
     script:
+      - OUT=$(pwd)
+      - cd src/
+      - python3 setup.py sdist
+      - cp dist/*.tar.gz "$OUT"
+      - rm -r dist/
+      - cd ..
+      - ls -la
       - DIR=$(mktemp -d)
+      - cp cloudformation-cli-python-lib-2.1.1.tar.gz "$DIR"
       - cd "$DIR"
       - ls -la
       - printf "AWS::Foo::Bar\n1\ny" | cfn init -vv
       - ls -la
       - mypy src/aws_foo_bar/ --strict --implicit-reexport
+      - cfn submit --dry-run
   - stage: "integ python 3.7"
     language: python
     python: "3.7"
