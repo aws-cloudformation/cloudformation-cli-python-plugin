@@ -114,6 +114,7 @@ class UnmodelledRequest:
     desiredResourceState: Optional[Mapping[str, Any]] = None
     previousResourceState: Optional[Mapping[str, Any]] = None
     desiredResourceTags: Optional[Mapping[str, Any]] = None
+    previousResourceTags: Optional[Mapping[str, Any]] = None
     systemTags: Optional[Mapping[str, Any]] = None
     awsAccountId: Optional[str] = None
     logicalResourceIdentifier: Optional[str] = None
@@ -127,6 +128,7 @@ class UnmodelledRequest:
             desiredResourceState=model_cls._deserialize(self.desiredResourceState),
             previousResourceState=model_cls._deserialize(self.previousResourceState),
             desiredResourceTags=self.desiredResourceTags,
+            previousResourceTags=self.previousResourceTags,
             systemTags=self.systemTags,
             awsAccountId=self.awsAccountId,
             logicalResourceIdentifier=self.logicalResourceIdentifier,

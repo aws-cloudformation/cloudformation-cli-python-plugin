@@ -25,6 +25,7 @@ jobs:
     language: python
     python: "3.6"
     script:
+      - ls -la
       - DIR=$(mktemp -d)
       - cd "$DIR"
       - ls -la

@@ -149,7 +149,7 @@ def test_package_pip(project):
 
     # not real requirements, would make version bumps a pain to test
     (project.root / "requirements.txt").write_text("")
-    (project.root / f"{SUPPORT_LIB_NAME}-0.0.1.tar.gz").touch()
+    (project.root / f"{SUPPORT_LIB_NAME}-2.1.1.tar.gz").touch()
     # want to exclude *.pyc files from zip, but code isn't run, so never get made
     (project.root / "src" / "foo_bar_baz" / "coverage.pyc").touch()
 
