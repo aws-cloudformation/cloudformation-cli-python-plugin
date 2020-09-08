@@ -16,7 +16,7 @@ def format_dimensions(dimensions: Mapping[str, str]) -> List[Mapping[str, str]]:
     return [{"Name": key, "Value": value} for key, value in dimensions.items()]
 
 
-class MetricPublisher:
+class MetricsPublisher:
     def __init__(self, session: SessionProxy, resource_type: str) -> None:
         self.client = session.client("cloudwatch")
         self.resource_type = resource_type
@@ -118,13 +118,13 @@ class MetricPublisher:
 
 class MetricsPublisherProxy:
     def __init__(self) -> None:
-        self._publishers: List[MetricPublisher] = []
+        self._publishers: List[MetricsPublisher] = []
 
     def add_metrics_publisher(
         self, session: Optional[SessionProxy], type_name: Optional[str]
     ) -> None:
         if session and type_name:
-            publisher = MetricPublisher(session, type_name)
+            publisher = MetricsPublisher(session, type_name)
             self._publishers.append(publisher)
 
     def publish_exception_metric(

@@ -7,7 +7,7 @@ import boto3
 import pytest
 from cloudformation_cli_python_lib.interface import Action, MetricTypes, StandardUnit
 from cloudformation_cli_python_lib.metrics import (
-    MetricPublisher,
+    MetricsPublisher,
     MetricsPublisherProxy,
     format_dimensions,
 )
@@ -15,7 +15,7 @@ from cloudformation_cli_python_lib.metrics import (
 from botocore.stub import Stubber  # pylint: disable=C0411
 
 RESOURCE_TYPE = "Aa::Bb::Cc"
-NAMESPACE = MetricPublisher._make_namespace(  # pylint: disable=protected-access
+NAMESPACE = MetricsPublisher._make_namespace(  # pylint: disable=protected-access
     RESOURCE_TYPE
 )
 
@@ -43,7 +43,7 @@ def test_put_metric_catches_error(mock_session):
 
     mock_session.client.return_value = client
 
-    publisher = MetricPublisher(mock_session, NAMESPACE)
+    publisher = MetricsPublisher(mock_session, NAMESPACE)
     dimensions = {
         "DimensionKeyActionType": Action.CREATE.name,
         "DimensionKeyResourceType": RESOURCE_TYPE,
