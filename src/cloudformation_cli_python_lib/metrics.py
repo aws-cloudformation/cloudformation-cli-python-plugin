@@ -17,10 +17,28 @@ def format_dimensions(dimensions: Mapping[str, str]) -> List[Mapping[str, str]]:
 
 
 class MetricsPublisher:
+    """A cloudwatch based metric publisher.\
+    Given a resource type and session, \
+    this publisher will publish metrics to CloudWatch.\
+    Can be used with the MetricsPublisherProxy.
+
+    Functions:
+    ----------
+    __init__: Initializes metric publisher with given session and resource type
+
+    publish_exception_metric: Publishes an exception based metric
+
+    publish_invocation_metric: Publishes a metric related to invocations
+
+    publish_duration_metric: Publishes an duration metric
+
+    publish_log_delivery_exception_metric: Publishes an log delivery exception metric
+    """
+
     def __init__(self, session: SessionProxy, resource_type: str) -> None:
-        self.client = session.client("cloudwatch")
-        self.resource_type = resource_type
-        self.namespace = self._make_namespace(self.resource_type)
+        self._client = session.client("cloudwatch")
+        self._resource_type = resource_type
+        self._namespace = self._make_namespace(self._resource_type)
 
     def publish_metric(  # pylint: disable-msg=too-many-arguments
         self,
@@ -31,8 +49,8 @@ class MetricsPublisher:
         timestamp: datetime.datetime,
     ) -> None:
         try:
-            self.client.put_metric_data(
-                Namespace=self.namespace,
+            self._client.put_metric_data(
+                Namespace=self._namespace,
                 MetricData=[
                     {
                         "MetricName": metric_name.name,
@@ -53,7 +71,7 @@ class MetricsPublisher:
         dimensions: Mapping[str, str] = {
             "DimensionKeyActionType": action.name,
             "DimensionKeyExceptionType": str(type(error)),
-            "DimensionKeyResourceType": self.resource_type,
+            "DimensionKeyResourceType": self._resource_type,
         }
         self.publish_metric(
             metric_name=MetricTypes.HandlerException,
@@ -68,7 +86,7 @@ class MetricsPublisher:
     ) -> None:
         dimensions = {
             "DimensionKeyActionType": action.name,
-            "DimensionKeyResourceType": self.resource_type,
+            "DimensionKeyResourceType": self._resource_type,
         }
         self.publish_metric(
             metric_name=MetricTypes.HandlerInvocationCount,
@@ -83,7 +101,7 @@ class MetricsPublisher:
     ) -> None:
         dimensions = {
             "DimensionKeyActionType": action.name,
-            "DimensionKeyResourceType": self.resource_type,
+            "DimensionKeyResourceType": self._resource_type,
         }
 
         self.publish_metric(
@@ -100,7 +118,7 @@ class MetricsPublisher:
         dimensions = {
             "DimensionKeyActionType": "ProviderLogDelivery",
             "DimensionKeyExceptionType": str(type(error)),
-            "DimensionKeyResourceType": self.resource_type,
+            "DimensionKeyResourceType": self._resource_type,
         }
         self.publish_metric(
             metric_name=MetricTypes.HandlerException,
@@ -117,6 +135,25 @@ class MetricsPublisher:
 
 
 class MetricsPublisherProxy:
+    """A proxy for publishing metrics to multiple publishers. \
+    Iterates over available publishers and publishes.
+
+    Functions:
+    ----------
+    add_metrics_publisher: Adds a metrics publisher to the list of publishers
+
+    publish_exception_metric: \
+    Publishes an exception based metric to the list of publishers
+
+    publish_invocation_metric: \
+    Publishes a metric related to invocations to the list of publishers
+
+    publish_duration_metric: Publishes a duration metric to the list of publishers
+
+    publish_log_delivery_exception_metric: \
+     Publishes a log delivery exception metric to the list of publishers
+    """
+
     def __init__(self) -> None:
         self._publishers: List[MetricsPublisher] = []
 
