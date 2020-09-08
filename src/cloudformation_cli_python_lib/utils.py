@@ -47,9 +47,9 @@ class Credentials:
 # pylint: disable=too-many-instance-attributes
 @dataclass
 class RequestData:
-    providerLogGroupName: str
-    logicalResourceId: str
     resourceProperties: Mapping[str, Any]
+    providerLogGroupName: Optional[str] = None
+    logicalResourceId: Optional[str] = None
     systemTags: Optional[Mapping[str, Any]] = None
     stackTags: Optional[Mapping[str, Any]] = None
     # platform credentials aren't really optional, but this is used to
@@ -85,14 +85,12 @@ class HandlerRequest:
     awsAccountId: str
     bearerToken: str
     region: str
-    responseEndpoint: str
-    resourceType: str
-    resourceTypeVersion: str
     requestData: RequestData
-    stackId: str
+    stackId: Optional[str] = None
+    resourceType: Optional[str] = None
+    resourceTypeVersion: Optional[str] = None
     callbackContext: Optional[MutableMapping[str, Any]] = None
     nextToken: Optional[str] = None
-    requestContext: MutableMapping[str, Any] = field(default_factory=dict)
 
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HandlerRequest":

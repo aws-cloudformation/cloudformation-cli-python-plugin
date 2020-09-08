@@ -20,10 +20,9 @@ ENTRYPOINT_PAYLOAD = {
     "bearerToken": "123456",
     "region": "us-east-1",
     "action": "CREATE",
-    "responseEndpoint": None,
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
-    "requestContext": {},
+    "callbackContext": {},
     "requestData": {
         "callerCredentials": {
             "accessKeyId": "IASAYK835GAIFHAHEI23",
@@ -145,7 +144,7 @@ def test_entrypoint_non_mutating_action():
 
 def test_entrypoint_with_context():
     payload = ENTRYPOINT_PAYLOAD.copy()
-    payload["requestContext"] = {"a": "b"}
+    payload["callbackContext"] = {"a": "b"}
     resource = Resource(TYPE_NAME, Mock())
     event = ProgressEvent(
         status=OperationStatus.SUCCESS, message="", callbackContext={"c": "d"}

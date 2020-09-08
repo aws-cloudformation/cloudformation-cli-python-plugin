@@ -59,14 +59,10 @@ def test_handler_request_serde_roundtrip():
         "bearerToken": "123456",
         "region": "us-east-1",
         "action": "CREATE",
-        "responseEndpoint": "https://cloudformation.us-west-2.amazonaws.com",
         "resourceType": "AWS::Test::TestModel",
         "resourceTypeVersion": "1.0",
         "nextToken": None,
-        "requestContext": {
-            "invocation": 2,
-            "callbackContext": {"contextPropertyA": "Value"},
-        },
+        "callbackContext": {"contextPropertyA": "Value"},
         "requestData": {
             "callerCredentials": None,
             "providerCredentials": {

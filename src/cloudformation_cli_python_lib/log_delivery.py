@@ -43,7 +43,7 @@ class ProviderLogHandler(logging.Handler):
             stream_name = f"{request.awsAccountId}-{request.region}"
 
         log_handler = cls._get_existing_logger()
-        if provider_sess and log_group:
+        if provider_sess and log_group and request.resourceType:
             if log_handler:
                 # This is a re-used lambda container, log handler is already setup, so
                 # we just refresh the client with new creds

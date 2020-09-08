@@ -17,9 +17,10 @@ def format_dimensions(dimensions: Mapping[str, str]) -> List[Mapping[str, str]]:
 
 
 class MetricPublisher:
-    def __init__(self, session: SessionProxy, namespace: str) -> None:
+    def __init__(self, session: SessionProxy, resource_type: str) -> None:
         self.client = session.client("cloudwatch")
-        self.namespace = namespace
+        self.resource_type = resource_type
+        self.namespace = self._make_namespace(self.resource_type)
 
     def publish_metric(  # pylint: disable-msg=too-many-arguments
         self,
@@ -46,22 +47,6 @@ class MetricPublisher:
         except ClientError as e:
             LOG.error("An error occurred while publishing metrics: %s", str(e))
 
-
-class MetricsPublisherProxy:
-    @staticmethod
-    def _make_namespace(resource_type: str) -> str:
-        suffix = resource_type.replace("::", "/")
-        return f"{METRIC_NAMESPACE_ROOT}/{suffix}"
-
-    def __init__(self, resource_type: str) -> None:
-        self.namespace = self._make_namespace(resource_type)
-        self.resource_type = resource_type
-        self._publishers: List[MetricPublisher] = []
-
-    def add_metrics_publisher(self, session: Optional[SessionProxy]) -> None:
-        if session:
-            self._publishers.append(MetricPublisher(session, self.namespace))
-
     def publish_exception_metric(
         self, timestamp: datetime.datetime, action: Action, error: Any
     ) -> None:
@@ -70,14 +55,13 @@ class MetricsPublisherProxy:
             "DimensionKeyExceptionType": str(type(error)),
             "DimensionKeyResourceType": self.resource_type,
         }
-        for publisher in self._publishers:
-            publisher.publish_metric(
-                metric_name=MetricTypes.HandlerException,
-                dimensions=dimensions,
-                unit=StandardUnit.Count,
-                value=1.0,
-                timestamp=timestamp,
-            )
+        self.publish_metric(
+            metric_name=MetricTypes.HandlerException,
+            dimensions=dimensions,
+            unit=StandardUnit.Count,
+            value=1.0,
+            timestamp=timestamp,
+        )
 
     def publish_invocation_metric(
         self, timestamp: datetime.datetime, action: Action
@@ -86,14 +70,13 @@ class MetricsPublisherProxy:
             "DimensionKeyActionType": action.name,
             "DimensionKeyResourceType": self.resource_type,
         }
-        for publisher in self._publishers:
-            publisher.publish_metric(
-                metric_name=MetricTypes.HandlerInvocationCount,
-                dimensions=dimensions,
-                unit=StandardUnit.Count,
-                value=1.0,
-                timestamp=timestamp,
-            )
+        self.publish_metric(
+            metric_name=MetricTypes.HandlerInvocationCount,
+            dimensions=dimensions,
+            unit=StandardUnit.Count,
+            value=1.0,
+            timestamp=timestamp,
+        )
 
     def publish_duration_metric(
         self, timestamp: datetime.datetime, action: Action, milliseconds: float
@@ -102,14 +85,14 @@ class MetricsPublisherProxy:
             "DimensionKeyActionType": action.name,
             "DimensionKeyResourceType": self.resource_type,
         }
-        for publisher in self._publishers:
-            publisher.publish_metric(
-                metric_name=MetricTypes.HandlerInvocationDuration,
-                dimensions=dimensions,
-                unit=StandardUnit.Milliseconds,
-                value=milliseconds,
-                timestamp=timestamp,
-            )
+
+        self.publish_metric(
+            metric_name=MetricTypes.HandlerInvocationDuration,
+            dimensions=dimensions,
+            unit=StandardUnit.Milliseconds,
+            value=milliseconds,
+            timestamp=timestamp,
+        )
 
     def publish_log_delivery_exception_metric(
         self, timestamp: datetime.datetime, error: Any
@@ -119,11 +102,51 @@ class MetricsPublisherProxy:
             "DimensionKeyExceptionType": str(type(error)),
             "DimensionKeyResourceType": self.resource_type,
         }
+        self.publish_metric(
+            metric_name=MetricTypes.HandlerException,
+            dimensions=dimensions,
+            unit=StandardUnit.Count,
+            value=1.0,
+            timestamp=timestamp,
+        )
+
+    @staticmethod
+    def _make_namespace(resource_type: str) -> str:
+        suffix = resource_type.replace("::", "/")
+        return f"{METRIC_NAMESPACE_ROOT}/{suffix}"
+
+
+class MetricsPublisherProxy:
+    def __init__(self) -> None:
+        self._publishers: List[MetricPublisher] = []
+
+    def add_metrics_publisher(
+        self, session: Optional[SessionProxy], type_name: Optional[str]
+    ) -> None:
+        if session and type_name:
+            publisher = MetricPublisher(session, type_name)
+            self._publishers.append(publisher)
+
+    def publish_exception_metric(
+        self, timestamp: datetime.datetime, action: Action, error: Any
+    ) -> None:
         for publisher in self._publishers:
-            publisher.publish_metric(
-                metric_name=MetricTypes.HandlerException,
-                dimensions=dimensions,
-                unit=StandardUnit.Count,
-                value=1.0,
-                timestamp=timestamp,
-            )
+            publisher.publish_exception_metric(timestamp, action, error)
+
+    def publish_invocation_metric(
+        self, timestamp: datetime.datetime, action: Action
+    ) -> None:
+        for publisher in self._publishers:
+            publisher.publish_invocation_metric(timestamp, action)
+
+    def publish_duration_metric(
+        self, timestamp: datetime.datetime, action: Action, milliseconds: float
+    ) -> None:
+        for publisher in self._publishers:
+            publisher.publish_duration_metric(timestamp, action, milliseconds)
+
+    def publish_log_delivery_exception_metric(
+        self, timestamp: datetime.datetime, error: Any
+    ) -> None:
+        for publisher in self._publishers:
+            publisher.publish_log_delivery_exception_metric(timestamp, error)

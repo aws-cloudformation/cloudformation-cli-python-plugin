@@ -148,12 +148,7 @@ class Resource:
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
-        return (
-            (caller_sess, provider_sess),
-            action,
-            callback_context,
-            event,
-        )
+        return ((caller_sess, provider_sess), action, callback_context, event)
 
     def _cast_resource_request(
         self, request: HandlerRequest
@@ -191,13 +186,14 @@ class Resource:
         try:
             sessions, action, callback, event = self._parse_request(event_data)
             caller_sess, provider_sess = sessions
-            ProviderLogHandler.setup(event, provider_sess)
-            logs_setup = True
 
             request = self._cast_resource_request(event)
 
-            metrics = MetricsPublisherProxy(event.resourceType)
-            metrics.add_metrics_publisher(provider_sess)
+            metrics = MetricsPublisherProxy()
+            if event.requestData.providerLogGroupName and provider_sess:
+                ProviderLogHandler.setup(event, provider_sess)
+                logs_setup = True
+                metrics.add_metrics_publisher(provider_sess, event.resourceType)
 
             metrics.publish_invocation_metric(datetime.utcnow(), action)
             start_time = datetime.utcnow()
