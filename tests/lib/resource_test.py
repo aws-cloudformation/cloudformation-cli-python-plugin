@@ -20,6 +20,7 @@ ENTRYPOINT_PAYLOAD = {
     "bearerToken": "123456",
     "region": "us-east-1",
     "action": "CREATE",
+    "responseEndpoint": None,
     "resourceType": "AWS::Test::TestModel",
     "resourceTypeVersion": "1.0",
     "callbackContext": {},

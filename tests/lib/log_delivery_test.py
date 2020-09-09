@@ -29,6 +29,7 @@ def make_payload() -> HandlerRequest:
         awsAccountId="123412341234",
         bearerToken=str(uuid4()),
         region="us-east-1",
+        responseEndpoint="",
         resourceType="Foo::Bar::Baz",
         resourceTypeVersion="4",
         requestData=RequestData(
