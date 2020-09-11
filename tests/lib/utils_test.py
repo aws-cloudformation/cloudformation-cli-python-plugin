@@ -63,10 +63,7 @@ def test_handler_request_serde_roundtrip():
         "resourceType": "AWS::Test::TestModel",
         "resourceTypeVersion": "1.0",
         "nextToken": None,
-        "requestContext": {
-            "invocation": 2,
-            "callbackContext": {"contextPropertyA": "Value"},
-        },
+        "callbackContext": {"contextPropertyA": "Value"},
         "requestData": {
             "callerCredentials": None,
             "providerCredentials": {

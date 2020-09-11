@@ -7,7 +7,7 @@ import boto3
 import pytest
 from cloudformation_cli_python_lib.interface import Action, MetricTypes, StandardUnit
 from cloudformation_cli_python_lib.metrics import (
-    MetricPublisher,
+    MetricsPublisher,
     MetricsPublisherProxy,
     format_dimensions,
 )
@@ -15,7 +15,7 @@ from cloudformation_cli_python_lib.metrics import (
 from botocore.stub import Stubber  # pylint: disable=C0411
 
 RESOURCE_TYPE = "Aa::Bb::Cc"
-NAMESPACE = MetricsPublisherProxy._make_namespace(  # pylint: disable=protected-access
+NAMESPACE = MetricsPublisher._make_namespace(  # pylint: disable=protected-access
     RESOURCE_TYPE
 )
 
@@ -43,7 +43,7 @@ def test_put_metric_catches_error(mock_session):
 
     mock_session.client.return_value = client
 
-    publisher = MetricPublisher(mock_session, NAMESPACE)
+    publisher = MetricsPublisher(mock_session, NAMESPACE)
     dimensions = {
         "DimensionKeyActionType": Action.CREATE.name,
         "DimensionKeyResourceType": RESOURCE_TYPE,
@@ -73,8 +73,8 @@ def test_put_metric_catches_error(mock_session):
 
 def test_publish_exception_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
-    proxy.add_metrics_publisher(mock_session)
+    proxy = MetricsPublisherProxy()
+    proxy.add_metrics_publisher(mock_session, RESOURCE_TYPE)
     proxy.publish_exception_metric(fake_datetime, Action.CREATE, Exception("fake-err"))
     expected_calls = [
         call.client("cloudwatch"),
@@ -103,8 +103,8 @@ def test_publish_exception_metric(mock_session):
 
 def test_publish_invocation_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
-    proxy.add_metrics_publisher(mock_session)
+    proxy = MetricsPublisherProxy()
+    proxy.add_metrics_publisher(mock_session, RESOURCE_TYPE)
     proxy.publish_invocation_metric(fake_datetime, Action.CREATE)
 
     expected_calls = [
@@ -130,8 +130,8 @@ def test_publish_invocation_metric(mock_session):
 
 def test_publish_duration_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
-    proxy.add_metrics_publisher(mock_session)
+    proxy = MetricsPublisherProxy()
+    proxy.add_metrics_publisher(mock_session, RESOURCE_TYPE)
     proxy.publish_duration_metric(fake_datetime, Action.CREATE, 100)
 
     expected_calls = [
@@ -157,8 +157,8 @@ def test_publish_duration_metric(mock_session):
 
 def test_publish_log_delivery_exception_metric(mock_session):
     fake_datetime = datetime(2019, 1, 1)
-    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
-    proxy.add_metrics_publisher(mock_session)
+    proxy = MetricsPublisherProxy()
+    proxy.add_metrics_publisher(mock_session, RESOURCE_TYPE)
     proxy.publish_log_delivery_exception_metric(fake_datetime, TypeError("test"))
 
     expected_calls = [
@@ -190,6 +190,6 @@ def test_publish_log_delivery_exception_metric(mock_session):
 
 
 def test_metrics_publisher_proxy_add_metrics_publisher_none_safe():
-    proxy = MetricsPublisherProxy(RESOURCE_TYPE)
-    proxy.add_metrics_publisher(None)
+    proxy = MetricsPublisherProxy()
+    proxy.add_metrics_publisher(None, None)
     assert proxy._publishers == []  # pylint: disable=protected-access
