@@ -85,8 +85,8 @@ class HandlerRequest:
     awsAccountId: str
     bearerToken: str
     region: str
-    responseEndpoint: str
     requestData: RequestData
+    responseEndpoint: Optional[str] = None
     stackId: Optional[str] = None
     resourceType: Optional[str] = None
     resourceTypeVersion: Optional[str] = None
