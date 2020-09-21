@@ -43,7 +43,11 @@ setup(
         "rpdk.v1.languages": [
             "python37 = rpdk.python.codegen:Python37LanguagePlugin",
             "python36 = rpdk.python.codegen:Python36LanguagePlugin",
-        ]
+        ],
+        "rpdk.v1.parsers": [
+            "python37 = rpdk.python.parser:setup_subparser_python37",
+            "python36 = rpdk.python.parser:setup_subparser_python36",
+        ],
     },
     license="Apache License 2.0",
     classifiers=[
