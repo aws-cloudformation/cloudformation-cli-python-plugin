@@ -1,6 +1,6 @@
 # pylint: disable=invalid-name
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import date, datetime, time
 from typing import (
     Any,
@@ -93,8 +93,14 @@ class HandlerRequest:
     callbackContext: Optional[MutableMapping[str, Any]] = None
     nextToken: Optional[str] = None
 
+    def __init__(self, **kwargs: Any) -> None:
+        dataclass_fields = {f.name for f in fields(self)}
+        for k, v in kwargs.items():
+            if k in dataclass_fields:
+                setattr(self, k, v)
+
     @classmethod
-    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HandlerRequest":
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> Any:
         event = HandlerRequest(**json_data)
         event.requestData = RequestData.deserialize(json_data.get("requestData", {}))
         return event
