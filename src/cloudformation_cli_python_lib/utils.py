@@ -124,6 +124,7 @@ class UnmodelledRequest:
     awsAccountId: Optional[str] = None
     logicalResourceIdentifier: Optional[str] = None
     nextToken: Optional[str] = None
+    stackId: Optional[str] = None
     region: Optional[str] = None
 
     def to_modelled(self, model_cls: Type[BaseModel]) -> BaseResourceHandlerRequest:
@@ -138,6 +139,7 @@ class UnmodelledRequest:
             awsAccountId=self.awsAccountId,
             logicalResourceIdentifier=self.logicalResourceIdentifier,
             nextToken=self.nextToken,
+            stackId=self.stackId,
             region=self.region,
             awsPartition=self.get_partition(self.region),
         )

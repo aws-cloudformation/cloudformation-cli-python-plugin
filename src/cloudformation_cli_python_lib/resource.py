@@ -163,6 +163,7 @@ class Resource:
                 systemTags=request.requestData.systemTags,
                 awsAccountId=request.awsAccountId,
                 logicalResourceIdentifier=request.requestData.logicalResourceId,
+                stackId=request.stackId,
                 region=request.region,
             ).to_modelled(self._model_cls)
         except Exception as e:  # pylint: disable=broad-except
