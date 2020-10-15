@@ -138,3 +138,4 @@ class BaseResourceHandlerRequest:
     nextToken: Optional[str]
     region: Optional[str]
     awsPartition: Optional[str]
+    stackId: Optional[str]
