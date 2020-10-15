@@ -9,6 +9,7 @@ from {{support_lib_pkg}} import (
     Resource,
     SessionProxy,
     exceptions,
+    identifier_utils,
 )
 
 from .models import ResourceHandlerRequest, ResourceModel
@@ -36,6 +37,19 @@ def create_handler(
 
     # Example:
     try:
+
+        # primary identifier from example
+        primary_identifier = None
+
+        # setting up random primary identifier compliant with cfn standard
+        if primary_identifier is None:
+            primary_identifier = identifier_utils.generate_resource_identifier(
+                stack_id_or_name=request.stackId,
+                logical_resource_id=request.logicalResourceIdentifier,
+                client_request_token=request.clientRequestToken,
+                max_length=255
+                )
+
         if isinstance(session, SessionProxy):
             client = session.client("s3")
         # Setting Status to success will signal to cfn that the operation is complete
