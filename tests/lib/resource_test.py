@@ -47,6 +47,7 @@ ENTRYPOINT_PAYLOAD = {
     },
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e"
     "722ae60-fe62-11e8-9a0e-0ae8cc519968",
+    "snapshotRequested": None,
 }
 TYPE_NAME = "Test::Foo::Bar"
 
@@ -191,17 +192,6 @@ def test_entrypoint_success_without_caller_provider_creds():
             resource, payload, None
         )
         assert event == expected
-
-
-@pytest.mark.parametrize(
-    "event,messages", [({}, ("missing", "awsAccountId", "bearerToken", "requestData"))]
-)
-def test__parse_request_invalid_request(resource, event, messages):
-    with pytest.raises(InvalidRequest) as excinfo:
-        resource._parse_request(event)
-
-    for msg in messages:
-        assert msg in str(excinfo.value), msg
 
 
 def test_cast_resource_request_invalid_request(resource):
