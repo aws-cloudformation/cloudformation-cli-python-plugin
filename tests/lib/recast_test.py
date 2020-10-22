@@ -23,6 +23,7 @@ def test_recast_complex_object():
         "ASet": {"1", "2", "3"},
         "AnotherSet": {"a", "b", "c"},
         "AFreeformDict": {"somekey": "somevalue", "someotherkey": "1"},
+        "APrimitiveTypeDict": {"somekey": "true", "someotherkey": "false"},
         "AnInt": "1",
         "ABool": "true",
         "AList": [
@@ -54,6 +55,7 @@ def test_recast_complex_object():
         "ASet": {"1", "2", "3"},
         "AnotherSet": {"a", "b", "c"},
         "AFreeformDict": {"somekey": "somevalue", "someotherkey": "1"},
+        "APrimitiveTypeDict": {"somekey": True, "someotherkey": False},
         "AnInt": 1,
         "ABool": True,
         "AList": [

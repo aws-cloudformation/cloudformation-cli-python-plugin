@@ -25,7 +25,9 @@ def recast_object(
         elif isinstance(v, set):
             json_data[k] = _recast_sets(cls, k, v, classes)
         elif isinstance(v, PRIMITIVES):
-            dest_type = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
+            dest_type = cls
+            if "__dataclass_fields__" in dir(cls):
+                dest_type = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
             json_data[k] = _recast_primitive(dest_type, k, v)
         else:
             raise InvalidRequest(f"Unsupported type: {type(v)} for {k}")
