@@ -41,6 +41,7 @@ class ResourceModel(BaseModel):
     ASet: Optional[AbstractSet[Any]]
     AnotherSet: Optional[AbstractSet[str]]
     AFreeformDict: Optional[MutableMapping[str, Any]]
+    APrimitiveTypeDict: Optional[MutableMapping[str, bool]]
     AnInt: Optional[int]
     ABool: Optional[bool]
     NestedList: Optional[Sequence[Sequence["_NestedList"]]]
@@ -68,6 +69,7 @@ class ResourceModel(BaseModel):
             ASet=json_data.get("ASet"),
             AnotherSet=json_data.get("AnotherSet"),
             AFreeformDict=json_data.get("AFreeformDict"),
+            APrimitiveTypeDict=json_data.get("APrimitiveTypeDict"),
             AnInt=json_data.get("AnInt"),
             ABool=json_data.get("ABool"),
             NestedList=deserialize_list(json_data.get("NestedList"), NestedList),
