@@ -59,7 +59,8 @@ def create_handler(
         raise exceptions.InternalFailure(f"was not expecting type {e}")
         # this can also be done by returning a failed progress event
         # return ProgressEvent.failed(HandlerErrorCode.InternalFailure, f"was not expecting type {e}")
-    return progress
+
+    return read_handler(session, request, callback_context)
 
 
 @resource.handler(Action.UPDATE)
@@ -74,7 +75,7 @@ def update_handler(
         resourceModel=model,
     )
     # TODO: put code here
-    return progress
+    return read_handler(session, request, callback_context)
 
 
 @resource.handler(Action.DELETE)
@@ -86,7 +87,7 @@ def delete_handler(
     model = request.desiredResourceState
     progress: ProgressEvent = ProgressEvent(
         status=OperationStatus.IN_PROGRESS,
-        resourceModel=model,
+        resourceModel=None,
     )
     # TODO: put code here
     return progress
