@@ -58,6 +58,7 @@ class RequestData:
     providerCredentials: Optional[Credentials] = None
     previousResourceProperties: Optional[Mapping[str, Any]] = None
     previousStackTags: Optional[Mapping[str, Any]] = None
+    snapshotRequested: Optional[bool] = None
 
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "RequestData":
@@ -92,6 +93,7 @@ class HandlerRequest:
     resourceTypeVersion: Optional[str] = None
     callbackContext: Optional[MutableMapping[str, Any]] = None
     nextToken: Optional[str] = None
+    snapshotRequested: Optional[bool] = None
 
     def __init__(self, **kwargs: Any) -> None:
         dataclass_fields = {f.name for f in fields(self)}
@@ -126,6 +128,7 @@ class UnmodelledRequest:
     nextToken: Optional[str] = None
     stackId: Optional[str] = None
     region: Optional[str] = None
+    snapshotRequested: Optional[bool] = None
 
     def to_modelled(self, model_cls: Type[BaseModel]) -> BaseResourceHandlerRequest:
         # pylint: disable=protected-access
@@ -142,6 +145,7 @@ class UnmodelledRequest:
             stackId=self.stackId,
             region=self.region,
             awsPartition=self.get_partition(self.region),
+            snapshotRequested=self.snapshotRequested,
         )
 
     @staticmethod

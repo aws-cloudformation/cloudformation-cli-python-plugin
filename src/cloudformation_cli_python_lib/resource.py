@@ -165,6 +165,7 @@ class Resource:
                 logicalResourceIdentifier=request.requestData.logicalResourceId,
                 stackId=request.stackId,
                 region=request.region,
+                snapshotRequested=request.snapshotRequested,
             ).to_modelled(self._model_cls)
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")

@@ -139,3 +139,4 @@ class BaseResourceHandlerRequest:
     region: Optional[str]
     awsPartition: Optional[str]
     stackId: Optional[str]
+    snapshotRequested: Optional[bool]
