@@ -42,3 +42,15 @@ jobs:
       - printf "AWS::Foo::Bar\n2\ny" | cfn init -vv
       - ls -la
       - mypy src/aws_foo_bar/ --strict --implicit-reexport
+  - stage: deploy
+    python: "3.7"
+    script:
+      - cd $(bash before_deploy.sh)
+    deploy:
+      provider: pypi
+      user: aws-cloudformation-developers
+      password:
+        secure: "KDSSnOhDMO3sHi4eeOSrsRcs3be5C1cYBdtnmTMOUz6npf39wsssBM6iJfkSdRdpWCr8k1cKodVhE3fcz+Z0vq33oPSWOvakynMrcRQk5Xe7Fzc53kesDEc562smPMiERtFfse0oO+InzIPjsfbsBzLqKlWWQGMqUxrshPmfexsOwKDo+JzT4lVflz6AGQPI0smXa9gHkAu11ne7mIlrmR7f8+mWgqzLTExIJFqYjNECOrT/gDo3zzySO13h5CXf7AM1i0o5p02b9hZ41blkS2OgBeDMSS9qN6QFPT+Erl6Q6y579/vM+knXlPzWBdbqJ2uWaeBfcZZlP7jNp6TkW1WPu4jPL/VnJ/3Eihy4rMkRBuer5zPHj0KBJZoU4jjZx5ctnsYPSZrH7Xo3CHnk1QNckXb+4GZVgz6EWAMGgRmDzJUWTzzu7Dw5EwFQZwESTETqqd+53Ht9yDeJgzA6OneZ4MsWq0OzjUFiiAKMS8BO/uiQrTv3/pJo75JJCLW8wrwTaBTZt6gTuYl+UNeuogITVCdStiH1ECZZ001Bv7tKDhcD4rVB/lJ/I8qIx9QXdWDiRhqqt1+WUl6tlA6sX2vFrTD2wqw9XNwNpIbHF8IoBRI9Cp5wO4m0CreAD6TYbPwEXKMyU5mCEQAv1zSJVag3hf/lhmAR3T7eLUPId2c="
+      distributions: sdist bdist_wheel
+      on:
+        tags: true
