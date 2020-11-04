@@ -43,14 +43,14 @@ jobs:
       - ls -la
       - mypy src/aws_foo_bar/ --strict --implicit-reexport
   - stage: deploy
-    python: "3.7"
+    python: "3.8"
     script:
       - cd $(bash before_deploy.sh)
     deploy:
       provider: pypi
       user: aws-cloudformation-developers
       password:
-        secure: "KDSSnOhDMO3sHi4eeOSrsRcs3be5C1cYBdtnmTMOUz6npf39wsssBM6iJfkSdRdpWCr8k1cKodVhE3fcz+Z0vq33oPSWOvakynMrcRQk5Xe7Fzc53kesDEc562smPMiERtFfse0oO+InzIPjsfbsBzLqKlWWQGMqUxrshPmfexsOwKDo+JzT4lVflz6AGQPI0smXa9gHkAu11ne7mIlrmR7f8+mWgqzLTExIJFqYjNECOrT/gDo3zzySO13h5CXf7AM1i0o5p02b9hZ41blkS2OgBeDMSS9qN6QFPT+Erl6Q6y579/vM+knXlPzWBdbqJ2uWaeBfcZZlP7jNp6TkW1WPu4jPL/VnJ/3Eihy4rMkRBuer5zPHj0KBJZoU4jjZx5ctnsYPSZrH7Xo3CHnk1QNckXb+4GZVgz6EWAMGgRmDzJUWTzzu7Dw5EwFQZwESTETqqd+53Ht9yDeJgzA6OneZ4MsWq0OzjUFiiAKMS8BO/uiQrTv3/pJo75JJCLW8wrwTaBTZt6gTuYl+UNeuogITVCdStiH1ECZZ001Bv7tKDhcD4rVB/lJ/I8qIx9QXdWDiRhqqt1+WUl6tlA6sX2vFrTD2wqw9XNwNpIbHF8IoBRI9Cp5wO4m0CreAD6TYbPwEXKMyU5mCEQAv1zSJVag3hf/lhmAR3T7eLUPId2c="
+        secure: "U1khJN3N7HYbMfUfkRJtMV3jgJGJJulHzkUOQjHiRJ+su+C+zqxpU2xt/sfDrR5rJ44O6aKEvj72QTWUqqzeHjnAzhvCFbMdyvVpE1mXFqasfeNXBDLNRlofqqkwhWen/K2oZ2+e9lR0/Ej/WFQrEePZpaTGwKHMvqrvH0DeiiMF7jtPFUC9M5aGuIOmKL70F+LD3Nh3jMsczcdnu88kUPNyOLnI7jPC4SxITAkjAAym2SGMWFaMQKEg/Esic/ckwe23G417ek0cVhaQs8lC49pTm6eZvLKIfOY1x+pE67G9CAqbJnAJRLlDfgRge/OuqkDcYG+euVzpsB+/iYyw+My7u7FHd0gQUhsMkRjpNkzgMM0FlTI+P42ahhwMzsuKG7eiTBMvrDLDmwsC9sL8hSl/NjtWadaOYtbsJMGzjqBqcfNNDC0hC8KHNC+Ti1IYfINt1iR/Gnr8yxmjwRkzvhbZxwgKjcaCfngRao4eNHn3T6zP/k8jueiG3oozLTHwaS55G0LCDpr8Hi5ACO5lZRKnrTQHYSTEqJQLXfqrfREA8NKRi8Cu2LSZID0VFfWfuXFY9kVn+uPjYCsJQ1jOatbE9OdWRevIyHSuV2l6B4U7BJQ0KWIG77e22DkjNOk8hZxOgsJG2k5w8vMTRR5wYHufQuX/naBSLAwhUZq5LA0="
       distributions: sdist bdist_wheel
       on:
         tags: true
