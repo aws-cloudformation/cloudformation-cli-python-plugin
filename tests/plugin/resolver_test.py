@@ -59,3 +59,8 @@ def test_contains_model_list_containing_model():
         ResolvedType(ContainerType.LIST, ResolvedType(ContainerType.MODEL, "Foo")),
     )
     assert contains_model(resolved_type) is True
+
+
+def test_translate_type_multiple():
+    traslated = translate_type(ResolvedType(ContainerType.MULTIPLE, "multiple"))
+    assert traslated == "Any"

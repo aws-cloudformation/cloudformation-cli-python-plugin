@@ -22,6 +22,9 @@ def translate_type(resolved_type):
     if resolved_type.container == ContainerType.PRIMITIVE:
         return PRIMITIVE_TYPES[resolved_type.type]
 
+    if resolved_type.container == ContainerType.MULTIPLE:
+        return "Any"
+
     item_type = translate_type(resolved_type.type)
 
     if resolved_type.container == ContainerType.DICT:
