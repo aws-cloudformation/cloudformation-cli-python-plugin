@@ -42,6 +42,7 @@ ENTRYPOINT_PAYLOAD = {
         "resourceProperties": sentinel.state_in1,
         "previousResourceProperties": sentinel.state_in2,
         "systemTags": {"aws:cloudformation:stack-id": "SampleStack"},
+        "previousSystemTags": {},
         "stackTags": {"tag1": "abc"},
         "previousStackTags": {"tag1": "def"},
     },

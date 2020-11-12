@@ -58,6 +58,7 @@ class RequestData:
     providerCredentials: Optional[Credentials] = None
     previousResourceProperties: Optional[Mapping[str, Any]] = None
     previousStackTags: Optional[Mapping[str, Any]] = None
+    previousSystemTags: Optional[Mapping[str, Any]] = None
 
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "RequestData":
@@ -121,6 +122,7 @@ class UnmodelledRequest:
     desiredResourceTags: Optional[Mapping[str, Any]] = None
     previousResourceTags: Optional[Mapping[str, Any]] = None
     systemTags: Optional[Mapping[str, Any]] = None
+    previousSystemTags: Optional[Mapping[str, Any]] = None
     awsAccountId: Optional[str] = None
     logicalResourceIdentifier: Optional[str] = None
     nextToken: Optional[str] = None
@@ -136,6 +138,7 @@ class UnmodelledRequest:
             desiredResourceTags=self.desiredResourceTags,
             previousResourceTags=self.previousResourceTags,
             systemTags=self.systemTags,
+            previousSystemTags=self.previousSystemTags,
             awsAccountId=self.awsAccountId,
             logicalResourceIdentifier=self.logicalResourceIdentifier,
             nextToken=self.nextToken,

@@ -133,6 +133,7 @@ class BaseResourceHandlerRequest:
     desiredResourceTags: Optional[Mapping[str, Any]]
     previousResourceTags: Optional[Mapping[str, Any]]
     systemTags: Optional[Mapping[str, Any]]
+    previousSystemTags: Optional[Mapping[str, Any]]
     awsAccountId: Optional[str]
     logicalResourceIdentifier: Optional[str]
     nextToken: Optional[str]
