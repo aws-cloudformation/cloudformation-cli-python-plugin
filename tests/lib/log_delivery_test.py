@@ -37,6 +37,7 @@ def make_payload() -> HandlerRequest:
             logicalResourceId="MyResourceId",
             resourceProperties={},
             systemTags={},
+            previousSystemTags={},
         ),
         stackId="an-arn",
     )

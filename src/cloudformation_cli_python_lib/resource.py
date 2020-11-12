@@ -161,6 +161,7 @@ class Resource:
                 desiredResourceTags=request.requestData.stackTags,
                 previousResourceTags=request.requestData.previousStackTags,
                 systemTags=request.requestData.systemTags,
+                previousSystemTags=request.requestData.previousSystemTags,
                 awsAccountId=request.awsAccountId,
                 logicalResourceIdentifier=request.requestData.logicalResourceId,
                 stackId=request.stackId,
