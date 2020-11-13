@@ -1,0 +1,40 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: CloudFormation Python Plugin CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8, 3.9]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade pip mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Install both plugin and support lib
+      run: |
+        pip install . src/
+    - name: pre-commit checks
+      run: |
+        pre-commit run --all-files
+    - name: End to End Resource Packaging Test Python 3.6
+      run: ./e2e-test.sh python36
+    - name: End to End Resource Packaging Test Python 3.7
+      run: ./e2e-test.sh python37
