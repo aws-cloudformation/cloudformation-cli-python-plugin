@@ -39,7 +39,7 @@ setup(
     zip_safe=True,
     python_requires=">=3.6",
     install_requires=[
-        "cloudformation-cli>=0.1.10,<0.2",
+        "cloudformation-cli>=0.1.14",
         "docker>=3.7,<5",
         "urllib3<1.26",
     ],
