@@ -78,18 +78,24 @@ def test_handler_request_serde_roundtrip():
             "previousResourceProperties": None,
             "stackTags": {"tag1": "abc"},
             "previousStackTags": {"tag1": "def"},
+            "undesiredField": "value",
         },
         "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e72"
         "2ae60-fe62-11e8-9a0e-0ae8cc519968",
     }
+    undesired = "undesiredField"
     ser = HandlerRequest.deserialize(payload).serialize()
     # remove None values from payload
     expected = {
-        k: {k: v for k, v in payload["requestData"].items() if v is not None}
+        k: {
+            k: v
+            for k, v in payload["requestData"].items()
+            if v is not None and k not in undesired
+        }
         if k == "requestData"
         else v
         for k, v in payload.items()
-        if v is not None
+        if v is not None and k not in undesired
     }
 
     assert ser == expected

@@ -60,6 +60,12 @@ class RequestData:
     previousStackTags: Optional[Mapping[str, Any]] = None
     previousSystemTags: Optional[Mapping[str, Any]] = None
 
+    def __init__(self, **kwargs: Any) -> None:
+        dataclass_fields = {f.name for f in fields(self)}
+        for k, v in kwargs.items():
+            if k in dataclass_fields:
+                setattr(self, k, v)
+
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "RequestData":
         req_data = RequestData(**json_data)
