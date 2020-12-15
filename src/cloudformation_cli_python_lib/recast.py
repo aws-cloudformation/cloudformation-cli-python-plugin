@@ -1,4 +1,3 @@
-import sys
 import typing
 from typing import Any, Dict, List, Mapping, Set
 
@@ -128,8 +127,5 @@ def get_forward_ref_type() -> Any:
     # introspection is valid:
     # https://docs.python.org/3/library/typing.html#typing.ForwardRef
     if "ForwardRef" in dir(typing):
-        if sys.version_info > (3, 6):
-            return typing.ForwardRef
-        else:
-            return typing.ForwardRef  # type: ignore
+        return typing.ForwardRef  # type: ignore
     return typing._ForwardRef  # type: ignore

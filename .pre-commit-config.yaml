@@ -56,6 +56,7 @@ repos:
     args:
     - --strict
     - --implicit-reexport
+    - --no-warn-unused-ignores
 - repo: local
   hooks:
   - id: pylint-local
