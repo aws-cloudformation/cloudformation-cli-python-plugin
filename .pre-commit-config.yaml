@@ -40,6 +40,7 @@ repos:
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.3.0
   hooks:
+  - id: python-check-blanket-noqa
   - id: python-check-mock-methods
   - id: python-no-log-warn
 - repo: https://github.com/PyCQA/bandit
