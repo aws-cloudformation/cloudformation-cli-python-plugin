@@ -127,5 +127,5 @@ def get_forward_ref_type() -> Any:
     # introspection is valid:
     # https://docs.python.org/3/library/typing.html#typing.ForwardRef
     if "ForwardRef" in dir(typing):
-        return typing.ForwardRef  # type: ignore
+        return typing.ForwardRef  # type: ignore  # noqa
     return typing._ForwardRef  # type: ignore
