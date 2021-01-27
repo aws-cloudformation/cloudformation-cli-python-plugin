@@ -15,6 +15,7 @@ from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import ContainerType, resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
+from . import __version__
 from .resolver import contains_model, translate_type
 
 LOG = logging.getLogger(__name__)
@@ -169,6 +170,10 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
+    # pylint: disable=unused-argument
+    def get_plugin_information(self, project):
+        return self._get_plugin_information()
+
     def _pre_package(self, build_path):
         f = TemporaryFile("w+b")  # pylint: disable=R1732
 
@@ -232,6 +237,10 @@ class Python36LanguagePlugin(LanguagePlugin):
             "--target",
             str(base_path / "build"),
         ]
+
+    @staticmethod
+    def _get_plugin_information():
+        return {"plugin-tool-version": __version__, "plugin-name": "python"}
 
     @classmethod
     def _docker_build(cls, external_path):
