@@ -12,6 +12,7 @@ from docker.errors import APIError, ContainerError, ImageLoadError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.exceptions import DownstreamError
 from rpdk.core.project import Project
+from rpdk.python.__init__ import __version__
 from rpdk.python.codegen import (
     SUPPORT_LIB_NAME,
     SUPPORT_LIB_PKG,
@@ -237,6 +238,13 @@ def test__docker_build_good_path(plugin, tmp_path):
         stream=True,
         user=ANY,
     )
+
+
+def test_get_plugin_information(project):
+    plugin_information = project._plugin.get_plugin_information(project)
+
+    assert plugin_information["plugin-tool-version"] == __version__
+    assert plugin_information["plugin-name"] == "python"
 
 
 @pytest.mark.parametrize(
