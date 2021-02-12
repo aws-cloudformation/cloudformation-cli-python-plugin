@@ -255,7 +255,6 @@ def test_entrypoint_uncaught_exception(resource, exc_cls):
         event = patch_and_raise(resource, "_parse_request", exc_cls, resource.__call__)
     assert event["status"] == OperationStatus.FAILED
     assert event["errorCode"] == HandlerErrorCode.InternalFailure
-    assert event["message"] == "hahaha"
 
 
 def test__ensure_serialize_uses_custom_encoder():
@@ -278,16 +277,12 @@ def test__ensure_serialize_invalid_returns_progress_event():
         return {"foo": Unserializable()}
 
     serialized = wrapped(None, None, None)
-    event = ProgressEvent.failed(
-        HandlerErrorCode.InternalFailure,
-        "Object of type Unserializable is not JSON serializable",
-    )
+    event = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
     try:
         # Python 3.7/3.8
         assert serialized == event._serialize()
     except AssertionError:
         # Python 3.6
-        event.message = "Object of type 'Unserializable' is not JSON serializable"
         assert serialized == event._serialize()
 
 
@@ -393,7 +388,6 @@ def test_test_entrypoint_uncaught_exception(resource, exc_cls):
     )
     assert event.status == OperationStatus.FAILED
     assert event.errorCode == HandlerErrorCode.InternalFailure
-    assert event.message == "hahaha"
 
 
 def test_test_entrypoint_success():

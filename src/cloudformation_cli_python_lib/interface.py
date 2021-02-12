@@ -119,7 +119,7 @@ class ProgressEvent:
 
     @classmethod
     def failed(
-        cls: Type["ProgressEvent"], error_code: HandlerErrorCode, message: str
+        cls: Type["ProgressEvent"], error_code: HandlerErrorCode, message: str = ""
     ) -> "ProgressEvent":
         return cls(status=OperationStatus.FAILED, errorCode=error_code, message=message)
 
