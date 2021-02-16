@@ -212,10 +212,10 @@ class Resource:
             print_or_log("Handler error")
             progress = e.to_progress_event()
         except Exception as e:  # pylint: disable=broad-except
-            print_or_log("Exception caught" + str(e))
+            print_or_log("Exception caught {0}".format(e))
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
         except BaseException as e:  # pylint: disable=broad-except
-            print_or_log("Base exception caught (this is usually bad)" + str(e))
+            print_or_log("Base exception caught (this is usually bad) {0}".format(e))
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
 
         # use the raw event_data as a last-ditch attempt to call back if the
