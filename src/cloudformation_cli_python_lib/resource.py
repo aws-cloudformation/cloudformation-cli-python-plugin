@@ -46,9 +46,9 @@ def _ensure_serialize(
         try:
             response = entrypoint(self, event, context)
             serialized = json.dumps(response, cls=KitchenSinkEncoder)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             return ProgressEvent.failed(  # pylint: disable=protected-access
-                HandlerErrorCode.InternalFailure, str(e)
+                HandlerErrorCode.InternalFailure
             )._serialize()
         return json.loads(serialized)
 
@@ -121,12 +121,10 @@ class Resource:
         except _HandlerError as e:
             LOG.exception("Handler error")
             return e.to_progress_event()
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             LOG.exception("Exception caught")
-            msg = str(e)
-        except BaseException as e:  # pylint: disable=broad-except
+        except BaseException:  # pylint: disable=broad-except
             LOG.critical("Base exception caught (this is usually bad)", exc_info=True)
-            msg = str(e)
         return ProgressEvent.failed(HandlerErrorCode.InternalFailure, msg)
 
     @staticmethod
@@ -214,11 +212,11 @@ class Resource:
             print_or_log("Handler error")
             progress = e.to_progress_event()
         except Exception as e:  # pylint: disable=broad-except
-            print_or_log("Exception caught")
-            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure, str(e))
+            print_or_log("Exception caught {0}".format(e))
+            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
         except BaseException as e:  # pylint: disable=broad-except
-            print_or_log("Base exception caught (this is usually bad)")
-            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure, str(e))
+            print_or_log("Base exception caught (this is usually bad) {0}".format(e))
+            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
 
         # use the raw event_data as a last-ditch attempt to call back if the
         # request is invalid
