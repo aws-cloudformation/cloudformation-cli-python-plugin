@@ -269,6 +269,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             completed_proc = subprocess_run(  # nosec
                 command, stdout=PIPE, stderr=PIPE, cwd=base_path, check=True
             )
+            LOG.warning("pip build finished.")
         except (FileNotFoundError, CalledProcessError) as e:
             raise DownstreamError("pip build failed") from e
 
