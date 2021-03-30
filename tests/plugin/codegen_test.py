@@ -6,6 +6,7 @@ from unittest.mock import ANY, patch, sentinel
 from uuid import uuid4
 from zipfile import ZipFile
 
+import cloudformation_cli_python_lib.__init__
 import pytest
 
 from docker.errors import APIError, ContainerError, ImageLoadError
@@ -245,6 +246,10 @@ def test_get_plugin_information(project):
 
     assert plugin_information["plugin-tool-version"] == __version__
     assert plugin_information["plugin-name"] == "python"
+    assert (
+        plugin_information["plugin-version"]
+        == cloudformation_cli_python_lib.__init__.__version__
+    )
 
 
 @pytest.mark.parametrize(
