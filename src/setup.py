@@ -1,10 +1,9 @@
 """Support library to enable Python-based CloudFormation resource types"""
-from cloudformation_cli_python_lib.__init__ import __version__
 from setuptools import setup
 
 setup(
     name="cloudformation-cli-python-lib",
-    version=__version__,
+    version="2.1.5",
     description=__doc__,
     author="Amazon Web Services",
     author_email="aws-cloudformation-developers@amazon.com",

@@ -10,6 +10,4 @@ from .interface import (  # noqa: F401
 )
 from .resource import Resource  # noqa: F401
 
-__version__ = "2.1.5"
-
 logging.getLogger(__name__).addHandler(logging.NullHandler())

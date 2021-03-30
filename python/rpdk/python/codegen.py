@@ -6,8 +6,6 @@ from pathlib import PurePosixPath
 from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
 from tempfile import TemporaryFile
 
-import cloudformation_cli_python_lib.__init__
-
 import docker
 from docker.errors import APIError, ContainerError, ImageLoadError
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -230,11 +228,7 @@ class Python36LanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _get_plugin_information():
-        return {
-            "plugin-tool-version": __version__,
-            "plugin-name": "python",
-            "plugin-version": cloudformation_cli_python_lib.__init__.__version__,
-        }
+        return {"plugin-tool-version": __version__, "plugin-name": "python"}
 
     @classmethod
     def _docker_build(cls, external_path):
