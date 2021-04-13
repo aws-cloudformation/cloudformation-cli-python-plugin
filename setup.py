@@ -40,7 +40,6 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "cloudformation-cli>=0.1.14",
-        "docker>=3.7,<5",
     ],
     entry_points={
         "rpdk.v1.languages": [
