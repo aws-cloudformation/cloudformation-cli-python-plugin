@@ -158,7 +158,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Generate complete")
 
     def _pre_package(self, build_path):
-        f = TemporaryFile("w+b")
+        f = TemporaryFile("w+b")  # pylint: disable=consider-using-with
 
         with zipfile.ZipFile(f, mode="w") as zip_file:
             self._recursive_relative_write(build_path, build_path, zip_file)
