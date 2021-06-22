@@ -79,6 +79,7 @@ def test_handler_request_serde_roundtrip():
             "stackTags": {"tag1": "abc"},
             "previousStackTags": {"tag1": "def"},
             "undesiredField": "value",
+            "typeConfiguration": {},
         },
         "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e72"
         "2ae60-fe62-11e8-9a0e-0ae8cc519968",
@@ -106,23 +107,33 @@ def test_unmodelled_request_to_modelled(region):
     model_cls = Mock(spec_set=BaseModel)
     model_cls._deserialize.side_effect = [sentinel.new, sentinel.old]
 
+    mock_type_configuration_model_cls = Mock(spec_set=BaseModel)
+    mock_type_configuration_model_cls._deserialize.side_effect = [
+        sentinel.type_configuration
+    ]
+
     unmodelled = UnmodelledRequest(
         clientRequestToken="foo",
         desiredResourceState={"state": "new"},
         previousResourceState={"state": "old"},
+        typeConfiguration={"state": "test"},
         logicalResourceIdentifier="bar",
         nextToken="baz",
         region=region,
     )
-    modelled = unmodelled.to_modelled(model_cls)
+    modelled = unmodelled.to_modelled(model_cls, mock_type_configuration_model_cls)
 
     model_cls.assert_has_calls(
         [call._deserialize({"state": "new"}), call._deserialize({"state": "old"})]
+    )
+    mock_type_configuration_model_cls.assert_has_calls(
+        [call._deserialize({"state": "test"})]
     )
     assert modelled.clientRequestToken == "foo"
     assert modelled.desiredResourceState == sentinel.new
     assert modelled.previousResourceState == sentinel.old
     assert modelled.logicalResourceIdentifier == "bar"
+    assert modelled.typeConfiguration == sentinel.type_configuration
     assert modelled.nextToken == "baz"
 
 

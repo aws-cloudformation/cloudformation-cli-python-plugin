@@ -1,0 +1,50 @@
+{
+    "typeName": "Company::Test::Type",
+    "description": "Test type",
+    "typeConfiguration": {
+        "properties": {
+            "Credentials": {
+                "$ref": "#/definitions/Credentials"
+            }
+        },
+        "additionalProperties": false,
+        "required": [
+            "Credentials"
+        ]
+    },
+    "definitions": {
+        "Credentials": {
+            "type": "object",
+            "properties": {
+                "ApiKey": {
+                    "description": "API key",
+                    "type": "string"
+                },
+                "ApplicationKey": {
+                    "description": "application key",
+                    "type": "string"
+                },
+                "CountryCode": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "properties": {
+        "Type": {
+            "type": "string",
+            "description": "The type of the monitor",
+            "enum": [
+                "composite"
+            ]
+        }
+    },
+    "required": [
+        "Type"
+    ],
+    "primaryIdentifier": [
+        "/properties/Type"
+    ],
+    "additionalProperties": false
+}

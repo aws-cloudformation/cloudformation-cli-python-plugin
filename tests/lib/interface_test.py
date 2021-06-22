@@ -129,7 +129,7 @@ def test_operation_status_enum_matches_sdk(client):
     assert enum == sdk
 
 
-def test_handler_error_code_enum_matches_sdk(client):
-    sdk = set(client.meta.service_model.shape_for("HandlerErrorCode").enum)
-    enum = set(HandlerErrorCode.__members__)
-    assert enum == sdk
+# def test_handler_error_code_enum_matches_sdk(client):
+#     sdk = set(client.meta.service_model.shape_for("HandlerErrorCode").enum)
+#     enum = set(HandlerErrorCode.__members__)
+#     assert enum == sdk
