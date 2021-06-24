@@ -149,6 +149,18 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         models = resolve_models(project.schema)
 
+        if project.configuration_schema:
+            configuration_schema_path = (
+                project.root / project.configuration_schema_filename
+            )
+            project.write_configuration_schema(configuration_schema_path)
+            configuration_models = resolve_models(
+                project.configuration_schema, "TypeConfigurationModel"
+            )
+        else:
+            configuration_models = {"TypeConfigurationModel": {}}
+        models.update(configuration_models)
+
         path = self.package_root / self.package_name / "models.py"
         LOG.debug("Writing file: %s", path)
         template = self.env.get_template("models.py")
@@ -158,7 +170,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Generate complete")
 
     def _pre_package(self, build_path):
-        f = TemporaryFile("w+b")  # pylint: disable=consider-using-with
+        f = TemporaryFile("w+b")  # pylint: disable=R1732
 
         with zipfile.ZipFile(f, mode="w") as zip_file:
             self._recursive_relative_write(build_path, build_path, zip_file)

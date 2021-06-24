@@ -56,9 +56,17 @@ def _ensure_serialize(
 
 
 class Resource:
-    def __init__(self, type_name: str, resouce_model_cls: Type[BaseModel]) -> None:
+    def __init__(
+        self,
+        type_name: str,
+        resouce_model_cls: Type[BaseModel],
+        type_configuration_model_cls: Optional[BaseModel] = None,
+    ) -> None:
         self.type_name = type_name
         self._model_cls: Type[BaseModel] = resouce_model_cls
+        self._type_configuration_model_cls: Optional[
+            BaseModel
+        ] = type_configuration_model_cls
         self._handlers: MutableMapping[Action, HandlerSignature] = {}
 
     def handler(self, action: Action) -> Callable[[HandlerSignature], HandlerSignature]:
@@ -101,7 +109,7 @@ class Resource:
             creds = Credentials(**event.credentials)
             request: BaseResourceHandlerRequest = UnmodelledRequest(
                 **event.request
-            ).to_modelled(self._model_cls)
+            ).to_modelled(self._model_cls, self._type_configuration_model_cls)
 
             session = _get_boto_session(creds, event.region)
             action = Action[event.action]
@@ -164,7 +172,8 @@ class Resource:
                 logicalResourceIdentifier=request.requestData.logicalResourceId,
                 stackId=request.stackId,
                 region=request.region,
-            ).to_modelled(self._model_cls)
+                typeConfiguration=request.requestData.typeConfiguration,
+            ).to_modelled(self._model_cls, self._type_configuration_model_cls)
         except Exception as e:  # pylint: disable=broad-except
             LOG.exception("Invalid request")
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
