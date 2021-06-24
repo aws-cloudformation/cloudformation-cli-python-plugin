@@ -45,6 +45,7 @@ ENTRYPOINT_PAYLOAD = {
         "previousSystemTags": {},
         "stackTags": {"tag1": "abc"},
         "previousStackTags": {"tag1": "def"},
+        "typeConfiguration": sentinel.type_configuration,
     },
     "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e"
     "722ae60-fe62-11e8-9a0e-0ae8cc519968",
@@ -76,7 +77,7 @@ def test_entrypoint_handler_error(resource):
 
 
 def test_entrypoint_success():
-    resource = Resource(TYPE_NAME, Mock())
+    resource = Resource(TYPE_NAME, Mock(), Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
@@ -106,7 +107,15 @@ def test_entrypoint_handler_raises():
         def _deserialize(cls, json_data):
             return cls("test")
 
-    resource = Resource(Mock(), ResourceModel)
+    @dataclass
+    class TypeConfigurationModel(BaseModel):
+        a_string: str
+
+        @classmethod
+        def _deserialize(cls, json_data):
+            return cls("test")
+
+    resource = Resource(Mock(), ResourceModel, TypeConfigurationModel)
 
     with patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
@@ -132,7 +141,7 @@ def test_entrypoint_handler_raises():
 def test_entrypoint_non_mutating_action():
     payload = ENTRYPOINT_PAYLOAD.copy()
     payload["action"] = "READ"
-    resource = Resource(TYPE_NAME, Mock())
+    resource = Resource(TYPE_NAME, Mock(), Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     resource.handler(Action.CREATE)(Mock(return_value=event))
 
@@ -148,7 +157,7 @@ def test_entrypoint_non_mutating_action():
 def test_entrypoint_with_context():
     payload = ENTRYPOINT_PAYLOAD.copy()
     payload["callbackContext"] = {"a": "b"}
-    resource = Resource(TYPE_NAME, Mock())
+    resource = Resource(TYPE_NAME, Mock(), Mock())
     event = ProgressEvent(
         status=OperationStatus.SUCCESS, message="", callbackContext={"c": "d"}
     )
@@ -163,7 +172,7 @@ def test_entrypoint_with_context():
 
 
 def test_entrypoint_success_without_caller_provider_creds():
-    resource = Resource(TYPE_NAME, Mock())
+    resource = Resource(TYPE_NAME, Mock(), Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     resource.handler(Action.CREATE)(Mock(return_value=event))
 
@@ -208,7 +217,12 @@ def test__parse_request_valid_request_and__cast_resource_request():
     mock_model = Mock(spec_set=["_deserialize"])
     mock_model._deserialize.side_effect = [sentinel.state_out1, sentinel.state_out2]
 
-    resource = Resource(TYPE_NAME, mock_model)
+    mock_type_configuration_model = Mock(spec_set=["_deserialize"])
+    mock_type_configuration_model._deserialize.side_effect = [
+        sentinel.type_configuration
+    ]
+
+    resource = Resource(TYPE_NAME, mock_model, mock_type_configuration_model)
 
     with patch(
         "cloudformation_cli_python_lib.resource._get_boto_session"
@@ -229,6 +243,7 @@ def test__parse_request_valid_request_and__cast_resource_request():
     # credentials are used when rescheduling, so can't zero them out (for now)
     assert request.requestData.callerCredentials is not None
     assert request.requestData.providerCredentials is not None
+    assert request.requestData.typeConfiguration is sentinel.type_configuration
 
     caller_sess, provider_sess = sessions
     assert caller_sess is mock_session.return_value
@@ -245,6 +260,7 @@ def test__parse_request_valid_request_and__cast_resource_request():
     assert modeled_request.clientRequestToken == request.bearerToken
     assert modeled_request.desiredResourceState is sentinel.state_out1
     assert modeled_request.previousResourceState is sentinel.state_out2
+    assert modeled_request.typeConfiguration is sentinel.type_configuration
     assert modeled_request.logicalResourceIdentifier == "myBucket"
     assert modeled_request.nextToken is None
 
@@ -337,6 +353,11 @@ def test__parse_test_request_valid_request():
     mock_model = Mock(spec_set=["_deserialize"])
     mock_model._deserialize.side_effect = [sentinel.state_out1, sentinel.state_out2]
 
+    mock_type_configuration_model = Mock(spec_set=["_deserialize"])
+    mock_type_configuration_model._deserialize.side_effect = [
+        sentinel.type_configuration
+    ]
+
     payload = {
         "credentials": {"accessKeyId": "", "secretAccessKey": "", "sessionToken": ""},
         "action": "CREATE",
@@ -345,11 +366,12 @@ def test__parse_test_request_valid_request():
             "desiredResourceState": sentinel.state_in1,
             "previousResourceState": sentinel.state_in2,
             "logicalResourceIdentifier": None,
+            "typeConfiguration": sentinel.type_configuration,
         },
         "callbackContext": None,
     }
 
-    resource = Resource(TYPE_NAME, mock_model)
+    resource = Resource(TYPE_NAME, mock_model, mock_type_configuration_model)
 
     with patch(
         "cloudformation_cli_python_lib.resource._get_boto_session"
@@ -366,6 +388,7 @@ def test__parse_test_request_valid_request():
     )
     assert request.desiredResourceState is sentinel.state_out1
     assert request.previousResourceState is sentinel.state_out2
+    assert request.typeConfiguration is sentinel.type_configuration
     assert request.logicalResourceIdentifier is None
 
     assert action == Action.CREATE
@@ -394,7 +417,10 @@ def test_test_entrypoint_success():
     mock_model = Mock(spec_set=["_deserialize"])
     mock_model._deserialize.side_effect = [None, None]
 
-    resource = Resource(TYPE_NAME, mock_model)
+    mock_type_configuration_model = Mock(spec_set=["_deserialize"])
+    mock_type_configuration_model._deserialize.side_effect = [None]
+
+    resource = Resource(TYPE_NAME, mock_model, mock_type_configuration_model)
     progress_event = ProgressEvent(status=OperationStatus.SUCCESS)
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=progress_event))
 
@@ -415,4 +441,5 @@ def test_test_entrypoint_success():
     assert event is progress_event
 
     mock_model._deserialize.assert_has_calls([call(None), call(None)])
+    mock_type_configuration_model._deserialize.assert_has_calls([call(None)])
     mock_handler.assert_called_once()

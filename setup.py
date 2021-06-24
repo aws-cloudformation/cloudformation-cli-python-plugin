@@ -38,9 +38,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     python_requires=">=3.6",
-    install_requires=[
-        "cloudformation-cli>=0.1.14",
-    ],
+    install_requires=["cloudformation-cli>=0.2.13", "types-dataclasses>=0.1.5"],
     entry_points={
         "rpdk.v1.languages": [
             "python37 = rpdk.python.codegen:Python37LanguagePlugin",

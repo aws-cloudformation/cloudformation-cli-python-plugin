@@ -59,6 +59,7 @@ class RequestData:
     previousResourceProperties: Optional[Mapping[str, Any]] = None
     previousStackTags: Optional[Mapping[str, Any]] = None
     previousSystemTags: Optional[Mapping[str, Any]] = None
+    typeConfiguration: Optional[Mapping[str, Any]] = None
 
     def __init__(self, **kwargs: Any) -> None:
         dataclass_fields = {f.name for f in fields(self)}
@@ -129,13 +130,18 @@ class UnmodelledRequest:
     previousResourceTags: Optional[Mapping[str, Any]] = None
     systemTags: Optional[Mapping[str, Any]] = None
     previousSystemTags: Optional[Mapping[str, Any]] = None
+    typeConfiguration: Optional[Mapping[str, Any]] = None
     awsAccountId: Optional[str] = None
     logicalResourceIdentifier: Optional[str] = None
     nextToken: Optional[str] = None
     stackId: Optional[str] = None
     region: Optional[str] = None
 
-    def to_modelled(self, model_cls: Type[BaseModel]) -> BaseResourceHandlerRequest:
+    def to_modelled(
+        self,
+        model_cls: Type[BaseModel],
+        type_configuration_model_cls: Optional[BaseModel],
+    ) -> BaseResourceHandlerRequest:
         # pylint: disable=protected-access
         return BaseResourceHandlerRequest(
             clientRequestToken=self.clientRequestToken,
@@ -147,6 +153,9 @@ class UnmodelledRequest:
             previousSystemTags=self.previousSystemTags,
             awsAccountId=self.awsAccountId,
             logicalResourceIdentifier=self.logicalResourceIdentifier,
+            typeConfiguration=None
+            if not type_configuration_model_cls
+            else type_configuration_model_cls._deserialize(self.typeConfiguration),
             nextToken=self.nextToken,
             stackId=self.stackId,
             region=self.region,

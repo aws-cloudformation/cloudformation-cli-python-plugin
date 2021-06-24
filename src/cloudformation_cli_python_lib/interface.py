@@ -56,6 +56,7 @@ class HandlerErrorCode(str, _AutoName):
     ServiceInternalError = auto()
     NetworkFailure = auto()
     InternalFailure = auto()
+    InvalidTypeConfiguration = auto()
 
 
 class BaseModel:
@@ -137,6 +138,7 @@ class BaseResourceHandlerRequest:
     previousSystemTags: Optional[Mapping[str, Any]]
     awsAccountId: Optional[str]
     logicalResourceIdentifier: Optional[str]
+    typeConfiguration: Optional[BaseModel]
     nextToken: Optional[str]
     region: Optional[str]
     awsPartition: Optional[str]

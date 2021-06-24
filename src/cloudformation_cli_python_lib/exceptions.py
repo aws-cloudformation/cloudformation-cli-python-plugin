@@ -74,3 +74,11 @@ class NetworkFailure(_HandlerError):
 
 class InternalFailure(_HandlerError):
     pass
+
+
+class InvalidTypeConfiguration(_HandlerError):
+    def __init__(self, type_name: str, message: str):
+        super().__init__(
+            f"Invalid TypeConfiguration provided for type {type_name}."
+            f" Reason: {message}"
+        )
