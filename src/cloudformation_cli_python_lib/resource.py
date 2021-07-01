@@ -60,7 +60,7 @@ class Resource:
         self,
         type_name: str,
         resouce_model_cls: Type[BaseModel],
-        type_configuration_model_cls: Optional[BaseModel] = None,
+        type_configuration_model_cls: Optional[Type[BaseModel]] = None,
     ) -> None:
         self.type_name = type_name
         self._model_cls: Type[BaseModel] = resouce_model_cls
