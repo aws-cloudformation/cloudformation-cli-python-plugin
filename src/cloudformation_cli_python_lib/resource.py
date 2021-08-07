@@ -65,7 +65,7 @@ class Resource:
         self.type_name = type_name
         self._model_cls: Type[BaseModel] = resouce_model_cls
         self._type_configuration_model_cls: Optional[
-            BaseModel
+            Type[BaseModel]
         ] = type_configuration_model_cls
         self._handlers: MutableMapping[Action, HandlerSignature] = {}
 
