@@ -140,7 +140,7 @@ class UnmodelledRequest:
     def to_modelled(
         self,
         model_cls: Type[BaseModel],
-        type_configuration_model_cls: Optional[BaseModel],
+        type_configuration_model_cls: Optional[Type[BaseModel]],
     ) -> BaseResourceHandlerRequest:
         # pylint: disable=protected-access
         return BaseResourceHandlerRequest(
