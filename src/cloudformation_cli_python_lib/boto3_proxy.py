@@ -10,6 +10,7 @@ class SessionProxy:
     def __init__(self, session: Session):
         self.client = session.client
         self.resource = session.resource
+        self.session = session
 
 
 def _get_boto_session(
