@@ -90,7 +90,7 @@ class ProviderLogHandler(logging.Handler):
             self.client.exceptions.DataAlreadyAcceptedException,
             self.client.exceptions.InvalidSequenceTokenException,
         ) as e:
-            self.sequence_token = str(e).split(" ")[-1]
+            self.sequence_token = str(e).rsplit(" ", maxsplit=1)[-1]
             self._put_log_event(msg)
 
     def emit(self, record: logging.LogRecord) -> None:
