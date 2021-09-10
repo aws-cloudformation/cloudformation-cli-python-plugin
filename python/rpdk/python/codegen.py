@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import zipfile
 from pathlib import PurePosixPath
@@ -170,9 +171,8 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
-    # pylint: disable=unused-argument
     def get_plugin_information(self, project):
-        return self._get_plugin_information()
+        return self._get_plugin_information(project)
 
     def _pre_package(self, build_path):
         f = TemporaryFile("w+b")  # pylint: disable=R1732
@@ -239,8 +239,35 @@ class Python36LanguagePlugin(LanguagePlugin):
         ]
 
     @staticmethod
-    def _get_plugin_information():
-        return {"plugin-tool-version": __version__, "plugin-name": "python"}
+    def _get_plugin_information(project):
+        requirements_file = project.root / "requirements.txt"
+        plugin_version = None
+
+        with open(requirements_file) as f:
+            line = f.readline()
+            while line:
+                line = line.strip()
+                if line.startswith(SUPPORT_LIB_NAME):
+                    line_without_prefix = line[len(SUPPORT_LIB_NAME) :]
+
+                    semi_colon = ";"
+                    if semi_colon in line_without_prefix:
+                        index = line_without_prefix.index(semi_colon)
+                        line_without_prefix = line_without_prefix[0:index].strip()
+
+                    plugin_version = re.split("=\\s*", line_without_prefix.strip())[-1]
+                    break
+
+                line = f.readline()
+
+        plugin_info = {
+            "plugin-tool-version": __version__,
+            "plugin-name": "python",
+        }
+        if plugin_version and plugin_version is not None:
+            plugin_info["plugin-version"] = plugin_version
+
+        return plugin_info
 
     @classmethod
     def _docker_build(cls, external_path):

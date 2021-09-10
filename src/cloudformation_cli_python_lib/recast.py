@@ -14,7 +14,7 @@ def recast_object(
     if not isinstance(json_data, dict):
         raise InvalidRequest(f"Can only parse dict items, not {type(json_data)}")
     # if type is Any, we leave it as is
-    if cls == typing.Any:
+    if cls is typing.Any:
         return
     for k, v in json_data.items():
         if isinstance(v, dict):
@@ -35,7 +35,7 @@ def recast_object(
 
 def _recast_lists(cls: Any, k: str, v: List[Any], classes: Dict[str, Any]) -> List[Any]:
     # Leave as is if type is Any
-    if cls == typing.Any:
+    if cls is typing.Any:
         return v
     if "__dataclass_fields__" not in dir(cls):
         pass
@@ -64,7 +64,7 @@ def cast_sequence_item(cls: Any, k: str, item: Any, classes: Dict[str, Any]) -> 
 
 
 def _recast_primitive(cls: Any, k: str, v: Any) -> Any:
-    if cls == typing.Any:
+    if cls is typing.Any:
         # If the type is Any, we cannot guess what the original type was, so we leave
         # it as a string
         return v
@@ -127,5 +127,5 @@ def get_forward_ref_type() -> Any:
     # introspection is valid:
     # https://docs.python.org/3/library/typing.html#typing.ForwardRef
     if "ForwardRef" in dir(typing):
-        return typing.ForwardRef  # type: ignore
+        return typing.ForwardRef
     return typing._ForwardRef  # type: ignore

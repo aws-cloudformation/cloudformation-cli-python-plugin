@@ -61,7 +61,7 @@ def resource():
 
 def patch_and_raise(resource, str_to_patch, exc_cls, entrypoint):
     with patch.object(resource, str_to_patch) as mock_parse:
-        mock_parse.side_effect = exc_cls("hahaha")
+        mock_parse.side_effect = exc_cls("exception")
         # "un-apply" decorator
         event = entrypoint.__wrapped__(resource, {}, None)  # pylint: disable=no-member
     return event

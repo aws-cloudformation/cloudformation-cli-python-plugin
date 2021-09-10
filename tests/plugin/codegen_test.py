@@ -290,11 +290,66 @@ def test__docker_build_good_path(plugin, tmp_path):
     )
 
 
-def test_get_plugin_information(project):
+def test_get_plugin_information_format1(project):
     plugin_information = project._plugin.get_plugin_information(project)
 
     assert plugin_information["plugin-tool-version"] == __version__
     assert plugin_information["plugin-name"] == "python"
+    assert plugin_information["plugin-version"] == "2.1.3"
+
+
+def test_get_plugin_information_format2(project):
+    existing_content = ""
+    with open(project.root / "requirements.txt", "r+") as f:
+        existing_content = f.read()
+        f.seek(0)
+        f.write("cloudformation-cli-python-lib>=2.1.3; python_version < '3.8'")
+        f.truncate()
+
+    plugin_information = project._plugin.get_plugin_information(project)
+
+    with open(project.root / "requirements.txt", "w") as f:
+        f.write(existing_content)
+
+    assert plugin_information["plugin-tool-version"] == __version__
+    assert plugin_information["plugin-name"] == "python"
+    assert plugin_information["plugin-version"] == "2.1.3"
+
+
+def test_get_plugin_information_format3(project):
+    existing_content = ""
+    with open(project.root / "requirements.txt", "r+") as f:
+        existing_content = f.read()
+        f.seek(0)
+        f.write("dummy_line\ncloudformation-cli-python-lib; python_version < '3.8'")
+        f.truncate()
+
+    plugin_information = project._plugin.get_plugin_information(project)
+
+    with open(project.root / "requirements.txt", "w") as f:
+        f.write(existing_content)
+
+    assert plugin_information["plugin-tool-version"] == __version__
+    assert plugin_information["plugin-name"] == "python"
+    assert "plugin-version" not in plugin_information
+
+
+def test_get_plugin_information_no_support_lib(project):
+    existing_content = ""
+    with open(project.root / "requirements.txt", "r+") as f:
+        existing_content = f.read()
+        f.seek(0)
+        f.write("dummy_line1\ndummy_line2")
+        f.truncate()
+
+    plugin_information = project._plugin.get_plugin_information(project)
+
+    with open(project.root / "requirements.txt", "w") as f:
+        f.write(existing_content)
+
+    assert plugin_information["plugin-tool-version"] == __version__
+    assert plugin_information["plugin-name"] == "python"
+    assert "plugin-version" not in plugin_information
 
 
 @pytest.mark.parametrize(
