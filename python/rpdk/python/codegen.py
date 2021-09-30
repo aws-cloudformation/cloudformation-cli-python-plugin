@@ -174,7 +174,7 @@ class Python36LanguagePlugin(LanguagePlugin):
     # pylint: disable=unused-argument
     # the argument "project" is not used here but is used in codegen.py of other plugins
     # this method is called in cloudformation-cli/src/rpdk/core/project.py
-    def get_plugin_information(self, project):
+    def get_plugin_information(self, project) -> Dict:
         return self._get_plugin_information()
 
     def _pre_package(self, build_path):
