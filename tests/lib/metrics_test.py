@@ -1,12 +1,18 @@
 # auto enums `.name` causes no-member
-# pylint: disable=redefined-outer-name,no-member
+# pylint: disable=redefined-outer-name,no-member,protected-access
 from datetime import datetime
 from unittest.mock import Mock, call, patch
 
 import boto3
 import pytest
-from cloudformation_cli_python_lib.interface import Action, MetricTypes, StandardUnit
+from cloudformation_cli_python_lib.interface import (
+    Action,
+    HookInvocationPoint,
+    MetricTypes,
+    StandardUnit,
+)
 from cloudformation_cli_python_lib.metrics import (
+    HookMetricsPublisher,
     MetricsPublisher,
     MetricsPublisherProxy,
     format_dimensions,
@@ -14,10 +20,11 @@ from cloudformation_cli_python_lib.metrics import (
 
 from botocore.stub import Stubber  # pylint: disable=C0411
 
+ACCOUNT_ID = "123456789012"
 RESOURCE_TYPE = "Aa::Bb::Cc"
-NAMESPACE = MetricsPublisher._make_namespace(  # pylint: disable=protected-access
-    RESOURCE_TYPE
-)
+RESOURCE_NAMESPACE = MetricsPublisher._make_namespace(RESOURCE_TYPE)
+HOOK_TYPE = "De::Ee::Ff"
+HOOK_NAMESPACE = HookMetricsPublisher._make_hook_namespace(HOOK_TYPE, ACCOUNT_ID)
 
 
 @pytest.fixture
@@ -43,7 +50,7 @@ def test_put_metric_catches_error(mock_session):
 
     mock_session.client.return_value = client
 
-    publisher = MetricsPublisher(mock_session, NAMESPACE)
+    publisher = MetricsPublisher(mock_session, RESOURCE_NAMESPACE)
     dimensions = {
         "DimensionKeyActionType": Action.CREATE.name,
         "DimensionKeyResourceType": RESOURCE_TYPE,
@@ -189,7 +196,178 @@ def test_publish_log_delivery_exception_metric(mock_session):
     assert mock_session.mock_calls == expected_calls
 
 
+def test_put_hook_metric_catches_error(mock_session):
+    client = boto3.client("cloudwatch")
+    stubber = Stubber(client)
+
+    stubber.add_client_error("put_metric_data", "InternalServiceError")
+    stubber.activate()
+
+    mock_session.client.return_value = client
+
+    publisher = HookMetricsPublisher(mock_session, HOOK_NAMESPACE, ACCOUNT_ID)
+    dimensions = {
+        "DimensionKeyInvocationPointType": HookInvocationPoint.CREATE_PRE_PROVISION,
+        "DimensionKeyHookType": HOOK_TYPE,
+    }
+
+    with patch(
+        "cloudformation_cli_python_lib.metrics.LOG", auto_spec=True
+    ) as mock_logger:
+        publisher.publish_metric(
+            MetricTypes.HandlerInvocationCount,
+            dimensions,
+            StandardUnit.Count,
+            1.0,
+            datetime.now(),
+        )
+
+    stubber.deactivate()
+    expected_calls = [
+        call.error(
+            "An error occurred while publishing metrics: %s",
+            "An error occurred (InternalServiceError) when calling the "
+            "PutMetricData operation: ",
+        )
+    ]
+    assert mock_logger.mock_calls == expected_calls
+
+
+def test_publish_hook_exception_metric(mock_session):
+    fake_datetime = datetime(2019, 1, 1)
+    proxy = MetricsPublisherProxy()
+    proxy.add_hook_metrics_publisher(mock_session, HOOK_TYPE, ACCOUNT_ID)
+    proxy.publish_exception_metric(
+        fake_datetime, HookInvocationPoint.CREATE_PRE_PROVISION, Exception("fake-err")
+    )
+    expected_calls = [
+        call.client("cloudwatch"),
+        call.client().put_metric_data(
+            Namespace="AWS/CloudFormation/123456789012/De/Ee/Ff",
+            MetricData=[
+                {
+                    "MetricName": MetricTypes.HandlerException.name,
+                    "Dimensions": [
+                        {
+                            "Name": "DimensionKeyInvocationPointType",
+                            "Value": "CREATE_PRE_PROVISION",
+                        },
+                        {
+                            "Name": "DimensionKeyExceptionType",
+                            "Value": "<class 'Exception'>",
+                        },
+                        {"Name": "DimensionKeyHookType", "Value": "De::Ee::Ff"},
+                    ],
+                    "Unit": StandardUnit.Count.name,
+                    "Timestamp": str(fake_datetime),
+                    "Value": 1.0,
+                }
+            ],
+        ),
+    ]
+    assert mock_session.mock_calls == expected_calls
+
+
+def test_publish_hook_invocation_metric(mock_session):
+    fake_datetime = datetime(2019, 1, 1)
+    proxy = MetricsPublisherProxy()
+    proxy.add_hook_metrics_publisher(mock_session, HOOK_TYPE, ACCOUNT_ID)
+    proxy.publish_invocation_metric(
+        fake_datetime, HookInvocationPoint.CREATE_PRE_PROVISION
+    )
+
+    expected_calls = [
+        call.client("cloudwatch"),
+        call.client().put_metric_data(
+            Namespace="AWS/CloudFormation/123456789012/De/Ee/Ff",
+            MetricData=[
+                {
+                    "MetricName": MetricTypes.HandlerInvocationCount.name,
+                    "Dimensions": [
+                        {
+                            "Name": "DimensionKeyInvocationPointType",
+                            "Value": "CREATE_PRE_PROVISION",
+                        },
+                        {"Name": "DimensionKeyHookType", "Value": "De::Ee::Ff"},
+                    ],
+                    "Unit": StandardUnit.Count.name,
+                    "Timestamp": str(fake_datetime),
+                    "Value": 1.0,
+                }
+            ],
+        ),
+    ]
+    assert mock_session.mock_calls == expected_calls
+
+
+def test_publish_hook_duration_metric(mock_session):
+    fake_datetime = datetime(2019, 1, 1)
+    proxy = MetricsPublisherProxy()
+    proxy.add_hook_metrics_publisher(mock_session, HOOK_TYPE, ACCOUNT_ID)
+    proxy.publish_duration_metric(
+        fake_datetime, HookInvocationPoint.CREATE_PRE_PROVISION, 100
+    )
+
+    expected_calls = [
+        call.client("cloudwatch"),
+        call.client().put_metric_data(
+            Namespace="AWS/CloudFormation/123456789012/De/Ee/Ff",
+            MetricData=[
+                {
+                    "MetricName": MetricTypes.HandlerInvocationDuration.name,
+                    "Dimensions": [
+                        {
+                            "Name": "DimensionKeyInvocationPointType",
+                            "Value": "CREATE_PRE_PROVISION",
+                        },
+                        {"Name": "DimensionKeyHookType", "Value": "De::Ee::Ff"},
+                    ],
+                    "Unit": StandardUnit.Milliseconds.name,
+                    "Timestamp": str(fake_datetime),
+                    "Value": 100,
+                }
+            ],
+        ),
+    ]
+    assert mock_session.mock_calls == expected_calls
+
+
+def test_publish_hook_log_delivery_exception_metric(mock_session):
+    fake_datetime = datetime(2019, 1, 1)
+    proxy = MetricsPublisherProxy()
+    proxy.add_hook_metrics_publisher(mock_session, HOOK_TYPE, ACCOUNT_ID)
+    proxy.publish_log_delivery_exception_metric(fake_datetime, TypeError("test"))
+
+    expected_calls = [
+        call.client("cloudwatch"),
+        call.client().put_metric_data(
+            Namespace="AWS/CloudFormation/123456789012/De/Ee/Ff",
+            MetricData=[
+                {
+                    "MetricName": MetricTypes.HandlerException.name,
+                    "Dimensions": [
+                        {
+                            "Name": "DimensionKeyInvocationPointType",
+                            "Value": "ProviderLogDelivery",
+                        },
+                        {
+                            "Name": "DimensionKeyExceptionType",
+                            "Value": "<class 'TypeError'>",
+                        },
+                        {"Name": "DimensionKeyHookType", "Value": "De::Ee::Ff"},
+                    ],
+                    "Unit": StandardUnit.Count.name,
+                    "Timestamp": str(fake_datetime),
+                    "Value": 1.0,
+                }
+            ],
+        ),
+    ]
+    assert mock_session.mock_calls == expected_calls
+
+
 def test_metrics_publisher_proxy_add_metrics_publisher_none_safe():
     proxy = MetricsPublisherProxy()
     proxy.add_metrics_publisher(None, None)
+    proxy.add_hook_metrics_publisher(None, None, None)
     assert proxy._publishers == []  # pylint: disable=protected-access

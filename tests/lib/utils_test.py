@@ -145,3 +145,6 @@ def test_deserialize_list_empty():
 def test_deserialize_list_invalid():
     with pytest.raises(InvalidRequest):
         deserialize_list([(1, 2)], BaseModel)
+
+
+# test_hook_response

@@ -82,3 +82,19 @@ class InvalidTypeConfiguration(_HandlerError):
             f"Invalid TypeConfiguration provided for type {type_name}."
             f" Reason: {message}"
         )
+
+
+class HandlerInternalFailure(_HandlerError):
+    pass
+
+
+class NonCompliant(_HandlerError):
+    def __init__(self, type_name: str, message: str):
+        super().__init__(
+            f"Hook of type '{type_name}' returned a Non-Complaint status."
+            f" Reason: {message}"
+        )
+
+
+class Unknown(_HandlerError):
+    pass

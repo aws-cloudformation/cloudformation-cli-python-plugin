@@ -227,6 +227,9 @@ class Resource:
             print_or_log("Base exception caught (this is usually bad) {0}".format(e))
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
 
+        if progress.result:
+            progress.result = None
+
         # use the raw event_data as a last-ditch attempt to call back if the
         # request is invalid
         return progress._serialize()  # pylint: disable=protected-access

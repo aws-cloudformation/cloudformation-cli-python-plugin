@@ -15,7 +15,14 @@ from typing import (
 )
 
 from .exceptions import InvalidRequest
-from .interface import Action, BaseModel, BaseResourceHandlerRequest
+from .interface import (
+    Action,
+    BaseHookHandlerRequest,
+    BaseModel,
+    BaseResourceHandlerRequest,
+    HookContext,
+    HookInvocationPoint,
+)
 
 
 class KitchenSinkEncoder(json.JSONEncoder):
@@ -173,6 +180,118 @@ class UnmodelledRequest:
         if region.startswith("us-gov"):
             return "aws-gov"
         return "aws"
+
+
+@dataclass
+class HookTestEvent:
+    credentials: Mapping[str, str]
+    actionInvocationPoint: HookInvocationPoint
+    request: Mapping[str, Any]
+    callbackContext: MutableMapping[str, Any] = field(default_factory=dict)
+    typeConfiguration: MutableMapping[str, Any] = field(default_factory=dict)
+    region: Optional[str] = None
+
+
+@dataclass
+class HookRequestContext:
+    invocation: Optional[int] = 1
+    callbackContext: Optional[MutableMapping[str, Any]] = None
+
+    @classmethod
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HookRequestContext":
+        if not json_data:  # pragma: no cover
+            return HookRequestContext()
+        return HookRequestContext(**json_data)
+
+
+@dataclass
+class HookRequestData:
+    targetName: str
+    targetType: str
+    targetLogicalId: str
+    targetModel: Mapping[str, Any]
+    callerCredentials: Optional[str] = None
+    providerCredentials: Optional[str] = None
+    providerLogGroupName: Optional[str] = None
+    hookEncryptionKeyArn: Optional[str] = None
+    hookEncryptionKeyRole: Optional[str] = None
+
+    @classmethod
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HookRequestData":
+        return HookRequestData(**json_data)
+
+
+@dataclass
+class HookInvocationRequest:
+    awsAccountId: str
+    stackId: str
+    hookTypeName: str
+    hookTypeVersion: str
+    actionInvocationPoint: str
+    requestData: HookRequestData
+    clientRequestToken: str
+    changeSetId: Optional[str] = None
+    hookModel: Optional[Mapping[str, Any]] = None
+    requestContext: Optional[HookRequestContext] = None
+
+    def __init__(self, **kwargs: Any) -> None:
+        dataclass_fields = {f.name for f in fields(self)}
+        for k, v in kwargs.items():
+            if k in dataclass_fields:
+                setattr(self, k, v)
+
+    @classmethod
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> Any:
+        event = HookInvocationRequest(**json_data)
+        event.requestData = HookRequestData.deserialize(
+            json_data.get("requestData", {})
+        )
+        event.requestContext = HookRequestContext.deserialize(
+            json_data.get("requestContext", {})
+        )
+        return event
+
+
+@dataclass
+class UnmodelledHookRequest:
+    clientRequestToken: str
+    awsAccountId: Optional[str] = None
+    stackId: Optional[str] = None
+    changeSetId: Optional[str] = None
+    hookTypeName: Optional[str] = None
+    hookTypeVersion: Optional[str] = None
+    invocationPoint: Optional[HookInvocationPoint] = None
+    targetName: Optional[str] = None
+    targetType: Optional[str] = None
+    targetLogicalId: Optional[str] = None
+    targetModel: Optional[Mapping[str, Any]] = None
+
+    def __init__(self, **kwargs: Any) -> None:
+        args = dict(kwargs)
+        if kwargs.get("hookContext"):
+            args.update(kwargs.get("hookContext") or {})
+
+        dataclass_fields = {f.name for f in fields(self)}
+        for k, v in args.items():
+            if k in dataclass_fields:
+                setattr(self, k, v)
+
+    def to_modelled(self) -> BaseHookHandlerRequest:
+        return BaseHookHandlerRequest(
+            clientRequestToken=self.clientRequestToken,
+            hookContext=HookContext(
+                awsAccountId=self.awsAccountId,
+                stackId=self.stackId,
+                changeSetId=self.changeSetId,
+                hookTypeName=self.hookTypeName,
+                hookTypeVersion=self.hookTypeVersion,
+                invocationPoint=self.invocationPoint,
+                targetName=self.targetName,
+                targetType=self.targetType,
+                targetLogicalId=self.targetLogicalId,
+                targetModel=self.targetModel,
+            ),
+        )
 
 
 class LambdaContext:

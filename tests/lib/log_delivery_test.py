@@ -7,10 +7,16 @@ import pytest
 from boto3.session import Session
 from cloudformation_cli_python_lib.boto3_proxy import SessionProxy
 from cloudformation_cli_python_lib.log_delivery import (
+    HookProviderLogHandler,
     ProviderFilter,
     ProviderLogHandler,
 )
-from cloudformation_cli_python_lib.utils import HandlerRequest, RequestData
+from cloudformation_cli_python_lib.utils import (
+    HandlerRequest,
+    HookInvocationRequest,
+    HookRequestData,
+    RequestData,
+)
 
 
 @pytest.fixture
@@ -43,6 +49,24 @@ def make_payload() -> HandlerRequest:
     )
 
 
+def make_hook_payload() -> HookInvocationRequest:
+    return HookInvocationRequest(
+        actionInvocationPoint="CREATE_PRE_PROVISION",
+        awsAccountId="123412341234",
+        clientRequestToken=str(uuid4()),
+        hookTypeName="AWS::Test::Hook",
+        hookTypeVersion="3",
+        requestData=HookRequestData(
+            providerLogGroupName="test_group",
+            targetName="AWS::Test::Resource",
+            targetType="RESOURCE",
+            targetLogicalId="MyTargetId",
+            targetModel={"resourceProperties": {}},
+        ),
+        stackId="an-arn",
+    )
+
+
 @pytest.fixture
 def setup_patches(mock_logger):
     patch_logger = patch(
@@ -53,7 +77,17 @@ def setup_patches(mock_logger):
         "cloudformation_cli_python_lib.log_delivery.ProviderLogHandler."
         "_get_existing_logger"
     )
-    return make_payload(), patch_logger, patch__get_logger
+    patch__get_hook_logger = patch(
+        "cloudformation_cli_python_lib.log_delivery.HookProviderLogHandler."
+        "_get_existing_logger"
+    )
+    return (
+        make_payload(),
+        make_hook_payload(),
+        patch_logger,
+        patch__get_logger,
+        patch__get_hook_logger,
+    )
 
 
 @pytest.fixture
@@ -61,6 +95,24 @@ def mock_provider_handler():
     plh = ProviderLogHandler(
         group="test-group",
         stream="test-stream",
+        session=SessionProxy(
+            Session(
+                aws_access_key_id="", aws_secret_access_key="", aws_session_token=""
+            )
+        ),
+    )
+    # not mocking the whole client because that replaces generated exception classes to
+    # be replaced with mocks
+    for method in ["create_log_group", "create_log_stream", "put_log_events"]:
+        setattr(plh.client, method, Mock(auto_spec=True))
+    return plh
+
+
+@pytest.fixture
+def mock_hook_provider_handler():
+    plh = HookProviderLogHandler(
+        group="test-hook-group",
+        stream="test-hook-stream",
         session=SessionProxy(
             Session(
                 aws_access_key_id="", aws_secret_access_key="", aws_session_token=""
@@ -95,7 +147,7 @@ def test_provider_filter(logger):
 def test_setup_with_provider_creds_and_stack_id_and_logical_resource_id(
     setup_patches, mock_session
 ):
-    payload, p_logger, p__get_logger = setup_patches
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
     with p_logger as mock_log, p__get_logger as mock_get:
         mock_get.return_value = None
         ProviderLogHandler.setup(payload, mock_session)
@@ -107,7 +159,7 @@ def test_setup_with_provider_creds_and_stack_id_and_logical_resource_id(
 
 
 def test_setup_with_provider_creds_without_stack_id(setup_patches, mock_session):
-    payload, p_logger, p__get_logger = setup_patches
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
     payload.stackId = None
     with p_logger as mock_log, p__get_logger as mock_get:
         mock_get.return_value = None
@@ -122,7 +174,7 @@ def test_setup_with_provider_creds_without_stack_id(setup_patches, mock_session)
 def test_setup_with_provider_creds_without_logical_resource_id(
     setup_patches, mock_session
 ):
-    payload, p_logger, p__get_logger = setup_patches
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
     payload.requestData.logicalResourceId = None
     with p_logger as mock_log, p__get_logger as mock_get:
         mock_get.return_value = None
@@ -137,7 +189,7 @@ def test_setup_with_provider_creds_without_logical_resource_id(
 def test_setup_existing_logger(setup_patches, mock_session):
     existing = ProviderLogHandler("g", "s", mock_session)
     mock_session.reset_mock()
-    payload, p_logger, p__get_logger = setup_patches
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
     with p_logger as mock_log, p__get_logger as mock_get:
         mock_get.return_value = existing
         ProviderLogHandler.setup(payload, mock_session)
@@ -281,4 +333,194 @@ def test__get_existing_logger_logger_present(mock_logger, mock_session):
         return_value=mock_logger,
     ):
         actual = ProviderLogHandler._get_existing_logger()
+    assert actual == expected
+
+
+def test_setup_with_hook_provider_creds_and_stack_id_and_target_logical_id(
+    setup_patches, mock_session
+):
+    _payload, hook_payload, p_logger, _p__get_logger, p__get_hook_logger = setup_patches
+    with p_logger as mock_log, p__get_hook_logger as mock_get:
+        mock_get.return_value = None
+        HookProviderLogHandler.setup(hook_payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert hook_payload.stackId in plh.stream
+    assert hook_payload.requestData.targetLogicalId in plh.stream
+
+
+def test_setup_with_hook_provider_creds_without_stack_id(setup_patches, mock_session):
+    _payload, hook_payload, p_logger, _p__get_logger, p__get_hook_logger = setup_patches
+    hook_payload.stackId = None
+    with p_logger as mock_log, p__get_hook_logger as mock_get:
+        mock_get.return_value = None
+        HookProviderLogHandler.setup(hook_payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert hook_payload.awsAccountId in plh.stream
+
+
+def test_setup_with_hook_provider_creds_without_target_logical_id(
+    setup_patches, mock_session
+):
+    _payload, hook_payload, p_logger, _p__get_logger, p__get_hook_logger = setup_patches
+    hook_payload.requestData.targetLogicalId = None
+    with p_logger as mock_log, p__get_hook_logger as mock_get:
+        mock_get.return_value = None
+        HookProviderLogHandler.setup(hook_payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert hook_payload.awsAccountId in plh.stream
+
+
+def test_setup_existing_hook_logger(setup_patches, mock_session):
+    existing = HookProviderLogHandler("g", "s", mock_session)
+    mock_session.reset_mock()
+    _payload, hook_payload, p_logger, _p__get_logger, p__get_hook_logger = setup_patches
+    with p_logger as mock_log, p__get_hook_logger as mock_get:
+        mock_get.return_value = existing
+        HookProviderLogHandler.setup(hook_payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_not_called()
+
+
+def test_setup_without_hook_log_group_should_not_set_up(mock_logger, mock_session):
+    patch_logger = patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    )
+    patch___init__ = patch(
+        "cloudformation_cli_python_lib.log_delivery.HookProviderLogHandler.__init__",
+        autospec=True,
+    )
+    with patch_logger as mock_log, patch___init__ as mock___init__:
+        payload = make_hook_payload()
+        payload.requestData.providerLogGroupName = ""
+        HookProviderLogHandler.setup(payload, mock_session)
+    mock___init__.assert_not_called()
+    mock_session.assert_not_called()
+    mock_log.return_value.addHandler.assert_not_called()
+
+
+def test_setup_without_hook_session_should_not_set_up(mock_logger):
+    patch_logger = patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    )
+    patch___init__ = patch(
+        "cloudformation_cli_python_lib.log_delivery.HookProviderLogHandler.__init__",
+        autospec=True,
+    )
+    with patch_logger as mock_log, patch___init__ as mock___init__:
+        HookProviderLogHandler.setup(make_hook_payload(), None)
+    mock___init__.assert_not_called()
+    mock_log.return_value.addHandler.assert_not_called()
+
+
+def test_hook_log_group_create_success(mock_hook_provider_handler):
+    mock_hook_provider_handler._create_log_group()
+    mock_hook_provider_handler.client.create_log_group.assert_called_once()
+
+
+def test_hook_log_stream_create_success(mock_hook_provider_handler):
+    mock_hook_provider_handler._create_log_stream()
+    mock_hook_provider_handler.client.create_log_stream.assert_called_once()
+
+
+@pytest.mark.parametrize("create_method", ["_create_log_group", "_create_log_stream"])
+def test__hook_create_already_exists(mock_hook_provider_handler, create_method):
+    mock_logs_method = getattr(mock_hook_provider_handler.client, create_method[1:])
+    exc = mock_hook_provider_handler.client.exceptions.ResourceAlreadyExistsException
+    mock_logs_method.side_effect = exc({}, operation_name="Test")
+    # should not raise an exception if the log group already exists
+    getattr(mock_hook_provider_handler, create_method)()
+    mock_logs_method.assert_called_once()
+
+
+@pytest.mark.parametrize("sequence_token", [None, "some-seq"])
+def test__hook_put_log_event_success(mock_hook_provider_handler, sequence_token):
+    mock_hook_provider_handler.sequence_token = sequence_token
+    mock_put = mock_hook_provider_handler.client.put_log_events
+    mock_put.return_value = {"nextSequenceToken": "some-other-seq"}
+    mock_hook_provider_handler._put_log_event(
+        logging.LogRecord("a", 123, "/", 234, "log-msg", [], False)
+    )
+    mock_put.assert_called_once()
+
+
+def test__hook_put_log_event_invalid_token(mock_hook_provider_handler):
+    exc = mock_hook_provider_handler.client.exceptions
+    mock_put = mock_hook_provider_handler.client.put_log_events
+    mock_put.return_value = {"nextSequenceToken": "some-other-seq"}
+    mock_put.side_effect = [
+        exc.InvalidSequenceTokenException({}, operation_name="Test"),
+        exc.DataAlreadyAcceptedException({}, operation_name="Test"),
+        DEFAULT,
+    ]
+    mock_hook_provider_handler._put_log_event(
+        logging.LogRecord("a", 123, "/", 234, "log-msg", [], False)
+    )
+    assert mock_put.call_count == 3
+
+
+def test_hook_emit_existing_cwl_group_stream(mock_hook_provider_handler):
+    mock_hook_provider_handler._put_log_event = Mock()
+    mock_hook_provider_handler.emit(
+        logging.LogRecord("a", 123, "/", 234, "log-msg", [], False)
+    )
+    mock_hook_provider_handler._put_log_event.assert_called_once()
+
+
+def test_hook_emit_no_group_stream(mock_hook_provider_handler):
+    exc = mock_hook_provider_handler.client.exceptions.ResourceNotFoundException
+    group_exc = exc(
+        {"Error": {"Message": "log group does not exist"}},
+        operation_name="PutLogRecords",
+    )
+    mock_hook_provider_handler._put_log_event = Mock()
+    mock_hook_provider_handler._put_log_event.side_effect = [group_exc, DEFAULT]
+    mock_hook_provider_handler._create_log_group = Mock()
+    mock_hook_provider_handler._create_log_stream = Mock()
+    mock_hook_provider_handler.emit(
+        logging.LogRecord("a", 123, "/", 234, "log-msg", [], False)
+    )
+    assert mock_hook_provider_handler._put_log_event.call_count == 2
+    mock_hook_provider_handler._create_log_group.assert_called_once()
+    mock_hook_provider_handler._create_log_stream.assert_called_once()
+
+    # create_group should not be called again if the group already exists
+    stream_exc = exc(
+        {"Error": {"Message": "log stream does not exist"}},
+        operation_name="PutLogRecords",
+    )
+    mock_hook_provider_handler._put_log_event.side_effect = [stream_exc, DEFAULT]
+    mock_hook_provider_handler.emit(
+        logging.LogRecord("a", 123, "/", 234, "log-msg", [], False)
+    )
+    assert mock_hook_provider_handler._put_log_event.call_count == 4
+    mock_hook_provider_handler._create_log_group.assert_called_once()
+    assert mock_hook_provider_handler._create_log_stream.call_count == 2
+
+
+def test__get_existing_hook_logger_no_logger_present(mock_logger):
+    mock_logger.handlers = [logging.Handler()]
+    with patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    ):
+        actual = HookProviderLogHandler._get_existing_logger()
+    assert actual is None
+
+
+def test__get_existing_hook_logger_logger_present(mock_logger, mock_session):
+    expected = HookProviderLogHandler("g", "s", mock_session)
+    mock_logger.handlers = [logging.Handler(), expected]
+    with patch(
+        "cloudformation_cli_python_lib.log_delivery.logging.getLogger",
+        return_value=mock_logger,
+    ):
+        actual = HookProviderLogHandler._get_existing_logger()
     assert actual == expected

@@ -171,6 +171,30 @@ def test_entrypoint_with_context():
     mock_handler.assert_called_once()
 
 
+def test_entrypoint_ignore_remove_fields_from_response():
+    resource = Resource(TYPE_NAME, Mock(), Mock())
+    event = ProgressEvent(
+        status=OperationStatus.SUCCESS, message="", result="Here are the results"
+    )
+    mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
+
+    with patch(
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
+    ) as mock_log_delivery:
+        event = resource.__call__.__wrapped__(  # pylint: disable=no-member
+            resource, ENTRYPOINT_PAYLOAD, None
+        )
+    mock_log_delivery.assert_called_once()
+
+    assert event == {
+        "message": "",
+        "status": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "callbackDelaySeconds": 0,
+    }
+
+    mock_handler.assert_called_once()
+
+
 def test_entrypoint_success_without_caller_provider_creds():
     resource = Resource(TYPE_NAME, Mock(), Mock())
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
