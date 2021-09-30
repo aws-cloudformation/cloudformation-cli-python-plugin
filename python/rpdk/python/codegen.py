@@ -5,6 +5,7 @@ import zipfile
 from pathlib import PurePosixPath
 from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
 from tempfile import TemporaryFile
+from typing import Dict
 
 import docker
 from docker.errors import APIError, ContainerError, ImageLoadError
@@ -171,6 +172,8 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Generate complete")
 
     # pylint: disable=unused-argument
+    # the argument "project" is not used here but is used in codegen.py of other plugins
+    # this method is called in cloudformation-cli/src/rpdk/core/project.py
     def get_plugin_information(self, project):
         return self._get_plugin_information()
 
@@ -239,7 +242,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         ]
 
     @staticmethod
-    def _get_plugin_information():
+    def _get_plugin_information() -> Dict:
         return {"plugin-tool-version": __version__, "plugin-name": "python"}
 
     @classmethod
