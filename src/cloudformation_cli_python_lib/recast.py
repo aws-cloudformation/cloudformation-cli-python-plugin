@@ -128,5 +128,5 @@ def get_forward_ref_type() -> Any:
     # introspection is valid:
     # https://docs.python.org/3/library/typing.html#typing.ForwardRef
     if sys.version_info < (3, 7):
-        return typing._ForwardRef
+        return typing._ForwardRef  # type: ignore
     return typing.ForwardRef
