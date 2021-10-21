@@ -148,10 +148,15 @@ def test_field_to_type_unhandled_types_37():
 
 
 def test_get_forward_ref_type():
-    with patch("cloudformation_cli_python_lib.recast.typing") as mock_typing:
-        mock_typing.ForwardRef = "3.7+"
-        assert get_forward_ref_type() == "3.7+"
-    with patch("cloudformation_cli_python_lib.recast.typing") as mock_typing:
-        mock_typing._ForwardRef = "3.6"
-        get_forward_ref_type()
-        assert get_forward_ref_type() == "3.6"
+    with patch("cloudformation_cli_python_lib.recast.sys") as mock_sys:
+        mock_sys.version_info = (3, 7)
+        with patch("cloudformation_cli_python_lib.recast.typing") as mock_typing:
+            mock_typing.ForwardRef = "3.7+"
+            assert get_forward_ref_type() == "3.7+"
+
+    with patch("cloudformation_cli_python_lib.recast.sys") as mock_sys:
+        mock_sys.version_info = (3, 6)
+        with patch("cloudformation_cli_python_lib.recast.typing") as mock_typing:
+            mock_typing._ForwardRef = "3.6"
+            get_forward_ref_type()
+            assert get_forward_ref_type() == "3.6"
