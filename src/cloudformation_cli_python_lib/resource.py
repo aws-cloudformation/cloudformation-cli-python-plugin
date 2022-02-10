@@ -222,10 +222,16 @@ class Resource:
             progress = e.to_progress_event()
         except Exception as e:  # pylint: disable=broad-except
             print_or_log("Exception caught {0}".format(e))
-            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
+            progress = ProgressEvent.failed(
+                HandlerErrorCode.InternalFailure,
+                message=str("Exception caught {0}".format(e)),
+            )
         except BaseException as e:  # pylint: disable=broad-except
             print_or_log("Base exception caught (this is usually bad) {0}".format(e))
-            progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
+            progress = ProgressEvent.failed(
+                HandlerErrorCode.InternalFailure,
+                message=str("Base exception caught {0}".format(e)),
+            )
 
         if progress.result:
             progress.result = None
