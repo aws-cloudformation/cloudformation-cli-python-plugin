@@ -23,6 +23,12 @@ class Action(str, _AutoName):
     LIST = auto()
 
 
+class HookInvocationPoint(str, _AutoName):
+    CREATE_PRE_PROVISION = auto()
+    UPDATE_PRE_PROVISION = auto()
+    DELETE_PRE_PROVISION = auto()
+
+
 class StandardUnit(str, _AutoName):
     Count = auto()
     Milliseconds = auto()
@@ -35,6 +41,13 @@ class MetricTypes(str, _AutoName):
 
 
 class OperationStatus(str, _AutoName):
+    PENDING = auto()
+    IN_PROGRESS = auto()
+    SUCCESS = auto()
+    FAILED = auto()
+
+
+class HookStatus(str, _AutoName):
     PENDING = auto()
     IN_PROGRESS = auto()
     SUCCESS = auto()
@@ -57,6 +70,9 @@ class HandlerErrorCode(str, _AutoName):
     NetworkFailure = auto()
     InternalFailure = auto()
     InvalidTypeConfiguration = auto()
+    HandlerInternalFailure = auto()
+    NonCompliant = auto()
+    Unknown = auto()
 
 
 class BaseModel:
@@ -91,6 +107,7 @@ class ProgressEvent:
     status: OperationStatus
     errorCode: Optional[HandlerErrorCode] = None
     message: str = ""
+    result: Optional[str] = None
     callbackContext: Optional[MutableMapping[str, Any]] = None
     callbackDelaySeconds: int = 0
     resourceModel: Optional[BaseModel] = None
@@ -121,9 +138,17 @@ class ProgressEvent:
 
     @classmethod
     def failed(
-        cls: Type["ProgressEvent"], error_code: HandlerErrorCode, message: str = ""
+        cls: Type["ProgressEvent"],
+        error_code: HandlerErrorCode,
+        message: str = "",
+        result: Optional[str] = None,
     ) -> "ProgressEvent":
-        return cls(status=OperationStatus.FAILED, errorCode=error_code, message=message)
+        return cls(
+            status=OperationStatus.FAILED,
+            errorCode=error_code,
+            message=message,
+            result=result,
+        )
 
 
 @dataclass
@@ -143,3 +168,53 @@ class BaseResourceHandlerRequest:
     region: Optional[str]
     awsPartition: Optional[str]
     stackId: Optional[str]
+
+
+@dataclass
+class HookProgressEvent:
+    hookStatus: HookStatus
+    errorCode: Optional[HandlerErrorCode] = None
+    message: str = ""
+    callbackContext: Optional[MutableMapping[str, Any]] = None
+    callbackDelaySeconds: int = 0
+    result: Optional[str] = None
+    clientRequestToken: Optional[str] = None
+
+    def _serialize(self) -> MutableMapping[str, Any]:
+        # to match Java serialization, which drops `null` values, and the
+        # contract tests currently expect this also
+        ser = {k: v for k, v in self.__dict__.items() if v is not None}
+
+        # mutate to what's expected in the response
+
+        ser["hookStatus"] = ser.pop("hookStatus").name
+
+        if self.errorCode:
+            ser["errorCode"] = self.errorCode.name
+        return ser
+
+    @classmethod
+    def failed(
+        cls: Type["HookProgressEvent"], error_code: HandlerErrorCode, message: str = ""
+    ) -> "HookProgressEvent":
+        return cls(hookStatus=HookStatus.FAILED, errorCode=error_code, message=message)
+
+
+@dataclass
+class HookContext:
+    awsAccountId: Optional[str]
+    stackId: Optional[str]
+    hookTypeName: Optional[str]
+    hookTypeVersion: Optional[str]
+    invocationPoint: Optional[HookInvocationPoint]
+    targetName: Optional[str]
+    targetType: Optional[str]
+    targetLogicalId: Optional[str]
+    targetModel: Optional[Mapping[str, Any]]
+    changeSetId: Optional[str] = None
+
+
+@dataclass
+class BaseHookHandlerRequest:
+    clientRequestToken: str
+    hookContext: HookContext

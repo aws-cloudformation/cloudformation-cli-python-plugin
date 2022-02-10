@@ -15,6 +15,7 @@ from rpdk.core.exceptions import DownstreamError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import ContainerType, resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
+from rpdk.core.project import ARTIFACT_TYPE_HOOK
 
 from . import __version__
 from .resolver import contains_model, translate_type
@@ -38,7 +39,9 @@ class Python36LanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "python36"
     RUNTIME = "python3.6"
-    ENTRY_POINT = "{}.handlers.resource"
+    HOOK_ENTRY_POINT = "{}.handlers.hook"
+    RESOURCE_ENTRY_POINT = "{}.handlers.resource"
+    TEST_ENTRY_POINT = "{}.handlers.test_entrypoint"
     CODE_URI = "build/"
 
     def __init__(self):
@@ -63,6 +66,18 @@ class Python36LanguagePlugin(LanguagePlugin):
     def _init_settings(self, project):
         LOG.debug("Writing settings")
 
+        project.runtime = self.RUNTIME
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            project.entrypoint = self.HOOK_ENTRY_POINT.format(self.package_name)
+            project.test_entrypoint = project.entrypoint.replace(
+                ".hook", ".test_entrypoint"
+            )
+        else:
+            project.entrypoint = self.RESOURCE_ENTRY_POINT.format(self.package_name)
+            project.test_entrypoint = project.entrypoint.replace(
+                ".resource", ".test_entrypoint"
+            )
+
         self._use_docker = self._use_docker or input_with_validation(
             "Use docker for platform-independent packaging (Y/n)?\n",
             validate_no,
@@ -78,12 +93,6 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         self._init_from_project(project)
         self._init_settings(project)
-
-        project.runtime = self.RUNTIME
-        project.entrypoint = self.ENTRY_POINT.format(self.package_name)
-        project.test_entrypoint = project.entrypoint.replace(
-            ".resource", ".test_entrypoint"
-        )
 
         def _render_template(path, **kwargs):
             LOG.debug("Writing '%s'", path)
@@ -103,11 +112,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Making folder '%s'", handler_package_path)
         handler_package_path.mkdir(parents=True, exist_ok=True)
         _copy_resource(handler_package_path / "__init__.py")
-        _render_template(
-            handler_package_path / "handlers.py",
-            support_lib_pkg=SUPPORT_LIB_PKG,
-            type_name=project.type_name,
-        )
+        self.init_handlers(project, handler_package_path)
         # models.py produced by generate
 
         # project support files
@@ -144,12 +149,25 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         LOG.debug("Init complete")
 
+    def init_handlers(self, project, handler_package_path):
+        path = handler_package_path / "handlers.py"
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            template = self.env.get_template("hook_handlers.py")
+        else:
+            template = self.env.get_template("handlers.py")
+        contents = template.render(
+            support_lib_pkg=SUPPORT_LIB_PKG, type_name=project.type_name
+        )
+        project.safewrite(path, contents)
+
     def generate(self, project):
         LOG.debug("Generate started")
 
         self._init_from_project(project)
-
-        models = resolve_models(project.schema)
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            models = resolve_models(project.schema, "HookInputModel")
+        else:
+            models = resolve_models(project.schema)
 
         if project.configuration_schema:
             configuration_schema_path = (
@@ -165,7 +183,11 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         path = self.package_root / self.package_name / "models.py"
         LOG.debug("Writing file: %s", path)
-        template = self.env.get_template("models.py")
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            template = self.env.get_template("hook_models.py")
+        else:
+            template = self.env.get_template("models.py")
+
         contents = template.render(support_lib_pkg=SUPPORT_LIB_PKG, models=models)
         project.overwrite(path, contents)
 

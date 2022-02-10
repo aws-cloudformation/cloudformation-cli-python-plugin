@@ -8,6 +8,8 @@ import pytest
 from cloudformation_cli_python_lib.interface import (
     BaseModel,
     HandlerErrorCode,
+    HookProgressEvent,
+    HookStatus,
     OperationStatus,
     ProgressEvent,
 )
@@ -117,6 +119,66 @@ def test_progress_event_serialize_to_response_with_error_code(message):
 
     assert event._serialize() == {
         "status": OperationStatus.SUCCESS.name,  # pylint: disable=no-member
+        "message": message,
+        "errorCode": HandlerErrorCode.InvalidRequest.name,  # pylint: disable=no-member
+        "callbackDelaySeconds": 0,
+    }
+
+
+@given(s.sampled_from(HandlerErrorCode), s.text(ascii_letters))
+def test_hook_progress_event_failed_is_json_serializable(error_code, message):
+    event = HookProgressEvent.failed(error_code, message)
+    assert event.hookStatus == HookStatus.FAILED
+    assert event.errorCode == error_code
+    assert event.message == message
+
+    assert json.loads(json.dumps(event._serialize())) == {
+        "hookStatus": HookStatus.FAILED.value,
+        "errorCode": error_code.value,
+        "message": message,
+        "callbackDelaySeconds": 0,
+    }
+
+
+@given(s.text(ascii_letters))
+def test_hook_progress_event_serialize_to_response_with_context(message):
+    event = HookProgressEvent(
+        hookStatus=HookStatus.SUCCESS, message=message, callbackContext={"a": "b"}
+    )
+
+    assert event._serialize() == {
+        "hookStatus": HookStatus.SUCCESS.name,  # pylint: disable=no-member
+        "message": message,
+        "callbackContext": {"a": "b"},
+        "callbackDelaySeconds": 0,
+    }
+
+
+@given(s.text(ascii_letters))
+def test_hook_progress_event_serialize_to_response_with_data(message):
+    result = "My hook data"
+    event = HookProgressEvent(
+        hookStatus=HookStatus.SUCCESS, message=message, result=result
+    )
+
+    assert event._serialize() == {
+        "hookStatus": HookStatus.SUCCESS.name,  # pylint: disable=no-member
+        "message": message,
+        "callbackDelaySeconds": 0,
+        "result": result,
+    }
+
+
+@given(s.text(ascii_letters))
+def test_hook_progress_event_serialize_to_response_with_error_code(message):
+    event = HookProgressEvent(
+        hookStatus=HookStatus.SUCCESS,
+        message=message,
+        errorCode=HandlerErrorCode.InvalidRequest,
+    )
+
+    assert event._serialize() == {
+        "hookStatus": HookStatus.SUCCESS.name,  # pylint: disable=no-member
         "message": message,
         "errorCode": HandlerErrorCode.InvalidRequest.name,  # pylint: disable=no-member
         "callbackDelaySeconds": 0,

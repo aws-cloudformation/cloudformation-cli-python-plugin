@@ -1,9 +1,10 @@
 import logging
 import time
+import uuid
 from typing import Any, Optional
 
 from .boto3_proxy import SessionProxy
-from .utils import HandlerRequest
+from .utils import HandlerRequest, HookInvocationRequest
 
 
 class ProviderFilter(logging.Filter):
@@ -101,3 +102,38 @@ class ProviderLogHandler(logging.Handler):
                 self._create_log_group()
             self._create_log_stream()
             self._put_log_event(record)
+
+
+class HookProviderLogHandler(ProviderLogHandler):
+    @classmethod
+    def _get_existing_logger(cls) -> Optional["HookProviderLogHandler"]:
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, cls):
+                return handler
+        return None
+
+    @classmethod
+    def setup(  # type: ignore
+        cls, request: HookInvocationRequest, provider_sess: Optional[SessionProxy]
+    ) -> None:
+        log_group = request.requestData.providerLogGroupName
+        if request.stackId and request.requestData.targetLogicalId:
+            stream_name = f"{request.stackId}/{request.requestData.targetLogicalId}"
+        else:
+            stream_name = f"{request.awsAccountId}-{uuid.uuid4()}"
+
+        log_handler = cls._get_existing_logger()
+        if provider_sess and log_group and request.hookTypeName:
+            if log_handler:
+                # This is a re-used lambda container, log handler is already setup, so
+                # we just refresh the client with new creds
+                log_handler.client = provider_sess.client("logs")
+                return
+            # filter provider messages from platform
+            provider = request.hookTypeName.replace("::", "_").lower()
+            logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))
+            log_handler = cls(
+                group=log_group, stream=stream_name, session=provider_sess
+            )
+            # add log handler to root, so that provider gets plugin logs too
+            logging.getLogger().addHandler(log_handler)

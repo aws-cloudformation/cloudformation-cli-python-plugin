@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="cloudformation-cli-python-lib",
-    version="2.1.8",
+    version="2.1.9",
     description=__doc__,
     author="Amazon Web Services",
     author_email="aws-cloudformation-developers@amazon.com",
@@ -13,7 +13,11 @@ setup(
     include_package_data=True,
     zip_safe=True,
     python_requires=">=3.6",
-    install_requires=["boto3>=1.10.20", 'dataclasses;python_version<"3.7"'],
+    install_requires=[
+        "boto3>=1.10.20",
+        "aws-encryption-sdk==2.0.0",
+        'dataclasses;python_version<"3.7"',
+    ],
     license="Apache License 2.0",
     classifiers=[
         "Development Status :: 5 - Production/Stable",

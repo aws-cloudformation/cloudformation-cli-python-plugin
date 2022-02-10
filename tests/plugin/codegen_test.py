@@ -24,6 +24,71 @@ from rpdk.python.codegen import (
 
 TYPE_NAME = "foo::bar::baz"
 
+TEST_TARGET_INFO = {
+    "My::Example::Resource": {
+        "TargetName": "My::Example::Resource",
+        "TargetType": "RESOURCE",
+        "Schema": {
+            "typeName": "My::Example::Resource",
+            "additionalProperties": False,
+            "properties": {
+                "Id": {"type": "string"},
+                "Tags": {
+                    "type": "array",
+                    "uniqueItems": False,
+                    "items": {"$ref": "#/definitions/Tag"},
+                },
+            },
+            "required": [],
+            "definitions": {
+                "Tag": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "Value": {"type": "string"},
+                        "Key": {"type": "string"},
+                    },
+                    "required": ["Value", "Key"],
+                }
+            },
+        },
+        "ProvisioningType": "FULLY_MUTTABLE",
+        "IsCfnRegistrySupportedType": True,
+        "SchemaFileAvailable": True,
+    },
+    "My::Other::Resource": {
+        "TargetName": "My::Other::Resource",
+        "TargetType": "RESOURCE",
+        "Schema": {
+            "typeName": "My::Other::Resource",
+            "additionalProperties": False,
+            "properties": {
+                "Id": {"type": "string"},
+                "Tags": {
+                    "type": "array",
+                    "uniqueItems": False,
+                    "items": {"$ref": "#/definitions/Tag"},
+                },
+            },
+            "required": [],
+            "definitions": {
+                "Tag": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "Value": {"type": "string"},
+                        "Key": {"type": "string"},
+                    },
+                    "required": ["Value", "Key"],
+                }
+            },
+        },
+        "ProvisioningType": "NOT_PROVISIONABLE",
+        "IsCfnRegistrySupportedType": False,
+        "SchemaFileAvailable": True,
+    },
+}
+
 
 @pytest.fixture
 def plugin():
@@ -31,7 +96,7 @@ def plugin():
 
 
 @pytest.fixture
-def project(tmp_path):
+def resource_project(tmp_path):
     project = Project(root=tmp_path)
 
     patch_plugins = patch.dict(
@@ -44,6 +109,23 @@ def project(tmp_path):
     )
     with patch_plugins, patch_wizard:
         project.init(TYPE_NAME, PythonLanguagePlugin.NAME)
+    return project
+
+
+@pytest.fixture
+def hook_project(tmp_path):
+    project = Project(root=tmp_path)
+
+    patch_plugins = patch.dict(
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
+        {PythonLanguagePlugin.NAME: lambda: PythonLanguagePlugin},
+        clear=True,
+    )
+    patch_wizard = patch(
+        "rpdk.python.codegen.input_with_validation", autospec=True, side_effect=[False]
+    )
+    with patch_plugins, patch_wizard:
+        project.init_hook(TYPE_NAME, PythonLanguagePlugin.NAME)
     return project
 
 
@@ -87,10 +169,13 @@ def test__remove_build_artifacts_file_not_found(tmp_path):
     mock_log.debug.assert_called_once()
 
 
-def test_initialize(project):
-    assert project.settings == {"use_docker": False, "protocolVersion": "2.0.0"}
+def test_initialize_resource(resource_project):
+    assert resource_project.settings == {
+        "use_docker": False,
+        "protocolVersion": "2.0.0",
+    }
 
-    files = get_files_in_project(project)
+    files = get_files_in_project(resource_project)
     assert set(files) == {
         ".gitignore",
         ".rpdk-config",
@@ -112,25 +197,58 @@ def test_initialize(project):
     assert SUPPORT_LIB_NAME in files["requirements.txt"].read_text()
 
     readme = files["README.md"].read_text()
-    assert project.type_name in readme
+    assert resource_project.type_name in readme
     assert SUPPORT_LIB_PKG in readme
     assert "handlers.py" in readme
     assert "models.py" in readme
 
-    assert project.entrypoint in files["template.yml"].read_text()
+    assert resource_project.entrypoint in files["template.yml"].read_text()
 
     # this is a rough check the generated Python code is valid as far as syntax
     ast.parse(files["src/foo_bar_baz/__init__.py"].read_text())
     ast.parse(files["src/foo_bar_baz/handlers.py"].read_text())
 
 
-def test_generate(project):
-    project.load_schema()
-    before = get_files_in_project(project)
-    project.generate()
-    after = get_files_in_project(project)
+def test_initialize_hook(hook_project):
+    assert hook_project.settings == {"use_docker": False, "protocolVersion": "2.0.0"}
+
+    files = get_files_in_project(hook_project)
+    assert set(files) == {
+        ".gitignore",
+        ".rpdk-config",
+        "README.md",
+        "foo-bar-baz.json",
+        "requirements.txt",
+        "src",
+        "src/foo_bar_baz",
+        "src/foo_bar_baz/__init__.py",
+        "src/foo_bar_baz/handlers.py",
+        "template.yml",
+    }
+
+    assert "__pycache__" in files[".gitignore"].read_text()
+    assert SUPPORT_LIB_NAME in files["requirements.txt"].read_text()
+
+    readme = files["README.md"].read_text()
+    assert hook_project.type_name in readme
+    assert SUPPORT_LIB_PKG in readme
+    assert "handlers.py" in readme
+    assert "models.py" in readme
+
+    assert hook_project.entrypoint in files["template.yml"].read_text()
+
+    # this is a rough check the generated Python code is valid as far as syntax
+    ast.parse(files["src/foo_bar_baz/__init__.py"].read_text())
+    ast.parse(files["src/foo_bar_baz/handlers.py"].read_text())
+
+
+def test_generate_resource(resource_project):
+    resource_project.load_schema()
+    before = get_files_in_project(resource_project)
+    resource_project.generate()
+    after = get_files_in_project(resource_project)
     files = after.keys() - before.keys() - {"resource-role.yaml"}
-    print("Project files: ", get_files_in_project(project))
+    print("Project files: ", get_files_in_project(resource_project))
     assert files == {"src/foo_bar_baz/models.py"}
 
     models_path = after["src/foo_bar_baz/models.py"]
@@ -147,11 +265,45 @@ def test_generate(project):
     assert hasattr(module.TypeConfigurationModel, "_serialize")
     assert hasattr(module.TypeConfigurationModel, "_deserialize")
 
-    type_configuration_schema_file = project.root / "foo-bar-baz-configuration.json"
+    type_configuration_schema_file = (
+        resource_project.root / "foo-bar-baz-configuration.json"
+    )
     assert not type_configuration_schema_file.is_file()
 
 
-def test_generate_with_type_configuration(tmp_path):
+def test_generate_hook(hook_project):
+    with patch.object(hook_project, "_load_target_info", return_value=TEST_TARGET_INFO):
+        hook_project.load_hook_schema()
+        hook_project.load_configuration_schema()
+        before = get_files_in_project(hook_project)
+        hook_project.generate()
+    after = get_files_in_project(hook_project)
+    files = after.keys() - before.keys() - {"hook-role.yaml"}
+    print("Project files: ", get_files_in_project(hook_project))
+    assert files == {
+        "src/foo_bar_baz/models.py",
+        "foo-bar-baz-configuration.json",
+    }
+
+    models_path = after["src/foo_bar_baz/models.py"]
+    # this is a rough check the generated Python code is valid as far as syntax
+    ast.parse(models_path.read_text())
+
+    # this however loads the module
+    spec = importlib.util.spec_from_file_location("foo_bar_baz.models", models_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert hasattr(module.TypeConfigurationModel, "_serialize")
+    assert hasattr(module.TypeConfigurationModel, "_deserialize")
+
+    type_configuration_schema_file = (
+        hook_project.root / "foo-bar-baz-configuration.json"
+    )
+    assert type_configuration_schema_file.is_file()
+
+
+def test_generate_resource_with_type_configuration(tmp_path):
     type_name = "schema::with::typeconfiguration"
     project = Project(root=tmp_path)
 
@@ -194,20 +346,20 @@ def test_generate_with_type_configuration(tmp_path):
     assert type_configuration_schema_file.is_file()
 
 
-def test_package_pip(project):
-    project.load_schema()
-    project.generate()
+def test_package_resource_pip(resource_project):
+    resource_project.load_schema()
+    resource_project.generate()
 
     # not real requirements, would make version bumps a pain to test
-    (project.root / "requirements.txt").write_text("")
-    (project.root / f"{SUPPORT_LIB_NAME}-2.1.1.tar.gz").touch()
+    (resource_project.root / "requirements.txt").write_text("")
+    (resource_project.root / f"{SUPPORT_LIB_NAME}-2.1.1.tar.gz").touch()
     # want to exclude *.pyc files from zip, but code isn't run, so never get made
-    (project.root / "src" / "foo_bar_baz" / "coverage.pyc").touch()
+    (resource_project.root / "src" / "foo_bar_baz" / "coverage.pyc").touch()
 
-    zip_path = project.root / "foo-bar-baz.zip"
+    zip_path = resource_project.root / "foo-bar-baz.zip"
 
     with zip_path.open("wb") as f, ZipFile(f, mode="w") as zip_file:
-        project._plugin.package(project, zip_file)
+        resource_project._plugin.package(resource_project, zip_file)
 
     with zip_path.open("rb") as f, ZipFile(f, mode="r") as zip_file:
         assert sorted(zip_file.namelist()) == [
@@ -290,8 +442,10 @@ def test__docker_build_good_path(plugin, tmp_path):
     )
 
 
-def test_get_plugin_information(project):
-    plugin_information = project._plugin.get_plugin_information(project)
+def test_get_plugin_information(resource_project):
+    plugin_information = resource_project._plugin.get_plugin_information(
+        resource_project
+    )
 
     assert plugin_information["plugin-tool-version"] == __version__
     assert plugin_information["plugin-name"] == "python"

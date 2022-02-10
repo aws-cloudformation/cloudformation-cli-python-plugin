@@ -1,6 +1,6 @@
 [MASTER]
 
-ignore=CVS,models.py,handlers.py
+ignore=CVS,models.py,handlers.py,hook_models.py,hook_handlers.py,target_model.py
 jobs=1
 persistent=yes
 
