@@ -55,6 +55,7 @@ class ResourceModel(BaseModel):
     HttpsUrl: Optional[str]
     Namespace: Optional[str]
     Id: Optional[int]
+    NestedObject: Optional[MutableMapping[str, "_NestedObjectDefinition"]]
 
     @classmethod
     def _deserialize(
@@ -83,6 +84,7 @@ class ResourceModel(BaseModel):
             HttpsUrl=json_data.get("HttpsUrl"),
             Namespace=json_data.get("Namespace"),
             Id=json_data.get("Id"),
+            NestedObject=json_data.get("NestedObject"),
         )
 
 
@@ -107,6 +109,32 @@ class NestedList(BaseModel):
 
 # work around possible type aliasing issues when variable has same name as a model
 _NestedList = NestedList
+
+
+@dataclass
+class NestedObjectDefinition(BaseModel):
+    AttributeA: Optional[str]
+    AttributeB: Optional[str]
+    BoolAttribute: Optional[bool]
+    ListAttribute: Optional[Sequence[float]]
+
+    @classmethod
+    def _deserialize(
+        cls: Type["_NestedObjectDefinition"],
+        json_data: Optional[Mapping[str, Any]],
+    ) -> Optional["_NestedObjectDefinition"]:
+        if not json_data:
+            return None
+        return cls(
+            AttributeA=json_data.get("AttributeA"),
+            AttributeB=json_data.get("AttributeB"),
+            BoolAttribute=json_data.get("BoolAttribute"),
+            ListAttribute=json_data.get("ListAttribute"),
+        )
+
+
+# work around possible type aliasing issues when variable has same name as a model
+_NestedObjectDefinition = NestedObjectDefinition
 
 
 @dataclass
