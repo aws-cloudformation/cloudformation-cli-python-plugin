@@ -27,3 +27,11 @@ def setup_subparser_python36(subparsers, parents):
 
 def setup_subparser_python37(subparsers, parents):
     return setup_subparser(subparsers, parents, "python37")
+
+
+def setup_subparser_python38(subparsers, parents):
+    return setup_subparser(subparsers, parents, "python38")
+
+
+def setup_subparser_python39(subparsers, parents):
+    return setup_subparser(subparsers, parents, "python39")

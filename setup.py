@@ -41,10 +41,14 @@ setup(
     install_requires=["cloudformation-cli>=0.2.23", "types-dataclasses>=0.1.5"],
     entry_points={
         "rpdk.v1.languages": [
+            "python39 = rpdk.python.codegen:Python39LanguagePlugin",
+            "python38 = rpdk.python.codegen:Python38LanguagePlugin",
             "python37 = rpdk.python.codegen:Python37LanguagePlugin",
             "python36 = rpdk.python.codegen:Python36LanguagePlugin",
         ],
         "rpdk.v1.parsers": [
+            "python39 = rpdk.python.parser:setup_subparser_python39",
+            "python38 = rpdk.python.parser:setup_subparser_python38",
             "python37 = rpdk.python.parser:setup_subparser_python37",
             "python36 = rpdk.python.parser:setup_subparser_python36",
         ],

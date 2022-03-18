@@ -171,7 +171,7 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         if project.configuration_schema:
             configuration_schema_path = (
-                project.root / project.configuration_schema_filename
+                    project.root / project.configuration_schema_filename
             )
             project.write_configuration_schema(configuration_schema_path)
             configuration_models = resolve_models(
@@ -274,7 +274,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("command is '%s'", command)
 
         volumes = {str(external_path): {"bind": str(internal_path), "mode": "rw"}}
-        image = f"lambci/lambda:build-{cls.RUNTIME}"
+        image = f"mlupin/docker-lambda:{cls.RUNTIME}-build"
         LOG.warning(
             "Starting Docker build. This may take several minutes if the "
             "image '%s' needs to be pulled first.",
@@ -325,3 +325,13 @@ class Python36LanguagePlugin(LanguagePlugin):
 class Python37LanguagePlugin(Python36LanguagePlugin):
     NAME = "python37"
     RUNTIME = "python3.7"
+
+
+class Python38LanguagePlugin(Python36LanguagePlugin):
+    NAME = "python38"
+    RUNTIME = "python3.8"
+
+
+class Python39LanguagePlugin(Python36LanguagePlugin):
+    NAME = "python39"
+    RUNTIME = "python3.9"
