@@ -171,7 +171,7 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         if project.configuration_schema:
             configuration_schema_path = (
-                    project.root / project.configuration_schema_filename
+                project.root / project.configuration_schema_filename
             )
             project.write_configuration_schema(configuration_schema_path)
             configuration_models = resolve_models(
