@@ -171,7 +171,7 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         if project.configuration_schema:
             configuration_schema_path = (
-                project.root / project.configuration_schema_filename
+                    project.root / project.configuration_schema_filename
             )
             project.write_configuration_schema(configuration_schema_path)
             configuration_models = resolve_models(
@@ -354,3 +354,15 @@ class Python37LanguagePlugin(Python36LanguagePlugin):
     NAME = "python37"
     RUNTIME = "python3.7"
     DOCKER_TAG = 3.7
+
+
+class Python38LanguagePlugin(Python36LanguagePlugin):
+    NAME = "python38"
+    RUNTIME = "python3.8"
+    DOCKER_TAG = 3.8
+
+
+class Python39LanguagePlugin(Python36LanguagePlugin):
+    NAME = "python39"
+    RUNTIME = "python3.9"
+    DOCKER_TAG = 3.9
