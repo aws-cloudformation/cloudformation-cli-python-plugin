@@ -29,6 +29,8 @@ class KitchenSinkEncoder(json.JSONEncoder):
     def default(self, o):  # type: ignore  # pylint: disable=method-hidden
         if isinstance(o, (datetime, date, time)):
             return o.isoformat()
+        if isinstance(o, set):
+            return sorted(o)
         try:
             return o._serialize()  # pylint: disable=protected-access
         except AttributeError:

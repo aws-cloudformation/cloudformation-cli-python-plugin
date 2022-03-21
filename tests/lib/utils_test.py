@@ -53,6 +53,22 @@ def test_default_unsupported_type_goes_to_base_class():
         json.dumps(Unserializable(), cls=KitchenSinkEncoder)
 
 
+def test_handle_model_with_sets():
+    value = {
+        "callbackDelaySeconds": 0,
+        "message": "",
+        "resourceModel": {"Events": {"event_1", "event_2"}, "Arn": "arn:aws:dummy"},
+        "status": "SUCCESS",
+    }
+
+    assert (
+        json.dumps(value, cls=KitchenSinkEncoder)
+        == '{"callbackDelaySeconds": 0, "message": "", '
+        '"resourceModel": {"Events": ["event_1", "event_2"], '
+        '"Arn": "arn:aws:dummy"}, "status": "SUCCESS"}'
+    )
+
+
 def test_handler_request_serde_roundtrip():
     payload = {
         "awsAccountId": "123456789012",
