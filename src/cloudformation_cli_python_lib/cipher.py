@@ -3,6 +3,7 @@ import json
 import uuid
 from typing import Optional
 
+# boto3, botocore, aws_encryption_sdk don't have stub files
 import boto3  # type: ignore
 
 import aws_encryption_sdk  # type: ignore
@@ -16,6 +17,7 @@ from botocore.credentials import (  # type: ignore
 )
 from botocore.session import Session, get_session  # type: ignore
 
+from .exceptions import _EncryptionError
 from .utils import Credentials
 
 
@@ -63,7 +65,7 @@ class KmsCipher(Cipher):
             try:
                 credentials_data = json.loads(encrypted_credentials)
                 return Credentials(**credentials_data)
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 return None
 
         try:
@@ -72,10 +74,19 @@ class KmsCipher(Cipher):
                 key_provider=self._key_provider,
             )
             credentials_data = json.loads(decrypted_credentials.decode("UTF-8"))
+            if credentials_data is None:
+                raise _EncryptionError(
+                    "Failed to decrypt credentials. Decrypted credentials are 'null'."
+                )
 
             return Credentials(**credentials_data)
-        except (json.JSONDecodeError, AWSEncryptionSDKClientError) as e:
-            raise RuntimeError("Failed to decrypt credentials.") from e
+        except (
+            AWSEncryptionSDKClientError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as e:
+            raise _EncryptionError("Failed to decrypt credentials.") from e
 
     @staticmethod
     def _get_assume_role_session(
