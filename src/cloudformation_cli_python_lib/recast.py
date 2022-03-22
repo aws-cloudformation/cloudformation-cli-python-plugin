@@ -19,8 +19,7 @@ def recast_object(
         return
     for k, v in json_data.items():
         if isinstance(v, dict):
-            child_cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
-            recast_object(child_cls, v, classes)
+            _recast_nested_dict(cls, json_data, k, v, classes)
         elif isinstance(v, list):
             json_data[k] = _recast_lists(cls, k, v, classes)
         elif isinstance(v, set):
@@ -32,6 +31,37 @@ def recast_object(
             json_data[k] = _recast_primitive(dest_type, k, v)
         else:
             raise InvalidRequest(f"Unsupported type: {type(v)} for {k}")
+
+
+def _recast_nested_dict(
+    cls: Any,
+    json_data: Mapping[str, Any],
+    k: str,
+    v: Dict[str, Any],
+    classes: Dict[str, Any],
+) -> None:
+    """
+    Attempts to recursively cast the dict elements.
+    On KeyError, we know that the "parent" property ,
+    does not have a specific class to be casted to.
+    Therefore we figure out what the "nested object" class might be,
+    recursively cast those,
+    to finally assign to the "parent" dict the right class
+
+    :param Any cls:
+    :param Mapping json_data:
+    :param str k:
+    :param Any v:
+    :param dict classes:
+    """
+    try:
+        child_cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
+        recast_object(child_cls, v, classes)
+    except KeyError:
+        child_cls = _field_to_type(cls.__dataclass_fields__[k].type, k, classes)
+        for _child, _child_definition in v.items():
+            recast_object(child_cls, _child_definition, classes)
+            json_data[k][_child] = _child_definition
 
 
 def _recast_lists(cls: Any, k: str, v: List[Any], classes: Dict[str, Any]) -> List[Any]:

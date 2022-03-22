@@ -47,6 +47,15 @@ def test_recast_complex_object():
             [{"NestedListInt": "true", "NestedListList": ["1", "2", "3"]}],
             [{"NestedListInt": "false", "NestedListList": ["11", "12", "13"]}],
         ],
+        "NestedObject": {
+            "first_object": {"AttributeA": "AWS_CFN", "AttributeB": "FTW"},
+            "second_object": {"AttributeA": "AllHailPython"},
+            "third_object": {
+                "ListAttribute": ["2.1", "42.0"],
+                "AttributeA": "WeAlsoHaveLists",
+            },
+            "fourth-0bject": {"BoolAttribute": "false", "AttributeB": "ThatIsNotTrue"},
+        },
     }
     expected = {
         "ListSetInt": [{1, 2, 3}],
@@ -79,6 +88,15 @@ def test_recast_complex_object():
             [{"NestedListInt": True, "NestedListList": [1.0, 2.0, 3.0]}],
             [{"NestedListInt": False, "NestedListList": [11.0, 12.0, 13.0]}],
         ],
+        "NestedObject": {
+            "first_object": {"AttributeA": "AWS_CFN", "AttributeB": "FTW"},
+            "second_object": {"AttributeA": "AllHailPython"},
+            "third_object": {
+                "ListAttribute": [2.1, 42.0],
+                "AttributeA": "WeAlsoHaveLists",
+            },
+            "fourth-0bject": {"BoolAttribute": False, "AttributeB": "ThatIsNotTrue"},
+        },
     }
     model = ComplexResourceModel._deserialize(payload)
     assert payload == expected
