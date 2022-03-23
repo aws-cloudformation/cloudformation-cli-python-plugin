@@ -7,7 +7,13 @@ from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
 
 from .boto3_proxy import SessionProxy, _get_boto_session
 from .cipher import Cipher, KmsCipher
-from .exceptions import InternalFailure, InvalidRequest, _HandlerError
+from .exceptions import (
+    AccessDenied,
+    InternalFailure,
+    InvalidRequest,
+    _EncryptionError,
+    _HandlerError,
+)
 from .interface import (
     BaseHookHandlerRequest,
     HandlerErrorCode,
@@ -180,6 +186,9 @@ class Hook:
             # credentials are used when rescheduling, so can't zero them out (for now)
             invocation_point = HookInvocationPoint[event.actionInvocationPoint]
             callback_context = event.requestContext.callbackContext or {}
+        except _EncryptionError as e:
+            LOG.exception("Failed to decrypt credentials")
+            raise AccessDenied(f"{e} ({type(e).__name__})") from e
         except Exception as e:
             LOG.exception("Invalid request")
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
@@ -228,7 +237,6 @@ class Hook:
                 print(message)
                 traceback.print_exc()
 
-        event: Optional[HookInvocationRequest] = None
         try:
             sessions, invocation_point, callback, event = self._parse_request(
                 event_data
@@ -276,12 +284,12 @@ class Hook:
         # use the raw event_data as a last-ditch attempt to call back if the
         # request is invalid
         return self._create_progress_response(
-            progress, event
+            progress, event_data
         )._serialize()  # pylint: disable=protected-access
 
     @staticmethod
     def _create_progress_response(
-        progress_event: ProgressEvent, request: Optional[HookInvocationRequest]
+        progress_event: ProgressEvent, request: Optional[MutableMapping[str, Any]]
     ) -> HookProgressEvent:
         response = HookProgressEvent(Hook._get_hook_status(progress_event.status))
         response.result = progress_event.result
@@ -291,7 +299,7 @@ class Hook:
         response.callbackDelaySeconds = progress_event.callbackDelaySeconds
         response.errorCode = progress_event.errorCode
         if request:
-            response.clientRequestToken = request.clientRequestToken
+            response.clientRequestToken = request.get("clientRequestToken")
         return response
 
     @staticmethod

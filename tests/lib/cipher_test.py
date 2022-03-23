@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from cloudformation_cli_python_lib.cipher import KmsCipher
+from cloudformation_cli_python_lib.exceptions import _EncryptionError
 from cloudformation_cli_python_lib.utils import Credentials
 
 from aws_encryption_sdk.exceptions import AWSEncryptionSDKClientError
@@ -54,7 +55,7 @@ def test_decrypt_credentials_fail():
     ), patch(
         "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.EncryptionSDKClient.decrypt"
     ) as mock_decrypt, pytest.raises(
-        RuntimeError
+        _EncryptionError
     ) as excinfo:
         mock_decrypt.side_effect = AWSEncryptionSDKClientError()
         cipher = KmsCipher("encryptionKeyArn", "encryptionKeyRole")
@@ -62,6 +63,29 @@ def test_decrypt_credentials_fail():
             "ewogICAgICAgICAgICAiYWNjZXNzS2V5SWQiOiAiSUFTQVlLODM1R0FJRkhBSEVJMjMiLAogICAg"
         )
     assert str(excinfo.value) == "Failed to decrypt credentials."
+
+
+def test_decrypt_credentials_returns_null_fail():
+    with patch(
+        "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.StrictAwsKmsMasterKeyProvider",
+        autospec=True,
+    ), patch(
+        "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.EncryptionSDKClient.decrypt"
+    ) as mock_decrypt, pytest.raises(
+        _EncryptionError
+    ) as excinfo:
+        mock_decrypt.return_value = (
+            b"null",
+            Mock(),
+        )
+        cipher = KmsCipher("encryptionKeyArn", "encryptionKeyRole")
+        cipher.decrypt_credentials(
+            "ewogICAgICAgICAgICAiYWNjZXNzS2V5SWQiOiAiSUFTQVlLODM1R0FJRkhBSEVJMjMiLAogICAg"
+        )
+    assert (
+        str(excinfo.value)
+        == "Failed to decrypt credentials. Decrypted credentials are 'null'."
+    )
 
 
 @pytest.mark.parametrize(

@@ -6,7 +6,11 @@ from unittest.mock import Mock, call, patch, sentinel
 
 import pytest
 from cloudformation_cli_python_lib import Hook
-from cloudformation_cli_python_lib.exceptions import InternalFailure, InvalidRequest
+from cloudformation_cli_python_lib.exceptions import (
+    InternalFailure,
+    InvalidRequest,
+    _EncryptionError,
+)
 from cloudformation_cli_python_lib.hook import _ensure_serialize
 from cloudformation_cli_python_lib.interface import (
     BaseModel,
@@ -192,6 +196,34 @@ def test_entrypoint_success_without_caller_provider_creds():
             hook, payload, None
         )
         assert event == expected
+
+
+def test_entrypoint_encryption_error_raises_access_denied():
+    @dataclass
+    class TypeConfigurationModel(BaseModel):
+        a_string: str
+
+        @classmethod
+        def _deserialize(cls, json_data):
+            return cls("test")
+
+    hook = Hook(Mock(), TypeConfigurationModel)
+
+    with patch(
+        "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
+    ), patch("cloudformation_cli_python_lib.hook.MetricsPublisherProxy"), patch(
+        "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
+    ) as mock_cipher:
+        mock_cipher.side_effect = _EncryptionError("Failed to decrypt credentials.")
+        event = hook.__call__.__wrapped__(  # pylint: disable=no-member
+            hook, ENTRYPOINT_PAYLOAD, None
+        )
+
+    assert event["errorCode"] == "AccessDenied"
+    assert event["hookStatus"] == "FAILED"
+    assert event["callbackDelaySeconds"] == 0
+    assert event["clientRequestToken"] == "4b90a7e4-b790-456b-a937-0cfdfa211dfe"
+    assert "Failed to decrypt credentials" in event["message"]
 
 
 def test_cast_hook_request_invalid_request(hook):
