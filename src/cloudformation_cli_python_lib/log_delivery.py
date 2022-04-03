@@ -52,7 +52,8 @@ class ProviderLogHandler(logging.Handler):
                 return
             # filter provider messages from platform
             provider = request.resourceType.replace("::", "_").lower()
-            logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))
+            if logging.getLogger().handlers:
+                logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))
             log_handler = cls(
                 group=log_group, stream=stream_name, session=provider_sess
             )
