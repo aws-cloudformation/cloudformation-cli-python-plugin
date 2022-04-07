@@ -171,6 +171,24 @@ def test_setup_with_provider_creds_without_stack_id(setup_patches, mock_session)
     assert payload.region in plh.stream
 
 
+def test_setup_with_provider_creds_without_stack_id_no_handlers(
+    setup_patches, mock_session
+):
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
+    payload.stackId = None
+    root_logger = logging.getLogger()
+    with p_logger as mock_log, p__get_logger as mock_get:
+        for _ in root_logger.handlers:
+            root_logger.removeHandler(_)
+        mock_get.return_value = None
+        ProviderLogHandler.setup(payload, mock_session)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert payload.awsAccountId in plh.stream
+    assert payload.region in plh.stream
+
+
 def test_setup_with_provider_creds_without_logical_resource_id(
     setup_patches, mock_session
 ):
