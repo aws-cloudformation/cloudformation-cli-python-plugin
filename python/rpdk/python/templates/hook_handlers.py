@@ -68,15 +68,15 @@ def pre_update_handler(
 
     # Example:
     try:
-        # A Hook that does not allow a resource's encryption algorithm to be modified
+        # A Hook that does not allow a S3 bucket's encryption to be modified
 
         # Reading the Resource Hook's target current properties and previous properties
         resource_properties = target_model.get("resourceProperties")
         previous_properties = target_model.get("previousResourceProperties")
 
-        if resource_properties.get("encryptionAlgorithm") != previous_properties.get("encryptionAlgorithm"):
+        if resource_properties.get("BucketEncryption") != previous_properties.get("BucketEncryption"):
             progress.status = OperationStatus.FAILED
-            progress.message = "Encryption algorithm can not be changed"
+            progress.message = "Encryption configuration can not be changed"
         else:
             progress.status = OperationStatus.SUCCESS
     except TypeError as e:
