@@ -158,6 +158,24 @@ def test_setup_with_provider_creds_and_stack_id_and_logical_resource_id(
     assert payload.requestData.logicalResourceId in plh.stream
 
 
+def test_setup_with_formatter(
+    setup_patches, mock_session
+):
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
+    with p_logger as mock_log, p__get_logger as mock_get:
+        mock_get.return_value = None
+        ProviderLogHandler.setup(payload, mock_session, logging.Formatter())
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    print(mock_log.handlers[0])
+
+    assert 0 == 1
+
+    plh = mock_log.return_value.addHandler.call_args[0][0]
+    assert payload.stackId in plh.stream
+    assert payload.requestData.logicalResourceId in plh.stream
+
+
 def test_setup_with_provider_creds_without_stack_id(setup_patches, mock_session):
     payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
     payload.stackId = None
