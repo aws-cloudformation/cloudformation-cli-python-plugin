@@ -54,14 +54,15 @@ class ProviderLogHandler(logging.Handler):
                 log_handler.client = provider_sess.client("logs")
                 return
 
-            if log_handler and log_format:
-                log_handler.setFormatter(log_format)
-
             # filter provider messages from platform
             provider = request.resourceType.replace("::", "_").lower()
             log_handler = cls(
                 group=log_group, stream=stream_name, session=provider_sess
             )
+
+            if log_format:
+                log_handler.setFormatter(log_format)
+
             # add log handler to root, so that provider gets plugin logs too
             logging.getLogger().addHandler(log_handler)
             logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))
@@ -140,14 +141,15 @@ class HookProviderLogHandler(ProviderLogHandler):
                 log_handler.client = provider_sess.client("logs")
                 return
 
-            if log_handler and log_format:
-                log_handler.setFormatter(log_format)
-
             # filter provider messages from platform
             provider = request.hookTypeName.replace("::", "_").lower()
             logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))
             log_handler = cls(
                 group=log_group, stream=stream_name, session=provider_sess
             )
+
+            if log_format:
+                log_handler.setFormatter(log_format)
+
             # add log handler to root, so that provider gets plugin logs too
             logging.getLogger().addHandler(log_handler)
