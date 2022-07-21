@@ -35,7 +35,10 @@ class ProviderLogHandler(logging.Handler):
 
     @classmethod
     def setup(
-        cls, request: HandlerRequest, provider_sess: Optional[SessionProxy]
+        cls,
+        request: HandlerRequest,
+        provider_sess: Optional[SessionProxy],
+        log_format: Optional[logging.Formatter] = None,
     ) -> None:
         log_group = request.requestData.providerLogGroupName
         if request.stackId and request.requestData.logicalResourceId:
@@ -50,6 +53,10 @@ class ProviderLogHandler(logging.Handler):
                 # we just refresh the client with new creds
                 log_handler.client = provider_sess.client("logs")
                 return
+
+            if log_handler and log_format:
+                log_handler.setFormatter(log_format)
+
             # filter provider messages from platform
             provider = request.resourceType.replace("::", "_").lower()
             log_handler = cls(
@@ -114,7 +121,10 @@ class HookProviderLogHandler(ProviderLogHandler):
 
     @classmethod
     def setup(  # type: ignore
-        cls, request: HookInvocationRequest, provider_sess: Optional[SessionProxy]
+        cls,
+        request: HookInvocationRequest,
+        provider_sess: Optional[SessionProxy],
+        log_format: Optional[logging.Formatter] = None,
     ) -> None:
         log_group = request.requestData.providerLogGroupName
         if request.stackId and request.requestData.targetLogicalId:
@@ -129,6 +139,10 @@ class HookProviderLogHandler(ProviderLogHandler):
                 # we just refresh the client with new creds
                 log_handler.client = provider_sess.client("logs")
                 return
+
+            if log_handler and log_format:
+                log_handler.setFormatter(log_format)
+
             # filter provider messages from platform
             provider = request.hookTypeName.replace("::", "_").lower()
             logging.getLogger().handlers[0].addFilter(ProviderFilter(provider))

@@ -61,6 +61,7 @@ class Resource:
         type_name: str,
         resouce_model_cls: Type[BaseModel],
         type_configuration_model_cls: Optional[Type[BaseModel]] = None,
+        log_format: Optional[logging.Formatter] = None,
     ) -> None:
         self.type_name = type_name
         self._model_cls: Type[BaseModel] = resouce_model_cls
@@ -68,6 +69,7 @@ class Resource:
             Type[BaseModel]
         ] = type_configuration_model_cls
         self._handlers: MutableMapping[Action, HandlerSignature] = {}
+        self.log_format = log_format
 
     def handler(self, action: Action) -> Callable[[HandlerSignature], HandlerSignature]:
         def _add_handler(f: HandlerSignature) -> HandlerSignature:
@@ -200,7 +202,7 @@ class Resource:
 
             metrics = MetricsPublisherProxy()
             if event.requestData.providerLogGroupName and provider_sess:
-                ProviderLogHandler.setup(event, provider_sess)
+                ProviderLogHandler.setup(event, provider_sess, self.log_format)
                 logs_setup = True
                 metrics.add_metrics_publisher(provider_sess, event.resourceType)
 

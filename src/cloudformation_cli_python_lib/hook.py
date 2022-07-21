@@ -65,13 +65,17 @@ def _ensure_serialize(
 
 class Hook:
     def __init__(
-        self, type_name: str, type_configuration_model_cls: Type[BaseModel]
+        self,
+        type_name: str,
+        type_configuration_model_cls: Type[BaseModel],
+        log_format: Optional[logging.Formatter] = None,
     ) -> None:
         self.type_name = type_name
         self._type_configuration_model_cls: Type[
             BaseModel
         ] = type_configuration_model_cls
         self._handlers: MutableMapping[HookInvocationPoint, HandlerSignature] = {}
+        self.log_format = log_format
 
     def handler(
         self, invocation_point: HookInvocationPoint
@@ -247,7 +251,7 @@ class Hook:
 
             metrics = MetricsPublisherProxy()
             if event.requestData.providerLogGroupName and provider_sess:
-                HookProviderLogHandler.setup(event, provider_sess)
+                HookProviderLogHandler.setup(event, provider_sess, self.log_format)
                 logs_setup = True
                 metrics.add_hook_metrics_publisher(
                     provider_sess, event.hookTypeName, event.awsAccountId
