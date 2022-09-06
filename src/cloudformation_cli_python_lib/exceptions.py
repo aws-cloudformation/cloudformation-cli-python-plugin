@@ -96,6 +96,14 @@ class NonCompliant(_HandlerError):
         )
 
 
+class UnsupportedTarget(_HandlerError):
+    def __init__(self, hook_type_name: str, target_type_name: str):
+        super().__init__(
+            f"Hook of type '{hook_type_name}' received request"
+            f" for unsupported target '{target_type_name}'"
+        )
+
+
 class Unknown(_HandlerError):
     pass
 
