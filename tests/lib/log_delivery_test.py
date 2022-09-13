@@ -91,6 +91,15 @@ def setup_patches(mock_logger):
 
 
 @pytest.fixture
+def mock_handler_set_formatter():
+    patch__set_handler_formatter = patch.object(ProviderLogHandler, "setFormatter")
+    patch__set_hook_handler_formatter = patch.object(
+        HookProviderLogHandler, "setFormatter"
+    )
+    return patch__set_handler_formatter, patch__set_hook_handler_formatter
+
+
+@pytest.fixture
 def mock_provider_handler():
     plh = ProviderLogHandler(
         group="test-group",
@@ -195,6 +204,21 @@ def test_setup_existing_logger(setup_patches, mock_session):
         ProviderLogHandler.setup(payload, mock_session)
     mock_session.client.assert_called_once_with("logs")
     mock_log.return_value.addHandler.assert_not_called()
+
+
+def test_setup_with_formatter(setup_patches, mock_session, mock_handler_set_formatter):
+    payload, _hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
+    (
+        p__set_handler_formatter,
+        _p__set_hook_handler_formatter,
+    ) = mock_handler_set_formatter
+    formatter = logging.Formatter()
+    with p_logger as mock_log, p__get_logger as mock_get, p__set_handler_formatter as mock_set_formatter:  # pylint: disable=C0301  # noqa: B950
+        mock_get.return_value = None
+        ProviderLogHandler.setup(payload, mock_session, formatter)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    mock_set_formatter.assert_called_once_with(formatter)
 
 
 def test_setup_without_log_group_should_not_set_up(mock_logger, mock_session):
@@ -385,6 +409,23 @@ def test_setup_existing_hook_logger(setup_patches, mock_session):
         HookProviderLogHandler.setup(hook_payload, mock_session)
     mock_session.client.assert_called_once_with("logs")
     mock_log.return_value.addHandler.assert_not_called()
+
+
+def test_setup_with_hook_formatter(
+    setup_patches, mock_session, mock_handler_set_formatter
+):
+    _payload, hook_payload, p_logger, p__get_logger, _p__get_hook_logger = setup_patches
+    (
+        _p__set_handler_formatter,
+        p__set_hook_handler_formatter,
+    ) = mock_handler_set_formatter
+    formatter = logging.Formatter()
+    with p_logger as mock_log, p__get_logger as mock_get, p__set_hook_handler_formatter as mock_set_formatter:  # pylint: disable=C0301  # noqa: B950
+        mock_get.return_value = None
+        HookProviderLogHandler.setup(hook_payload, mock_session, formatter)
+    mock_session.client.assert_called_once_with("logs")
+    mock_log.return_value.addHandler.assert_called_once()
+    mock_set_formatter.assert_called_once_with(formatter)
 
 
 def test_setup_without_hook_log_group_should_not_set_up(mock_logger, mock_session):
