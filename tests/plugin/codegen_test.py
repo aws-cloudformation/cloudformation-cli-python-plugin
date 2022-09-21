@@ -438,6 +438,7 @@ def test__docker_build_good_path(plugin, tmp_path):
         auto_remove=True,
         volumes={str(tmp_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
+        entrypoint="",
         user=ANY,
     )
 
@@ -479,5 +480,6 @@ def test__docker_build_bad_path(plugin, tmp_path, exception):
         auto_remove=True,
         volumes={str(tmp_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
+        entrypoint="",
         user=ANY,
     )
