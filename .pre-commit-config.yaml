@@ -48,6 +48,8 @@ repos:
   hooks:
   - id: bandit
     files: ^(src|python)/
+    pass_filenames: false
+    args: ["-n", "1", "--recursive", "src/"]
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.790
   hooks:
