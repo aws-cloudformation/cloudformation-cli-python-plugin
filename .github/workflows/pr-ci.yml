@@ -38,3 +38,7 @@ jobs:
       run: ./e2e-test.sh python36
     - name: End to End Resource Packaging Test Python 3.7
       run: ./e2e-test.sh python37
+    - name: End to End Resource Packaging Test Python 3.8
+      run: ./e2e-test.sh python38
+    - name: End to End Resource Packaging Test Python 3.9
+      run: ./e2e-test.sh python39
