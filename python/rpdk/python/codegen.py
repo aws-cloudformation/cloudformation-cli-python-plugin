@@ -43,6 +43,7 @@ class Python36LanguagePlugin(LanguagePlugin):
     RESOURCE_ENTRY_POINT = "{}.handlers.resource"
     TEST_ENTRY_POINT = "{}.handlers.test_entrypoint"
     CODE_URI = "build/"
+    DOCKER_TAG = 3.6
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -274,7 +275,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("command is '%s'", command)
 
         volumes = {str(external_path): {"bind": str(internal_path), "mode": "rw"}}
-        image = f"lambci/lambda:build-{cls.RUNTIME}"
+        image = f"public.ecr.aws/lambda/python:{cls.DOCKER_TAG}"
         LOG.warning(
             "Starting Docker build. This may take several minutes if the "
             "image '%s' needs to be pulled first.",
@@ -288,6 +289,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 auto_remove=True,
                 volumes=volumes,
                 stream=True,
+                entrypoint="",
                 user=f"{os.geteuid()}:{os.getgid()}",
             )
         except RequestsConnectionError as e:
@@ -325,3 +327,4 @@ class Python36LanguagePlugin(LanguagePlugin):
 class Python37LanguagePlugin(Python36LanguagePlugin):
     NAME = "python37"
     RUNTIME = "python3.7"
+    DOCKER_TAG = 3.7
