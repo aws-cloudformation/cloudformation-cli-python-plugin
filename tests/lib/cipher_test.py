@@ -17,7 +17,7 @@ def test_create_kms_cipher():
     with patch(
         "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.StrictAwsKmsMasterKeyProvider",
         autospec=True,
-    ):
+    ), patch("boto3.client", autospec=True):
         cipher = KmsCipher("encryptionKeyArn", "encryptionKeyRole")
     assert cipher
 
@@ -35,7 +35,9 @@ def test_decrypt_credentials_success():
         autospec=True,
     ), patch(
         "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.EncryptionSDKClient.decrypt"
-    ) as mock_decrypt:
+    ) as mock_decrypt, patch(
+        "boto3.client", autospec=True
+    ):
         mock_decrypt.return_value = (
             b'{"accessKeyId": "IASAYK835GAIFHAHEI23", "secretAccessKey": "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5poh2O0", "sessionToken": "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"}',  # noqa: B950
             Mock(),
@@ -56,7 +58,9 @@ def test_decrypt_credentials_fail():
         "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.EncryptionSDKClient.decrypt"
     ) as mock_decrypt, pytest.raises(
         _EncryptionError
-    ) as excinfo:
+    ) as excinfo, patch(
+        "boto3.client", autospec=True
+    ):
         mock_decrypt.side_effect = AWSEncryptionSDKClientError()
         cipher = KmsCipher("encryptionKeyArn", "encryptionKeyRole")
         cipher.decrypt_credentials(
@@ -73,7 +77,9 @@ def test_decrypt_credentials_returns_null_fail():
         "cloudformation_cli_python_lib.cipher.aws_encryption_sdk.EncryptionSDKClient.decrypt"
     ) as mock_decrypt, pytest.raises(
         _EncryptionError
-    ) as excinfo:
+    ) as excinfo, patch(
+        "boto3.client", autospec=True
+    ):
         mock_decrypt.return_value = (
             b"null",
             Mock(),
