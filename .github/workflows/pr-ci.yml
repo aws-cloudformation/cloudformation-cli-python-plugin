@@ -25,7 +25,7 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install dependencies
       run: |
-        pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
+        pip install --upgrade mypy bandit 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
     - name: Install both plugin and support lib
       run: |
         pip install . src/
