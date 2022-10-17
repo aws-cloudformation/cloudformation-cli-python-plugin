@@ -3,7 +3,6 @@
 from datetime import datetime
 from unittest.mock import Mock, call, patch
 
-import boto3
 import pytest
 from cloudformation_cli_python_lib.interface import (
     Action,
@@ -18,7 +17,13 @@ from cloudformation_cli_python_lib.metrics import (
     format_dimensions,
 )
 
-from botocore.stub import Stubber  # pylint: disable=C0411
+import botocore.errorfactory
+import botocore.session
+
+cloudwatch_model = botocore.session.get_session().get_service_model("cloudwatch")
+factory = botocore.errorfactory.ClientExceptionsFactory()
+cloudwatch_exceptions = factory.create_client_exceptions(cloudwatch_model)
+
 
 ACCOUNT_ID = "123456789012"
 RESOURCE_TYPE = "Aa::Bb::Cc"
@@ -42,11 +47,16 @@ def test_format_dimensions():
 
 
 def test_put_metric_catches_error(mock_session):
-    client = boto3.client("cloudwatch")
-    stubber = Stubber(client)
-
-    stubber.add_client_error("put_metric_data", "InternalServiceError")
-    stubber.activate()
+    client = mock_session.client("cloudwatch")
+    client.exceptions = cloudwatch_exceptions
+    mock_put = client.put_metric_data
+    mock_put.return_value = {}
+    mock_put.side_effect = [
+        cloudwatch_exceptions.InternalServiceFault(
+            {"Error": {"Code": "InternalServiceError", "Message": ""}},
+            operation_name="PutMetricData",
+        ),
+    ]
 
     mock_session.client.return_value = client
 
@@ -67,7 +77,6 @@ def test_put_metric_catches_error(mock_session):
             datetime.now(),
         )
 
-    stubber.deactivate()
     expected_calls = [
         call.error(
             "An error occurred while publishing metrics: %s",
@@ -197,11 +206,16 @@ def test_publish_log_delivery_exception_metric(mock_session):
 
 
 def test_put_hook_metric_catches_error(mock_session):
-    client = boto3.client("cloudwatch")
-    stubber = Stubber(client)
-
-    stubber.add_client_error("put_metric_data", "InternalServiceError")
-    stubber.activate()
+    client = mock_session.client("cloudwatch")
+    client.exceptions = cloudwatch_exceptions
+    mock_put = client.put_metric_data
+    mock_put.return_value = {}
+    mock_put.side_effect = [
+        cloudwatch_exceptions.InternalServiceFault(
+            {"Error": {"Code": "InternalServiceError", "Message": ""}},
+            operation_name="PutMetricData",
+        ),
+    ]
 
     mock_session.client.return_value = client
 
@@ -222,7 +236,6 @@ def test_put_hook_metric_catches_error(mock_session):
             datetime.now(),
         )
 
-    stubber.deactivate()
     expected_calls = [
         call.error(
             "An error occurred while publishing metrics: %s",

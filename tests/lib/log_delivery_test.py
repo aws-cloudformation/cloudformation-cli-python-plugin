@@ -4,8 +4,6 @@ from unittest.mock import DEFAULT, Mock, create_autospec, patch
 from uuid import uuid4
 
 import pytest
-from boto3.session import Session
-from cloudformation_cli_python_lib.boto3_proxy import SessionProxy
 from cloudformation_cli_python_lib.log_delivery import (
     HookProviderLogHandler,
     ProviderFilter,
@@ -17,6 +15,13 @@ from cloudformation_cli_python_lib.utils import (
     HookRequestData,
     RequestData,
 )
+
+import botocore.errorfactory
+import botocore.session
+
+logs_model = botocore.session.get_session().get_service_model("logs")
+factory = botocore.errorfactory.ClientExceptionsFactory()
+logs_exceptions = factory.create_client_exceptions(logs_model)
 
 
 @pytest.fixture
@@ -100,38 +105,36 @@ def mock_handler_set_formatter():
 
 
 @pytest.fixture
-def mock_provider_handler():
+def mock_provider_handler(mock_session):
     plh = ProviderLogHandler(
         group="test-group",
         stream="test-stream",
-        session=SessionProxy(
-            Session(
-                aws_access_key_id="", aws_secret_access_key="", aws_session_token=""
-            )
-        ),
+        session=mock_session,
     )
     # not mocking the whole client because that replaces generated exception classes to
     # be replaced with mocks
     for method in ["create_log_group", "create_log_stream", "put_log_events"]:
         setattr(plh.client, method, Mock(auto_spec=True))
+
+    # set exceptions instead of using Mock
+    plh.client.exceptions = logs_exceptions
     return plh
 
 
 @pytest.fixture
-def mock_hook_provider_handler():
+def mock_hook_provider_handler(mock_session):
     plh = HookProviderLogHandler(
         group="test-hook-group",
         stream="test-hook-stream",
-        session=SessionProxy(
-            Session(
-                aws_access_key_id="", aws_secret_access_key="", aws_session_token=""
-            )
-        ),
+        session=mock_session,
     )
     # not mocking the whole client because that replaces generated exception classes to
     # be replaced with mocks
     for method in ["create_log_group", "create_log_stream", "put_log_events"]:
         setattr(plh.client, method, Mock(auto_spec=True))
+
+    # set exceptions instead of using Mock
+    plh.client.exceptions = logs_exceptions
     return plh
 
 
@@ -286,12 +289,11 @@ def test__put_log_event_success(mock_provider_handler, sequence_token):
 
 
 def test__put_log_event_invalid_token(mock_provider_handler):
-    exc = mock_provider_handler.client.exceptions
     mock_put = mock_provider_handler.client.put_log_events
     mock_put.return_value = {"nextSequenceToken": "some-other-seq"}
     mock_put.side_effect = [
-        exc.InvalidSequenceTokenException({}, operation_name="Test"),
-        exc.DataAlreadyAcceptedException({}, operation_name="Test"),
+        logs_exceptions.InvalidSequenceTokenException({}, operation_name="Test"),
+        logs_exceptions.DataAlreadyAcceptedException({}, operation_name="Test"),
         DEFAULT,
     ]
     mock_provider_handler._put_log_event(
@@ -309,8 +311,7 @@ def test_emit_existing_cwl_group_stream(mock_provider_handler):
 
 
 def test_emit_no_group_stream(mock_provider_handler):
-    exc = mock_provider_handler.client.exceptions.ResourceNotFoundException
-    group_exc = exc(
+    group_exc = logs_exceptions.ResourceNotFoundException(
         {"Error": {"Message": "log group does not exist"}},
         operation_name="PutLogRecords",
     )
@@ -326,7 +327,7 @@ def test_emit_no_group_stream(mock_provider_handler):
     mock_provider_handler._create_log_stream.assert_called_once()
 
     # create_group should not be called again if the group already exists
-    stream_exc = exc(
+    stream_exc = logs_exceptions.ResourceNotFoundException(
         {"Error": {"Message": "log stream does not exist"}},
         operation_name="PutLogRecords",
     )
@@ -474,8 +475,9 @@ def test_hook_log_stream_create_success(mock_hook_provider_handler):
 @pytest.mark.parametrize("create_method", ["_create_log_group", "_create_log_stream"])
 def test__hook_create_already_exists(mock_hook_provider_handler, create_method):
     mock_logs_method = getattr(mock_hook_provider_handler.client, create_method[1:])
-    exc = mock_hook_provider_handler.client.exceptions.ResourceAlreadyExistsException
-    mock_logs_method.side_effect = exc({}, operation_name="Test")
+    mock_logs_method.side_effect = logs_exceptions.ResourceAlreadyExistsException(
+        {}, operation_name="Test"
+    )
     # should not raise an exception if the log group already exists
     getattr(mock_hook_provider_handler, create_method)()
     mock_logs_method.assert_called_once()
@@ -493,12 +495,11 @@ def test__hook_put_log_event_success(mock_hook_provider_handler, sequence_token)
 
 
 def test__hook_put_log_event_invalid_token(mock_hook_provider_handler):
-    exc = mock_hook_provider_handler.client.exceptions
     mock_put = mock_hook_provider_handler.client.put_log_events
     mock_put.return_value = {"nextSequenceToken": "some-other-seq"}
     mock_put.side_effect = [
-        exc.InvalidSequenceTokenException({}, operation_name="Test"),
-        exc.DataAlreadyAcceptedException({}, operation_name="Test"),
+        logs_exceptions.InvalidSequenceTokenException({}, operation_name="Test"),
+        logs_exceptions.DataAlreadyAcceptedException({}, operation_name="Test"),
         DEFAULT,
     ]
     mock_hook_provider_handler._put_log_event(
@@ -516,8 +517,7 @@ def test_hook_emit_existing_cwl_group_stream(mock_hook_provider_handler):
 
 
 def test_hook_emit_no_group_stream(mock_hook_provider_handler):
-    exc = mock_hook_provider_handler.client.exceptions.ResourceNotFoundException
-    group_exc = exc(
+    group_exc = logs_exceptions.ResourceNotFoundException(
         {"Error": {"Message": "log group does not exist"}},
         operation_name="PutLogRecords",
     )
@@ -533,7 +533,7 @@ def test_hook_emit_no_group_stream(mock_hook_provider_handler):
     mock_hook_provider_handler._create_log_stream.assert_called_once()
 
     # create_group should not be called again if the group already exists
-    stream_exc = exc(
+    stream_exc = logs_exceptions.ResourceNotFoundException(
         {"Error": {"Message": "log stream does not exist"}},
         operation_name="PutLogRecords",
     )
