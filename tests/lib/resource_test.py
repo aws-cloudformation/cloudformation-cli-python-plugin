@@ -1,7 +1,5 @@
 # pylint: disable=redefined-outer-name,protected-access
 from dataclasses import dataclass
-from datetime import datetime
-from unittest.mock import Mock, call, patch, sentinel
 
 import pytest
 from cloudformation_cli_python_lib.exceptions import InternalFailure, InvalidRequest
@@ -14,6 +12,9 @@ from cloudformation_cli_python_lib.interface import (
 )
 from cloudformation_cli_python_lib.resource import Resource, _ensure_serialize
 from cloudformation_cli_python_lib.utils import Credentials, HandlerRequest
+
+from datetime import datetime
+from unittest.mock import Mock, call, patch, sentinel
 
 ENTRYPOINT_PAYLOAD = {
     "awsAccountId": "123456789012",

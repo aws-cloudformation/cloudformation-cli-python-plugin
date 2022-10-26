@@ -1,12 +1,10 @@
-import base64
-import json
-import uuid
-from typing import Optional
-
 # boto3, botocore, aws_encryption_sdk don't have stub files
 import boto3  # type: ignore
 
 import aws_encryption_sdk  # type: ignore
+import base64
+import json
+import uuid
 from aws_encryption_sdk.exceptions import AWSEncryptionSDKClientError  # type: ignore
 from aws_encryption_sdk.identifiers import CommitmentPolicy  # type: ignore
 from botocore.client import BaseClient  # type: ignore
@@ -16,6 +14,7 @@ from botocore.credentials import (  # type: ignore
     create_assume_role_refresher,
 )
 from botocore.session import Session, get_session  # type: ignore
+from typing import Optional
 
 from .exceptions import _EncryptionError
 from .utils import Credentials

@@ -1,8 +1,5 @@
 # pylint: disable=redefined-outer-name,protected-access,line-too-long
-import json
 from dataclasses import dataclass
-from datetime import datetime
-from unittest.mock import Mock, call, patch, sentinel
 
 import pytest
 from cloudformation_cli_python_lib import Hook
@@ -22,6 +19,10 @@ from cloudformation_cli_python_lib.interface import (
     ProgressEvent,
 )
 from cloudformation_cli_python_lib.utils import Credentials, HookInvocationRequest
+
+import json
+from datetime import datetime
+from unittest.mock import Mock, call, patch, sentinel
 
 ENTRYPOINT_PAYLOAD = {
     "awsAccountId": "123456789012",

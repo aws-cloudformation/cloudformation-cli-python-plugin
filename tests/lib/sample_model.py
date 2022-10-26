@@ -2,8 +2,16 @@
 # happening as expected
 # pylint: disable=invalid-name, too-many-instance-attributes, protected-access, abstract-method
 
-import sys
 from dataclasses import dataclass
+
+from cloudformation_cli_python_lib.interface import (
+    BaseModel,
+    BaseResourceHandlerRequest,
+)
+from cloudformation_cli_python_lib.recast import recast_object
+from cloudformation_cli_python_lib.utils import deserialize_list
+
+import sys
 from inspect import getmembers, isclass
 from typing import (
     AbstractSet,
@@ -15,13 +23,6 @@ from typing import (
     Type,
     TypeVar,
 )
-
-from cloudformation_cli_python_lib.interface import (
-    BaseModel,
-    BaseResourceHandlerRequest,
-)
-from cloudformation_cli_python_lib.recast import recast_object
-from cloudformation_cli_python_lib.utils import deserialize_list
 
 T = TypeVar("T")
 

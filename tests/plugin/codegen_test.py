@@ -1,16 +1,10 @@
 # pylint: disable=redefined-outer-name,protected-access
-import ast
-import importlib.util
-from pathlib import Path
-from shutil import copyfile
-from subprocess import CalledProcessError
-from unittest.mock import ANY, patch, sentinel
-from uuid import uuid4
-from zipfile import ZipFile
-
 import pytest
 
+import ast
+import importlib.util
 from docker.errors import APIError, ContainerError, ImageLoadError
+from pathlib import Path
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.exceptions import DownstreamError
 from rpdk.core.project import Project
@@ -21,6 +15,11 @@ from rpdk.python.codegen import (
     Python36LanguagePlugin as PythonLanguagePlugin,
     validate_no,
 )
+from shutil import copyfile
+from subprocess import CalledProcessError
+from unittest.mock import ANY, patch, sentinel
+from uuid import uuid4
+from zipfile import ZipFile
 
 TYPE_NAME = "foo::bar::baz"
 

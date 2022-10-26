@@ -1,8 +1,4 @@
 # pylint: disable=redefined-outer-name,protected-access
-import logging
-from unittest.mock import DEFAULT, Mock, create_autospec, patch
-from uuid import uuid4
-
 import pytest
 from cloudformation_cli_python_lib.log_delivery import (
     HookProviderLogHandler,
@@ -18,6 +14,9 @@ from cloudformation_cli_python_lib.utils import (
 
 import botocore.errorfactory
 import botocore.session
+import logging
+from unittest.mock import DEFAULT, Mock, create_autospec, patch
+from uuid import uuid4
 
 logs_model = botocore.session.get_session().get_service_model("logs")
 factory = botocore.errorfactory.ClientExceptionsFactory()

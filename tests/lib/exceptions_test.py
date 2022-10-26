@@ -1,8 +1,8 @@
-import importlib
-import inspect
-
 import pytest
 from cloudformation_cli_python_lib.interface import HandlerErrorCode, OperationStatus
+
+import importlib
+import inspect
 
 
 def get_public_exceptions(module_name="cloudformation_cli_python_lib.exceptions"):
