@@ -15,7 +15,7 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
     runs-on: ubuntu-latest
     strategy:
-      fail_fast: false
+      fail-fast: false
       matrix:
         python: [3.6, 3.7, 3.8]
     steps:
