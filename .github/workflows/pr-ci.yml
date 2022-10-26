@@ -5,7 +5,7 @@ name: CloudFormation Python Plugin CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ integrated/oseuid ]
   pull_request:
     branches: [ master ]
 
@@ -15,8 +15,9 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
     runs-on: ubuntu-latest
     strategy:
+      fail_fast: false
       matrix:
-        python: [3.7, 3.8]
+        python: [3.6, 3.7, 3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python }}
