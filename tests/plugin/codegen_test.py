@@ -430,7 +430,7 @@ def test__build_docker_no_euid(plugin):
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
     patch_os_geteuid = patch("os.geteuid", autospec=True)
 
-    with patch_pip as mock_pip, patch_from_env as mock_from_env, patch_os_geteuid as mock_patch_os_geteuid: # noqa: B950 
+    with patch_pip as mock_pip, patch_from_env as mock_from_env, patch_os_geteuid as mock_patch_os_geteuid:  # noqa: B950 pylint: disable=line-too-long
         mock_run = mock_from_env.return_value.containers.run
         mock_patch_os_geteuid.side_effect = AttributeError()
         plugin._build(sentinel.base_path)
