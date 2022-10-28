@@ -284,13 +284,13 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         # Get current user ID:Group ID
         try:
-            localuser=f"{os.geteuid()}:{os.getgid()}"
+            localuser = f"{os.geteuid()}:{os.getgid()}"
         # If OS doesn't support UID/GID default to root:root for docker container
+        # This is the case on Windows and Docker for Windows has safeguards
+        # https://docs.docker.com/desktop/windows/permission-requirements/#containers-running-as-root-within-the-linux-vm
         except AttributeError:
-            localuser="root:root"
-            LOG.debug(
-                "User ID / Group ID not found.  Using root:root for docker build"
-            )
+            localuser = "root:root"
+            LOG.debug("User ID / Group ID not found.  Using root:root for docker build")
 
         try:
             logs = docker_client.containers.run(
