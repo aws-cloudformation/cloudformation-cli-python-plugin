@@ -423,6 +423,30 @@ def test__build_docker(plugin):
     mock_docker.assert_called_once_with(sentinel.base_path)
 
 
+def test__build_docker_no_euid(plugin):
+    plugin._use_docker = True
+
+    patch_pip = patch.object(plugin, "_pip_build", autospec=True)
+    patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
+    patch_os_geteuid = patch("os.geteuid", autospec=True)
+
+    with patch_pip as mock_pip, patch_from_env as mock_from_env, patch_os_geteuid as mock_patch_os_geteuid:
+        mock_run = mock_from_env.return_value.containers.run
+        mock_patch_os_geteuid.side_effect = AttributeError()
+        plugin._build(sentinel.base_path)
+
+    mock_pip.assert_not_called()
+    mock_run.assert_called_once_with(
+        image=ANY,
+        command=ANY,
+        auto_remove=True,
+        volumes={str(sentinel.base_path): {"bind": "/project", "mode": "rw"}},
+        stream=True,
+        entrypoint="",
+        user="root:root",
+    )
+
+
 def test__docker_build_good_path(plugin, tmp_path):
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
 

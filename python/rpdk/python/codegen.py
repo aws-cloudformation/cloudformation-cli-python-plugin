@@ -303,7 +303,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 volumes=volumes,
                 stream=True,
                 entrypoint="",
-                user=localuser
+                user=localuser,
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from
