@@ -282,13 +282,13 @@ class Python36LanguagePlugin(LanguagePlugin):
         )
         docker_client = docker.from_env()
 
-        # Docker will mount the path specified in the volumes variable inside the container
+        # Docker will mount the path specified in the volumes variable in the container
         # and pip will place all the dependent packages inside the volumes/build path.
         # codegen will need access to this directory during package()
-        # Try to get current effective user ID and Group ID.  Only works on UNIX like systems
+        # Try to get current effective user ID and Group ID. Valid on UNIX-like systems
         try:
             localuser = f"{os.geteuid()}:{os.getgid()}"
-        # If OS doesn't support UID/GID like Windows, default to root:root for docker container
+        # default to root:root for docker container if geteuid not supported
         # https://docs.docker.com/desktop/windows/permission-requirements/#containers-running-as-root-within-the-linux-vm
         except AttributeError:
             localuser = "root:root"
