@@ -281,6 +281,17 @@ class Python36LanguagePlugin(LanguagePlugin):
             image,
         )
         docker_client = docker.from_env()
+
+        # Get current user ID:Group ID
+        try:
+            localuser=f"{os.geteuid()}:{os.getgid()}"
+        # If OS doesn't support UID/GID default to root:root for docker container
+        except AttributeError:
+            localuser="root:root"
+            LOG.debug(
+                "User ID / Group ID not found.  Using root:root for docker build"
+            )
+
         try:
             logs = docker_client.containers.run(
                 image=image,
@@ -289,7 +300,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 volumes=volumes,
                 stream=True,
                 entrypoint="",
-                user=f"{os.geteuid()}:{os.getgid()}",
+                user=localuser,
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from
