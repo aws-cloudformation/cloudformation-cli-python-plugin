@@ -281,6 +281,19 @@ class Python36LanguagePlugin(LanguagePlugin):
             "image '%s' needs to be pulled first.",
             image,
         )
+
+        # Docker will mount the path specified in the volumes variable in the container
+        # and pip will place all the dependent packages inside the volumes/build path.
+        # codegen will need access to this directory during package()
+        # Try to get current effective user ID and Group ID. Valid on UNIX-like systems
+        try:
+            localuser = f"{os.geteuid()}:{os.getgid()}"
+        # default to root:root for docker container if geteuid not supported
+        # https://docs.docker.com/desktop/windows/permission-requirements/#containers-running-as-root-within-the-linux-vm
+        except AttributeError:
+            localuser = "root:root"
+            LOG.debug("User ID / Group ID not found.  Using root:root for docker build")
+
         docker_client = docker.from_env()
         try:
             logs = docker_client.containers.run(
@@ -290,7 +303,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 volumes=volumes,
                 stream=True,
                 entrypoint="",
-                user=f"{os.geteuid()}:{os.getgid()}",
+                user=localuser
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from
