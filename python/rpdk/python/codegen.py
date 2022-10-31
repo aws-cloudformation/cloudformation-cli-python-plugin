@@ -282,8 +282,13 @@ class Python36LanguagePlugin(LanguagePlugin):
     @classmethod
     def _docker_build(cls, external_path):
         internal_path = PurePosixPath("/project")
-        command = '/bin/bash -c "' + ' '.join(_update_pip_command()) + ' && ' + \
-            ' '.join(_make_pip_command(internal_path)) + '"'
+        command = (
+            '/bin/bash -c "'
+            + " ".join(cls._update_pip_command())
+            + " && "
+            + " ".join(cls._make_pip_command(internal_path))
+            + '"'
+        )
         LOG.debug("command is '%s'", command)
 
         volumes = {str(external_path): {"bind": str(internal_path), "mode": "rw"}}
