@@ -302,14 +302,22 @@ class Python36LanguagePlugin(LanguagePlugin):
         # Docker will mount the path specified in the volumes variable in the container
         # and pip will place all the dependent packages inside the volumes/build path.
         # codegen will need access to this directory during package()
-        # Try to get current effective user ID and Group ID. Valid on UNIX-like systems
         try:
-            localuser = f"{os.geteuid()}:{os.getgid()}"
-        # default to root:root for docker container if geteuid not supported
-        # https://docs.docker.com/desktop/windows/permission-requirements/#containers-running-as-root-within-the-linux-vm
+            # Use root:root for euid:group when on Windows
+            # https://docs.docker.com/desktop/windows/permission-requirements/#containers-running-as-root-within-the-linux-vm
+            if os.name == "nt":
+                localuser = "root:root"
+            # Try to get current effective user ID and Group ID.
+            # Only valid on UNIX-like systems
+            else:
+                localuser = f"{os.geteuid()}:{os.getgid()}"
+        # Catch exception if geteuid failed on non-Windows system
+        # and default to root:root
         except AttributeError:
             localuser = "root:root"
-            LOG.debug("User ID / Group ID not found.  Using root:root for docker build")
+            LOG.warning(
+                "User ID / Group ID not found.  Using root:root for docker build"
+            )
 
         docker_client = docker.from_env()
         try:
