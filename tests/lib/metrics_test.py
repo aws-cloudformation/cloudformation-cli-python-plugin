@@ -1,8 +1,5 @@
 # auto enums `.name` causes no-member
 # pylint: disable=redefined-outer-name,no-member,protected-access
-from datetime import datetime
-from unittest.mock import Mock, call, patch
-
 import pytest
 from cloudformation_cli_python_lib.interface import (
     Action,
@@ -19,6 +16,8 @@ from cloudformation_cli_python_lib.metrics import (
 
 import botocore.errorfactory
 import botocore.session
+from datetime import datetime
+from unittest.mock import Mock, call, patch
 
 cloudwatch_model = botocore.session.get_session().get_service_model("cloudwatch")
 factory = botocore.errorfactory.ClientExceptionsFactory()
@@ -67,7 +66,7 @@ def test_put_metric_catches_error(mock_session):
     }
 
     with patch(
-        "cloudformation_cli_python_lib.metrics.LOG", auto_spec=True
+        "cloudformation_cli_python_lib.metrics.LOG", autospec=True
     ) as mock_logger:
         publisher.publish_metric(
             MetricTypes.HandlerInvocationCount,
@@ -226,7 +225,7 @@ def test_put_hook_metric_catches_error(mock_session):
     }
 
     with patch(
-        "cloudformation_cli_python_lib.metrics.LOG", auto_spec=True
+        "cloudformation_cli_python_lib.metrics.LOG", autospec=True
     ) as mock_logger:
         publisher.publish_metric(
             MetricTypes.HandlerInvocationCount,

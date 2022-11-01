@@ -1,7 +1,4 @@
 # pylint: disable=protected-access
-import json
-from unittest.mock import Mock, call, sentinel
-
 import pytest
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.interface import BaseModel
@@ -13,7 +10,9 @@ from cloudformation_cli_python_lib.utils import (
 )
 
 import hypothesis.strategies as s  # pylint: disable=C0411
+import json
 from hypothesis import given  # pylint: disable=C0411
+from unittest.mock import Mock, call, sentinel
 
 
 def roundtrip(value):

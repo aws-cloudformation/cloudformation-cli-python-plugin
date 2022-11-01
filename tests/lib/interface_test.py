@@ -1,7 +1,5 @@
 # pylint: disable=protected-access,redefined-outer-name,abstract-method
-import json
 from dataclasses import dataclass
-from string import ascii_letters
 
 import boto3
 import pytest
@@ -15,7 +13,9 @@ from cloudformation_cli_python_lib.interface import (
 )
 
 import hypothesis.strategies as s  # pylint: disable=C0411
+import json
 from hypothesis import given  # pylint: disable=C0411
+from string import ascii_letters
 
 
 @pytest.fixture(scope="module")

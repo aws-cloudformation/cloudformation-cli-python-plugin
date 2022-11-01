@@ -24,7 +24,7 @@ class ProviderLogHandler(logging.Handler):
         self.group = group
         self.stream = stream.replace(":", "__")
         self.client = session.client("logs")
-        self.sequence_token = ""
+        self.sequence_token = ""  # nosec
 
     @classmethod
     def _get_existing_logger(cls) -> Optional["ProviderLogHandler"]:

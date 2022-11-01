@@ -1,5 +1,4 @@
 import argparse
-
 from rpdk.python.parser import setup_subparser_python36, setup_subparser_python37
 
 

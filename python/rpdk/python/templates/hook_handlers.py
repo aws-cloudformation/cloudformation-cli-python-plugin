@@ -1,6 +1,5 @@
 import logging
 from typing import Any, MutableMapping, Optional
-
 from {{support_lib_pkg}} import (
     BaseHookHandlerRequest,
     HandlerErrorCode,
