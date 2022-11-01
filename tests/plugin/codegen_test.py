@@ -421,6 +421,7 @@ def test__build_docker(plugin):
     mock_pip.assert_not_called()
     mock_docker.assert_called_once_with(sentinel.base_path)
 
+
 @patch("os.geteuid", side_effect=Exception(AttributeError))
 def test__build_docker_no_euid(plugin):
     plugin._use_docker = True
@@ -429,7 +430,7 @@ def test__build_docker_no_euid(plugin):
     patch_docker = patch.object(plugin, "_docker_build", autospec=True)
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
 
-    with patch_docker as mock_docker, patch_pip as mock_pip, patch_from_env as mock_from_env:
+    with patch_docker as mock_docker, patch_pip as mock_pip, patch_from_env as mock_from_env:  # noqa: B950 pylint: disable=line-too-long
         plugin._build(sentinel.base_path)
 
     mock_pip.assert_not_called()
@@ -443,6 +444,7 @@ def test__build_docker_no_euid(plugin):
         entrypoint="",
         user="root:root",
     )
+
 
 def test__docker_build_good_path(plugin, tmp_path):
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
