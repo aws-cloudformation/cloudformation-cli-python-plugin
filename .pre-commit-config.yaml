@@ -74,7 +74,7 @@ repos:
     description: Run pytest in the local virtualenv
     entry: >
       pytest
-      --cov-report=term
+      --cov-report=term-missing
       --cov-report=html
       --cov="rpdk.python"
       --cov="cloudformation_cli_python_lib"
