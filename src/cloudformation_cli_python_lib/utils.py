@@ -1,6 +1,7 @@
 # pylint: disable=invalid-name
-import json
 from dataclasses import dataclass, field, fields
+
+import json
 from datetime import date, datetime, time
 from typing import (
     Any,

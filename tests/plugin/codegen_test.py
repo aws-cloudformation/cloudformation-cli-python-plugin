@@ -1,16 +1,10 @@
 # pylint: disable=redefined-outer-name,protected-access
-import ast
-import importlib.util
-from pathlib import Path
-from shutil import copyfile
-from subprocess import CalledProcessError
-from unittest.mock import ANY, patch, sentinel
-from uuid import uuid4
-from zipfile import ZipFile
-
 import pytest
 
+import ast
+import importlib.util
 from docker.errors import APIError, ContainerError, ImageLoadError
+from pathlib import Path
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.exceptions import DownstreamError
 from rpdk.core.project import Project
@@ -21,6 +15,11 @@ from rpdk.python.codegen import (
     Python36LanguagePlugin as PythonLanguagePlugin,
     validate_no,
 )
+from shutil import copyfile
+from subprocess import CalledProcessError
+from unittest.mock import ANY, patch, sentinel
+from uuid import uuid4
+from zipfile import ZipFile
 
 TYPE_NAME = "foo::bar::baz"
 
@@ -478,6 +477,7 @@ def test__build_docker_no_euid(plugin):
     plugin._use_docker = True
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
+
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
     patch_os_geteuid = patch("os.geteuid", autospec=True)
 
@@ -488,6 +488,7 @@ def test__build_docker_no_euid(plugin):
 
     mock_pip.assert_not_called()
     mock_run.assert_called_once_with(
+
         image=ANY,
         command=ANY,
         auto_remove=True,

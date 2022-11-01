@@ -1,8 +1,7 @@
 import datetime
 import logging
-from typing import Any, List, Mapping, Optional, Union
-
 from botocore.exceptions import ClientError  # type: ignore
+from typing import Any, List, Mapping, Optional, Union
 
 from .boto3_proxy import SessionProxy
 from .interface import Action, HookInvocationPoint, MetricTypes, StandardUnit

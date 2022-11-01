@@ -1,12 +1,11 @@
 # pylint: disable=wrong-import-order,line-too-long
-from unittest.mock import Mock, patch
-
 import pytest
 from cloudformation_cli_python_lib.cipher import KmsCipher
 from cloudformation_cli_python_lib.exceptions import _EncryptionError
 from cloudformation_cli_python_lib.utils import Credentials
 
 from aws_encryption_sdk.exceptions import AWSEncryptionSDKClientError
+from unittest.mock import Mock, patch
 
 
 def mock_session():

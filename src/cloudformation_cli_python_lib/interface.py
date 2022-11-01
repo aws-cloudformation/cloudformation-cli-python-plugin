@@ -1,6 +1,7 @@
 # pylint: disable=invalid-name
-import logging
 from dataclasses import dataclass
+
+import logging
 from enum import Enum, auto
 from typing import Any, List, Mapping, MutableMapping, Optional, Type
 

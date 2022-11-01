@@ -2,7 +2,6 @@
 """Python 3.6 and 3.7 language support for the CloudFormation CLI"""
 import os.path
 import re
-
 from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))

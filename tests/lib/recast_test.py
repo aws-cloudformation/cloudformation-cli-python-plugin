@@ -1,7 +1,4 @@
 # pylint: disable=protected-access
-from typing import Awaitable, Generic, Optional, Union
-from unittest.mock import patch
-
 import pytest
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.recast import (
@@ -11,6 +8,9 @@ from cloudformation_cli_python_lib.recast import (
     get_forward_ref_type,
     recast_object,
 )
+
+from typing import Awaitable, Generic, Optional, Union
+from unittest.mock import patch
 
 from .sample_model import ResourceModel as ComplexResourceModel, SimpleResourceModel
 

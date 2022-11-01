@@ -1,14 +1,10 @@
+import docker
 import logging
 import os
 import shutil
 import zipfile
-from pathlib import PurePosixPath
-from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
-from tempfile import TemporaryFile
-from typing import Dict
-
-import docker
 from docker.errors import APIError, ContainerError, ImageLoadError
+from pathlib import PurePosixPath
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import DownstreamError, SysExitRecommendedError
@@ -16,6 +12,9 @@ from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import ContainerType, resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import ARTIFACT_TYPE_HOOK
+from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
+from tempfile import TemporaryFile
+from typing import Dict
 
 from . import __version__
 from .resolver import contains_model, translate_type
@@ -318,6 +317,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             LOG.warning(
                 "User ID / Group ID not found.  Using root:root for docker build"
             )
+
 
         docker_client = docker.from_env()
         try:
