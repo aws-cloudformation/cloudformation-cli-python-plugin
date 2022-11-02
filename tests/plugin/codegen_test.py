@@ -478,12 +478,15 @@ def test__build_docker_no_euid(plugin):
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
-    patch_os_geteuid = patch("os.geteuid", autospec=True)
+    # os.geteuid does not exist on Windows so we can not autospec os
+    patch_os = patch("rpdk.python.codegen.os")
+    patch_os_name = patch("rpdk.python.codegen.os.name", "posix")
 
-    with patch_pip as mock_pip, patch_from_env as mock_from_env, patch_os_geteuid as mock_patch_os_geteuid:  # noqa: B950 pylint: disable=line-too-long
+    with patch_pip as mock_pip, patch_from_env as mock_from_env, patch_os as mock_patch_os:  # noqa: B950 pylint: disable=line-too-long
         mock_run = mock_from_env.return_value.containers.run
-        mock_patch_os_geteuid.side_effect = AttributeError()
-        plugin._build(sentinel.base_path)
+        mock_patch_os.geteuid.side_effect = AttributeError()
+        with patch_os_name:
+            plugin._build(sentinel.base_path)
 
     mock_pip.assert_not_called()
     mock_run.assert_called_once_with(
