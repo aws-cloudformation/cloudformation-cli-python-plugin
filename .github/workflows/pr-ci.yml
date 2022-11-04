@@ -20,12 +20,17 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        cache: pip
     - name: Install dependencies
       run: |
         pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
     - name: Install both plugin and support lib
       run: |
         pip install . src/
+    - uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit/
+        key: ${{ matrix.os }}-${{ env.pythonLocation }}${{ hashFiles('.pre-commit-config.yaml') }}
     - name: pre-commit checks
       run: |
         pre-commit run --all-files
