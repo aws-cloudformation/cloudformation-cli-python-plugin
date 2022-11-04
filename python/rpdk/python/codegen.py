@@ -235,9 +235,9 @@ class Python36LanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _remove_build_artifacts(deps_path):
-        try:
+        if os.path.exists(deps_path):
             shutil.rmtree(deps_path)
-        except FileNotFoundError:
+        else:
             LOG.debug("'%s' not found, skipping removal", deps_path, exc_info=True)
 
     def _build(self, base_path):
