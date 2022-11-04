@@ -7,13 +7,18 @@ on: [push, pull_request]
 
 jobs:
   build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [ 3.6, 3.7, 3.8 ]
+  os_build:
     env:
       AWS_DEFAULT_REGION: us-east-1
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python: [ 3.6, 3.7, 3.8, 3.9 ]
         os: [ubuntu-latest, macos-latest, windows-latest]
+        python: [ 3.6, 3.7, 3.8, 3.9 ]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python }}
