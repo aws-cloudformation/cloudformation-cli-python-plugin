@@ -434,7 +434,7 @@ def test__docker_build_good_path(plugin, tmp_path):
     mock_run.assert_called_once_with(
         image=ANY,
         command=ANY,
-        auto_remove=True,
+        remove=True,
         volumes={str(tmp_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
@@ -476,7 +476,7 @@ def test__docker_build_bad_path(plugin, tmp_path, exception):
     mock_run.assert_called_once_with(
         image=ANY,
         command=ANY,
-        auto_remove=True,
+        remove=True,
         volumes={str(tmp_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
