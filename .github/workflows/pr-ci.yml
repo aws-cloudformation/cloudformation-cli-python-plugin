@@ -12,8 +12,10 @@ jobs:
       matrix:
         python: [ 3.6, 3.7, 3.8 ]
     steps:
-      - run: |
-          echo ${{ matrix python }}
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python }}
   os_build:
     env:
       AWS_DEFAULT_REGION: us-east-1
