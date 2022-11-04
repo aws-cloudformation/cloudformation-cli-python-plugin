@@ -249,6 +249,17 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Dependencies build finished")
 
     @staticmethod
+    def _update_pip_command():
+        return [
+            "python",
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+        ]
+
+    @staticmethod
     def _make_pip_command(base_path):
         return [
             "pip",
@@ -270,7 +281,13 @@ class Python36LanguagePlugin(LanguagePlugin):
     @classmethod
     def _docker_build(cls, external_path):
         internal_path = PurePosixPath("/project")
-        command = " ".join(cls._make_pip_command(internal_path))
+        command = (
+            '/bin/bash -c "'
+            + " ".join(cls._update_pip_command())
+            + " && "
+            + " ".join(cls._make_pip_command(internal_path))
+            + '"'
+        )
         LOG.debug("command is '%s'", command)
 
         volumes = {str(external_path): {"bind": str(internal_path), "mode": "rw"}}
@@ -280,6 +297,27 @@ class Python36LanguagePlugin(LanguagePlugin):
             "image '%s' needs to be pulled first.",
             image,
         )
+
+        # Docker will mount the path specified in the volumes variable in the container
+        # and pip will place all the dependent packages inside the volumes/build path.
+        # codegen will need access to this directory during package()
+        try:
+            # Use root:root for euid:group when on Windows
+            # https://docs.docker.com/desktop/windows/permission-requirements/#containers-running-as-root-within-the-linux-vm
+            if os.name == "nt":
+                localuser = "root:root"
+            # Try to get current effective user ID and Group ID.
+            # Only valid on UNIX-like systems
+            else:
+                localuser = f"{os.geteuid()}:{os.getgid()}"
+        # Catch exception if geteuid failed on non-Windows system
+        # and default to root:root
+        except AttributeError:
+            localuser = "root:root"
+            LOG.warning(
+                "User ID / Group ID not found.  Using root:root for docker build"
+            )
+
         docker_client = docker.from_env()
         try:
             logs = docker_client.containers.run(
@@ -289,7 +327,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 volumes=volumes,
                 stream=True,
                 entrypoint="",
-                user=f"{os.geteuid()}:{os.getgid()}",
+                user=localuser,
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from
