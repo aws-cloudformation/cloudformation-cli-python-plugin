@@ -3,32 +3,44 @@
 
 name: CloudFormation Python Plugin CI
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
   build:
-    env:
-      AWS_DEFAULT_REGION: us-east-1
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [3.6, 3.7, 3.8]
+        python: [ 3.6, 3.7, 3.8 ]
     steps:
-    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+  os_build:
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: [ 3.6, 3.7, 3.8, 3.9 ]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python }}
+        cache: pip
     - name: Install dependencies
       run: |
         pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
     - name: Install both plugin and support lib
       run: |
         pip install . src/
+    - uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit/
+        key: ${{ matrix.os }}-${{ env.pythonLocation }}${{ hashFiles('.pre-commit-config.yaml') }}
     - name: pre-commit checks
       run: |
         pre-commit run --all-files
