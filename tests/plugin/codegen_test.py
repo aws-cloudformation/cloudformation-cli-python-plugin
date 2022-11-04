@@ -3,6 +3,7 @@ import pytest
 
 import ast
 import importlib.util
+import os
 from docker.errors import APIError, ContainerError, ImageLoadError
 from pathlib import Path
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -318,7 +319,10 @@ def test_generate_resource_with_type_configuration(tmp_path):
         project.init(type_name, PythonLanguagePlugin.NAME)
 
     copyfile(
-        str(Path.cwd() / f"{os.path.join('tests', 'data', 'schema-with-typeconfiguration.json')}"),
+        str(
+            Path.cwd()
+            / f"{os.path.join('tests', 'data', 'schema-with-typeconfiguration.json')}"
+        ),
         str(project.root / "schema-with-typeconfiguration.json"),
     )
     project.type_info = ("schema", "with", "typeconfiguration")
