@@ -235,10 +235,8 @@ class Python36LanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _remove_build_artifacts(deps_path):
-        try:
-            shutil.rmtree(deps_path)
-        except FileNotFoundError:
-            LOG.debug("'%s' not found, skipping removal", deps_path, exc_info=True)
+        LOG.debug("Removing '%s' folder.", deps_path)
+        shutil.rmtree(deps_path, ignore_errors=True)
 
     def _build(self, base_path):
         LOG.debug("Dependencies build started from '%s'", base_path)
