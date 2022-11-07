@@ -247,17 +247,6 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("Dependencies build finished")
 
     @staticmethod
-    def _update_pip_command():
-        return [
-            "python",
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "pip",
-        ]
-
-    @staticmethod
     def _make_pip_command(base_path):
         return [
             "pip",
@@ -280,11 +269,7 @@ class Python36LanguagePlugin(LanguagePlugin):
     def _docker_build(cls, external_path):
         internal_path = PurePosixPath("/project")
         command = (
-            '/bin/bash -c "'
-            + " ".join(cls._update_pip_command())
-            + " && "
-            + " ".join(cls._make_pip_command(internal_path))
-            + '"'
+            '/bin/bash -c "' + " ".join(cls._make_pip_command(internal_path)) + '"'
         )
         LOG.debug("command is '%s'", command)
 
