@@ -313,7 +313,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             + " && "
             + " ".join(cls._make_pip_command(internal_path))
             + " && "
-            + f"chown -R {localuser}"
+            + f"chown -R {localuser} {internal_path}/build"
             + '"'
         )
         LOG.debug("command is '%s'", command)
