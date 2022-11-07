@@ -229,7 +229,7 @@ class Resource:
             print_or_log("Base exception caught (this is usually bad) {0}".format(e))
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
 
-        if progress.result:
+        if progress.result: # pragma: no cover
             progress.result = None
 
         # use the raw event_data as a last-ditch attempt to call back if the

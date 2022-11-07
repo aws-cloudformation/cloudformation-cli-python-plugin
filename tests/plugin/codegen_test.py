@@ -399,7 +399,7 @@ def test__pip_build_called_process_error(tmp_path):
 
     mock_cmd.assert_called_once_with(tmp_path)
 
-    assert isinstance(excinfo.value.__cause__, CalledProcessError)
+    assert isinstance(excinfo.value.__cause__, FileNotFoundError)
 
 
 def test__build_pip(plugin):
