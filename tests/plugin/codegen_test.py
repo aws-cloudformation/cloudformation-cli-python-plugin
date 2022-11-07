@@ -385,7 +385,8 @@ def test__pip_build_executable_not_found(tmp_path):
 
     mock_cmd.assert_called_once_with(tmp_path)
 
-    assert isinstance(excinfo.value.__cause__, FileNotFoundError)
+    # FileNotFoundError raised on Windows, CalledProcessError on POSIX systems
+    assert isinstance(excinfo.value.__cause__, (FileNotFoundError, CalledProcessError))
 
 
 def test__pip_build_called_process_error(tmp_path):
@@ -399,7 +400,8 @@ def test__pip_build_called_process_error(tmp_path):
 
     mock_cmd.assert_called_once_with(tmp_path)
 
-    assert isinstance(excinfo.value.__cause__, FileNotFoundError)
+    # FileNotFoundError raised on Windows, CalledProcessError on POSIX systems
+    assert isinstance(excinfo.value.__cause__, (FileNotFoundError, CalledProcessError))
 
 
 def test__build_pip(plugin):
