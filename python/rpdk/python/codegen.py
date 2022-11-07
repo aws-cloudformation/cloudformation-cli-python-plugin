@@ -279,15 +279,6 @@ class Python36LanguagePlugin(LanguagePlugin):
     @classmethod
     def _docker_build(cls, external_path):
         internal_path = PurePosixPath("/project")
-        command = (
-            '/bin/bash -c "'
-            + " ".join(cls._update_pip_command())
-            + " && "
-            + " ".join(cls._make_pip_command(internal_path))
-            + '"'
-        )
-        LOG.debug("command is '%s'", command)
-
         volumes = {str(external_path): {"bind": str(internal_path), "mode": "rw"}}
         image = f"public.ecr.aws/lambda/python:{cls.DOCKER_TAG}"
         LOG.warning(
@@ -316,6 +307,17 @@ class Python36LanguagePlugin(LanguagePlugin):
                 "User ID / Group ID not found.  Using root:root for docker build"
             )
 
+        command = (
+            '/bin/bash -c "'
+            + " ".join(cls._update_pip_command())
+            + " && "
+            + " ".join(cls._make_pip_command(internal_path))
+            + " && "
+            + f"chown -R {localuser}"
+            + '"'
+        )
+        LOG.debug("command is '%s'", command)
+
         docker_client = docker.from_env()
         try:
             logs = docker_client.containers.run(
@@ -325,7 +327,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 volumes=volumes,
                 stream=True,
                 entrypoint="",
-                user=localuser,
+                user="root:root",
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from

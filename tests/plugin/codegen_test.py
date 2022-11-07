@@ -443,7 +443,7 @@ def test__build_docker_posix(plugin):
         volumes={str(sentinel.base_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
-        user=ANY,
+        user="root:root",
     )
 
 
@@ -516,7 +516,7 @@ def test__docker_build_good_path(plugin, tmp_path):
         volumes={str(tmp_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
-        user=ANY,
+        user="root:root",
     )
 
 
@@ -558,5 +558,5 @@ def test__docker_build_bad_path(plugin, tmp_path, exception):
         volumes={str(tmp_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
-        user=ANY,
+        user="root:root",
     )
