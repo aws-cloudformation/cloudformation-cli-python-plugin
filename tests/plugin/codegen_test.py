@@ -439,7 +439,7 @@ def test__build_docker_posix(plugin):
     mock_run.assert_called_once_with(
         image=ANY,
         command=ANY,
-        auto_remove=True,
+        remove=True,
         volumes={str(sentinel.base_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
@@ -464,7 +464,7 @@ def test__build_docker_windows(plugin):
     mock_run.assert_called_once_with(
         image=ANY,
         command=ANY,
-        auto_remove=True,
+        remove=True,
         volumes={str(sentinel.base_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
@@ -492,7 +492,7 @@ def test__build_docker_no_euid(plugin):
     mock_run.assert_called_once_with(
         image=ANY,
         command=ANY,
-        auto_remove=True,
+        remove=True,
         volumes={str(sentinel.base_path): {"bind": "/project", "mode": "rw"}},
         stream=True,
         entrypoint="",
