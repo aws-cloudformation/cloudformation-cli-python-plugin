@@ -3,6 +3,7 @@ import pytest
 
 import ast
 import importlib.util
+import os
 from docker.errors import APIError, ContainerError, ImageLoadError
 from pathlib import Path
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -181,14 +182,14 @@ def test_initialize_resource(resource_project):
         "README.md",
         "foo-bar-baz.json",
         "requirements.txt",
-        "example_inputs/inputs_1_invalid.json",
-        "example_inputs/inputs_1_update.json",
-        "example_inputs/inputs_1_create.json",
+        f"{os.path.join('example_inputs', 'inputs_1_create.json')}",
+        f"{os.path.join('example_inputs', 'inputs_1_invalid.json')}",
+        f"{os.path.join('example_inputs', 'inputs_1_update.json')}",
         "example_inputs",
         "src",
-        "src/foo_bar_baz",
-        "src/foo_bar_baz/__init__.py",
-        "src/foo_bar_baz/handlers.py",
+        f"{os.path.join('src', 'foo_bar_baz')}",
+        f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}",
+        f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}",
         "template.yml",
     }
 
@@ -204,8 +205,8 @@ def test_initialize_resource(resource_project):
     assert resource_project.entrypoint in files["template.yml"].read_text()
 
     # this is a rough check the generated Python code is valid as far as syntax
-    ast.parse(files["src/foo_bar_baz/__init__.py"].read_text())
-    ast.parse(files["src/foo_bar_baz/handlers.py"].read_text())
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}"].read_text())
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}"].read_text())
 
 
 def test_initialize_hook(hook_project):
@@ -219,9 +220,9 @@ def test_initialize_hook(hook_project):
         "foo-bar-baz.json",
         "requirements.txt",
         "src",
-        "src/foo_bar_baz",
-        "src/foo_bar_baz/__init__.py",
-        "src/foo_bar_baz/handlers.py",
+        f"{os.path.join('src', 'foo_bar_baz')}",
+        f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}",
+        f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}",
         "template.yml",
     }
 
@@ -237,8 +238,8 @@ def test_initialize_hook(hook_project):
     assert hook_project.entrypoint in files["template.yml"].read_text()
 
     # this is a rough check the generated Python code is valid as far as syntax
-    ast.parse(files["src/foo_bar_baz/__init__.py"].read_text())
-    ast.parse(files["src/foo_bar_baz/handlers.py"].read_text())
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}"].read_text())
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}"].read_text())
 
 
 def test_generate_resource(resource_project):
@@ -248,9 +249,9 @@ def test_generate_resource(resource_project):
     after = get_files_in_project(resource_project)
     files = after.keys() - before.keys() - {"resource-role.yaml"}
     print("Project files: ", get_files_in_project(resource_project))
-    assert files == {"src/foo_bar_baz/models.py"}
+    assert files == {f"{os.path.join('src', 'foo_bar_baz', 'models.py')}"}
 
-    models_path = after["src/foo_bar_baz/models.py"]
+    models_path = after[f"{os.path.join('src', 'foo_bar_baz', 'models.py')}"]
     # this is a rough check the generated Python code is valid as far as syntax
     ast.parse(models_path.read_text())
 
@@ -280,11 +281,11 @@ def test_generate_hook(hook_project):
     files = after.keys() - before.keys() - {"hook-role.yaml"}
     print("Project files: ", get_files_in_project(hook_project))
     assert files == {
-        "src/foo_bar_baz/models.py",
+        f"{os.path.join('src', 'foo_bar_baz', 'models.py')}",
         "foo-bar-baz-configuration.json",
     }
 
-    models_path = after["src/foo_bar_baz/models.py"]
+    models_path = after[f"{os.path.join('src', 'foo_bar_baz', 'models.py')}"]
     # this is a rough check the generated Python code is valid as far as syntax
     ast.parse(models_path.read_text())
 
@@ -318,7 +319,10 @@ def test_generate_resource_with_type_configuration(tmp_path):
         project.init(type_name, PythonLanguagePlugin.NAME)
 
     copyfile(
-        str(Path.cwd() / "tests/data/schema-with-typeconfiguration.json"),
+        str(
+            Path.cwd()
+            / f"{os.path.join('tests', 'data', 'schema-with-typeconfiguration.json')}"
+        ),
         str(project.root / "schema-with-typeconfiguration.json"),
     )
     project.type_info = ("schema", "with", "typeconfiguration")
@@ -381,7 +385,8 @@ def test__pip_build_executable_not_found(tmp_path):
 
     mock_cmd.assert_called_once_with(tmp_path)
 
-    assert isinstance(excinfo.value.__cause__, FileNotFoundError)
+    # FileNotFoundError raised on Windows, CalledProcessError on POSIX systems
+    assert isinstance(excinfo.value.__cause__, (FileNotFoundError, CalledProcessError))
 
 
 def test__pip_build_called_process_error(tmp_path):
@@ -395,7 +400,8 @@ def test__pip_build_called_process_error(tmp_path):
 
     mock_cmd.assert_called_once_with(tmp_path)
 
-    assert isinstance(excinfo.value.__cause__, CalledProcessError)
+    # FileNotFoundError raised on Windows, CalledProcessError on POSIX systems
+    assert isinstance(excinfo.value.__cause__, (FileNotFoundError, CalledProcessError))
 
 
 def test__build_pip(plugin):
