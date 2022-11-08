@@ -6,16 +6,6 @@ name: CloudFormation Python Plugin CI
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: [ 3.6, 3.7, 3.8 ]
-    steps:
-    - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python }}
   os_build:
     env:
       AWS_DEFAULT_REGION: us-east-1
