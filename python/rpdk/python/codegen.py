@@ -342,6 +342,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 check=True,
                 shell=True,
             )
+            LOG.warning("pip build finished.")
         except (FileNotFoundError, CalledProcessError) as e:
             raise DownstreamError("pip build failed") from e
 
