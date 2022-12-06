@@ -14,7 +14,7 @@ class SessionProxy:
 
 
 def _get_boto_session(
-    credentials: Optional[Credentials], region: Optional[str] = None
+    credentials: Optional[Credentials], region: Optional[str] = "us-east-1"
 ) -> Optional[SessionProxy]:
     if not credentials:
         return None
