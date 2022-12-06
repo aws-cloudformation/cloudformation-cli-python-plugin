@@ -274,7 +274,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("command is '%s'", command)
 
         volumes = {str(external_path): {"bind": str(internal_path), "mode": "rw"}}
-        image = f"public.ecr.aws/lambda/python:{cls.DOCKER_TAG}"
+        image = f"public.ecr.aws/sam/build-python{cls.DOCKER_TAG}"
         LOG.warning(
             "Starting Docker build. This may take several minutes if the "
             "image '%s' needs to be pulled first.",
