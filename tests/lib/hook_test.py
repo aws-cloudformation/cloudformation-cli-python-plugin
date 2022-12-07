@@ -89,7 +89,9 @@ def test_entrypoint_success():
         "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
     ) as mock_log_delivery, patch(
         "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher:
+    ) as mock_cipher, patch(
+        "cloudformation_cli_python_lib.hook._get_boto_session", autospec=True
+    ):
         mock_cipher.side_effect = lambda c: Credentials(**json.loads(c))
         event = hook.__call__.__wrapped__(  # pylint: disable=no-member
             hook, ENTRYPOINT_PAYLOAD, None
@@ -158,7 +160,9 @@ def test_entrypoint_with_context():
         "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
     ), patch(
         "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher:
+    ) as mock_cipher, patch(
+        "cloudformation_cli_python_lib.hook._get_boto_session", autospec=True
+    ):
         mock_cipher.side_effect = lambda c: Credentials(**json.loads(c))
         hook.__call__.__wrapped__(hook, payload, None)  # pylint: disable=no-member
 
