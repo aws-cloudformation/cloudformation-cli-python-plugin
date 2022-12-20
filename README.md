@@ -12,6 +12,14 @@ This plugin library helps to provide runtime bindings for the execution of your 
 
 [![Build Status](https://travis-ci.com/aws-cloudformation/cloudformation-cli-python-plugin.svg?branch=master)](https://travis-ci.com/aws-cloudformation/cloudformation-cli-python-plugin)
 
+## Community
+
+Join us on Discord! Connect & interact with CloudFormation developers &
+experts, find channels to discuss and get help for our CLIs, cfn-lint, CloudFormation registry, StackSets,
+Guard and more:
+
+[![Join our Discord](https://discordapp.com/api/guilds/981586120448020580/widget.png?style=banner3)](https://discord.gg/9zpd7TTRwq)
+
 Installation
 ------------
 
