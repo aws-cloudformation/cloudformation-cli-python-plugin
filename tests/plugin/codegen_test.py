@@ -422,7 +422,7 @@ def test__build_pip_posix(plugin):
 
     # Path must be set outside simulated os.name
     temppath = Path(str(sentinel.base_path))
-    with patch_os_name, patch_subproc as mock_subproc:  # noqa: B950 pylint: disable=line-too-long
+    with patch_os_name, patch_subproc as mock_subproc:
         plugin._pip_build(temppath)
 
     mock_subproc.assert_called_once_with(
@@ -440,7 +440,7 @@ def test__build_pip_windows(plugin):
 
     # Path must be set outside simulated os.name
     temppath = Path(str(sentinel.base_path))
-    with patch_os_name, patch_subproc as mock_subproc:  # noqa: B950 pylint: disable=line-too-long
+    with patch_os_name, patch_subproc as mock_subproc:
         plugin._pip_build(temppath)
 
     mock_subproc.assert_called_once_with(
