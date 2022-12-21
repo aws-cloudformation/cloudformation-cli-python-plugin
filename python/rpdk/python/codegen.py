@@ -335,7 +335,7 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.warning("Starting pip build.")
         try:
             # On windows run pip command through the default shell (CMD)
-            if os.name == "nt":  # pragma: no cover
+            if os.name == "nt":
                 completed_proc = subprocess_run(  # nosec
                     command,
                     stdout=PIPE,

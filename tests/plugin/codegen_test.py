@@ -416,6 +416,43 @@ def test__build_pip(plugin):
     mock_pip.assert_called_once_with(sentinel.base_path)
 
 
+def test__build_pip_posix(plugin):
+    patch_os_name = patch("rpdk.python.codegen.os.name", "posix")
+    patch_subproc = patch("rpdk.python.codegen.subprocess_run")
+
+    # Path must be set outside simulated os.name
+    temppath = Path(str(sentinel.base_path))
+    with patch_os_name, patch_subproc as mock_subproc:  # noqa: B950 pylint: disable=line-too-long
+        plugin._pip_build(temppath)
+
+    mock_subproc.assert_called_once_with(
+        plugin._make_pip_command(temppath),
+        stdout=ANY,
+        stderr=ANY,
+        cwd=temppath,
+        check=ANY,
+    )
+
+
+def test__build_pip_windows(plugin):
+    patch_os_name = patch("rpdk.python.codegen.os.name", "nt")
+    patch_subproc = patch("rpdk.python.codegen.subprocess_run")
+
+    # Path must be set outside simulated os.name
+    temppath = Path(str(sentinel.base_path))
+    with patch_os_name, patch_subproc as mock_subproc:  # noqa: B950 pylint: disable=line-too-long
+        plugin._pip_build(temppath)
+
+    mock_subproc.assert_called_once_with(
+        plugin._make_pip_command(temppath),
+        stdout=ANY,
+        stderr=ANY,
+        cwd=temppath,
+        check=ANY,
+        shell=True,
+    )
+
+
 def test__build_docker(plugin):
     plugin._use_docker = True
 
