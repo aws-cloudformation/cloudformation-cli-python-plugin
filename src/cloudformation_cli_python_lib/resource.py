@@ -164,9 +164,9 @@ class Resource:
         try:
             return UnmodelledRequest(
                 clientRequestToken=request.bearerToken,
-                desiredResourceState=request.requestData.resourceProperties,
+                desiredResourceState=request.requestData.resourceProperties if request.requestData.resourceProperties else {},
                 previousResourceState=request.requestData.previousResourceProperties,
-                desiredResourceTags=request.requestData.stackTags,
+                desiredResourceTags=request.requestData.stackTags if request.requestData.stackTags else {},
                 previousResourceTags=request.requestData.previousStackTags,
                 systemTags=request.requestData.systemTags,
                 previousSystemTags=request.requestData.previousSystemTags,
