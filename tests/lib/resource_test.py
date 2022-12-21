@@ -82,7 +82,7 @@ def test_entrypoint_success():
     event = ProgressEvent(status=OperationStatus.SUCCESS, message="")
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
-    with patch(
+    with patch("cloudformation_cli_python_lib.resource._get_boto_session"), patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
     ) as mock_log_delivery:
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member
@@ -164,7 +164,9 @@ def test_entrypoint_with_context():
     )
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
-    with patch("cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"):
+    with patch("cloudformation_cli_python_lib.resource._get_boto_session"), patch(
+        "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
+    ):
         resource.__call__.__wrapped__(  # pylint: disable=no-member
             resource, payload, None
         )
@@ -179,7 +181,7 @@ def test_entrypoint_ignore_remove_fields_from_response():
     )
     mock_handler = resource.handler(Action.CREATE)(Mock(return_value=event))
 
-    with patch(
+    with patch("cloudformation_cli_python_lib.resource._get_boto_session"), patch(
         "cloudformation_cli_python_lib.resource.ProviderLogHandler.setup"
     ) as mock_log_delivery:
         event = resource.__call__.__wrapped__(  # pylint: disable=no-member

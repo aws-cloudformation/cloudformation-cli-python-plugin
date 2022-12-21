@@ -85,7 +85,7 @@ def test_entrypoint_success():
         Mock(return_value=event)
     )
 
-    with patch(
+    with patch("cloudformation_cli_python_lib.hook._get_boto_session"), patch(
         "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
     ) as mock_log_delivery, patch(
         "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
@@ -154,7 +154,7 @@ def test_entrypoint_with_context():
         Mock(return_value=event)
     )
 
-    with patch(
+    with patch("cloudformation_cli_python_lib.hook._get_boto_session"), patch(
         "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
     ), patch(
         "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
