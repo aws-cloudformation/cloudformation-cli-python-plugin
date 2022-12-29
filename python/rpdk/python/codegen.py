@@ -55,12 +55,16 @@ class Python36LanguagePlugin(LanguagePlugin):
         self.package_name = None
         self.package_root = None
         self._use_docker = None
+        self._no_docker = None
         self._protocol_version = "2.0.0"
 
     def _init_from_project(self, project):
         self.namespace = tuple(s.lower() for s in project.type_info)
         self.package_name = "_".join(self.namespace)
-        self._use_docker = project.settings.get("use_docker")
+        # Check config file for (legacy) 'useDocker' and use_docker settings
+        self._use_docker = project.settings.get("useDocker") or project.settings.get(
+            "use_docker"
+        )
         self.package_root = project.root / "src"
 
     def _init_settings(self, project):
@@ -78,14 +82,29 @@ class Python36LanguagePlugin(LanguagePlugin):
                 ".resource", ".test_entrypoint"
             )
 
-        self._use_docker = self._use_docker or input_with_validation(
-            "Use docker for platform-independent packaging (Y/n)?\n",
-            validate_no,
-            "This is highly recommended unless you are experienced \n"
-            "with cross-platform Python packaging.",
-        )
+        # If use_docker specified in .rpdk-config file or cli switch
+        # Ensure only 1 is true, with preference to use_docker
+        if project.settings.get("use_docker") is True:
+            self._use_docker = True
+            self._no_docker = False
+        # If no_docker specified in .rpdk-config file or cli switch
+        elif project.settings.get("no_docker") is True:
+            self._use_docker = False
+            self._no_docker = True
+        else:
+            # If neither no_docker nor use_docker specified in .rpdk-config
+            # file or cli switch, prompt to use containers or not
+            self._use_docker = input_with_validation(
+                "Use docker for platform-independent packaging (Y/n)?\n",
+                validate_no,
+                "This is highly recommended unless you are experienced \n"
+                "with cross-platform Python packaging.",
+            )
+            self._no_docker = not self._use_docker
 
+        # project.settings will get saved into .rpdk-config by cloudformation-cli
         project.settings["use_docker"] = self._use_docker
+        project.settings["no_docker"] = self._no_docker
         project.settings["protocolVersion"] = self._protocol_version
 
     def init(self, project):

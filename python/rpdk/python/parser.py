@@ -9,13 +9,22 @@ def setup_subparser(subparsers, parents, python_version, python_version_number):
     )
     parser.set_defaults(language=python_version)
 
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
         "-d",
         "--use-docker",
         action="store_true",
         help="""Use docker for python platform-independent packaging.
             This is highly recommended unless you are experienced
             with cross-platform Python packaging.""",
+    )
+
+    group.add_argument(
+        "--no-docker",
+        action="store_true",
+        help="""Generally not recommended unless you are experienced
+            with cross-platform Python packaging""",
     )
 
     return parser
