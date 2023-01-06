@@ -108,7 +108,32 @@ def resource_project(tmp_path):
         "rpdk.python.codegen.input_with_validation", autospec=True, side_effect=[False]
     )
     with patch_plugins, patch_wizard:
-        project.init(TYPE_NAME, PythonLanguagePlugin.NAME)
+        project.init(
+            TYPE_NAME,
+            PythonLanguagePlugin.NAME,
+            settings={"use_docker": False, "no_docker": True},
+        )
+    return project
+
+
+@pytest.fixture
+def resource_project_use_docker(tmp_path):
+    project = Project(root=tmp_path)
+
+    patch_plugins = patch.dict(
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
+        {PythonLanguagePlugin.NAME: lambda: PythonLanguagePlugin},
+        clear=True,
+    )
+    patch_wizard = patch(
+        "rpdk.python.codegen.input_with_validation", autospec=True, side_effect=[False]
+    )
+    with patch_plugins, patch_wizard:
+        project.init(
+            TYPE_NAME,
+            PythonLanguagePlugin.NAME,
+            settings={"use_docker": True, "no_docker": False},
+        )
     return project
 
 
@@ -125,7 +150,32 @@ def hook_project(tmp_path):
         "rpdk.python.codegen.input_with_validation", autospec=True, side_effect=[False]
     )
     with patch_plugins, patch_wizard:
-        project.init_hook(TYPE_NAME, PythonLanguagePlugin.NAME)
+        project.init_hook(
+            TYPE_NAME,
+            PythonLanguagePlugin.NAME,
+            settings={"use_docker": False, "no_docker": True},
+        )
+    return project
+
+
+@pytest.fixture
+def hook_project_use_docker(tmp_path):
+    project = Project(root=tmp_path)
+
+    patch_plugins = patch.dict(
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
+        {PythonLanguagePlugin.NAME: lambda: PythonLanguagePlugin},
+        clear=True,
+    )
+    patch_wizard = patch(
+        "rpdk.python.codegen.input_with_validation", autospec=True, side_effect=[False]
+    )
+    with patch_plugins, patch_wizard:
+        project.init_hook(
+            TYPE_NAME,
+            PythonLanguagePlugin.NAME,
+            settings={"use_docker": True, "no_docker": False},
+        )
     return project
 
 
@@ -172,6 +222,7 @@ def test__remove_build_artifacts_file_not_found(tmp_path):
 def test_initialize_resource(resource_project):
     assert resource_project.settings == {
         "use_docker": False,
+        "no_docker": True,
         "protocolVersion": "2.0.0",
     }
 
@@ -209,8 +260,53 @@ def test_initialize_resource(resource_project):
     ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}"].read_text())
 
 
+def test_initialize_resource_use_docker(resource_project_use_docker):
+    assert resource_project_use_docker.settings == {
+        "use_docker": True,
+        "no_docker": False,
+        "protocolVersion": "2.0.0",
+    }
+
+    files = get_files_in_project(resource_project_use_docker)
+    assert set(files) == {
+        ".gitignore",
+        ".rpdk-config",
+        "README.md",
+        "foo-bar-baz.json",
+        "requirements.txt",
+        f"{os.path.join('example_inputs', 'inputs_1_create.json')}",
+        f"{os.path.join('example_inputs', 'inputs_1_invalid.json')}",
+        f"{os.path.join('example_inputs', 'inputs_1_update.json')}",
+        "example_inputs",
+        "src",
+        f"{os.path.join('src', 'foo_bar_baz')}",
+        f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}",
+        f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}",
+        "template.yml",
+    }
+
+    assert "__pycache__" in files[".gitignore"].read_text()
+    assert SUPPORT_LIB_NAME in files["requirements.txt"].read_text()
+
+    readme = files["README.md"].read_text()
+    assert resource_project_use_docker.type_name in readme
+    assert SUPPORT_LIB_PKG in readme
+    assert "handlers.py" in readme
+    assert "models.py" in readme
+
+    assert resource_project_use_docker.entrypoint in files["template.yml"].read_text()
+
+    # this is a rough check the generated Python code is valid as far as syntax
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}"].read_text())
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}"].read_text())
+
+
 def test_initialize_hook(hook_project):
-    assert hook_project.settings == {"use_docker": False, "protocolVersion": "2.0.0"}
+    assert hook_project.settings == {
+        "use_docker": False,
+        "no_docker": True,
+        "protocolVersion": "2.0.0",
+    }
 
     files = get_files_in_project(hook_project)
     assert set(files) == {
@@ -236,6 +332,43 @@ def test_initialize_hook(hook_project):
     assert "models.py" in readme
 
     assert hook_project.entrypoint in files["template.yml"].read_text()
+
+    # this is a rough check the generated Python code is valid as far as syntax
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}"].read_text())
+    ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}"].read_text())
+
+
+def test_initialize_hook_use_docker(hook_project_use_docker):
+    assert hook_project_use_docker.settings == {
+        "use_docker": True,
+        "no_docker": False,
+        "protocolVersion": "2.0.0",
+    }
+
+    files = get_files_in_project(hook_project_use_docker)
+    assert set(files) == {
+        ".gitignore",
+        ".rpdk-config",
+        "README.md",
+        "foo-bar-baz.json",
+        "requirements.txt",
+        "src",
+        f"{os.path.join('src', 'foo_bar_baz')}",
+        f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}",
+        f"{os.path.join('src', 'foo_bar_baz', 'handlers.py')}",
+        "template.yml",
+    }
+
+    assert "__pycache__" in files[".gitignore"].read_text()
+    assert SUPPORT_LIB_NAME in files["requirements.txt"].read_text()
+
+    readme = files["README.md"].read_text()
+    assert hook_project_use_docker.type_name in readme
+    assert SUPPORT_LIB_PKG in readme
+    assert "handlers.py" in readme
+    assert "models.py" in readme
+
+    assert hook_project_use_docker.entrypoint in files["template.yml"].read_text()
 
     # this is a rough check the generated Python code is valid as far as syntax
     ast.parse(files[f"{os.path.join('src', 'foo_bar_baz', '__init__.py')}"].read_text())
@@ -406,6 +539,7 @@ def test__pip_build_called_process_error(tmp_path):
 
 def test__build_pip(plugin):
     plugin._use_docker = False
+    plugin._no_docker = True
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
     patch_docker = patch.object(plugin, "_docker_build", autospec=True)
@@ -455,6 +589,7 @@ def test__build_pip_windows(plugin):
 
 def test__build_docker(plugin):
     plugin._use_docker = True
+    plugin._no_docker = False
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
     patch_docker = patch.object(plugin, "_docker_build", autospec=True)
@@ -468,6 +603,7 @@ def test__build_docker(plugin):
 # Test _build_docker on Linux/Unix-like systems
 def test__build_docker_posix(plugin):
     plugin._use_docker = True
+    plugin._no_docker = False
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
@@ -493,6 +629,7 @@ def test__build_docker_posix(plugin):
 # Test _build_docker on Windows
 def test__build_docker_windows(plugin):
     plugin._use_docker = True
+    plugin._no_docker = False
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
@@ -518,6 +655,7 @@ def test__build_docker_windows(plugin):
 # Test _build_docker if geteuid fails
 def test__build_docker_no_euid(plugin):
     plugin._use_docker = True
+    plugin._no_docker = False
 
     patch_pip = patch.object(plugin, "_pip_build", autospec=True)
     patch_from_env = patch("rpdk.python.codegen.docker.from_env", autospec=True)
