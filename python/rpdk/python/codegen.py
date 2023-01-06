@@ -334,14 +334,24 @@ class Python36LanguagePlugin(LanguagePlugin):
 
         LOG.warning("Starting pip build.")
         try:
-            completed_proc = subprocess_run(  # nosec
-                command,
-                stdout=PIPE,
-                stderr=PIPE,
-                cwd=base_path,
-                check=True,
-                shell=True,
-            )
+            # On windows run pip command through the default shell (CMD)
+            if os.name == "nt":
+                completed_proc = subprocess_run(  # nosec
+                    command,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    cwd=base_path,
+                    check=True,
+                    shell=True,
+                )
+            else:
+                completed_proc = subprocess_run(  # nosec
+                    command,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    cwd=base_path,
+                    check=True,
+                )
             LOG.warning("pip build finished.")
         except (FileNotFoundError, CalledProcessError) as e:
             raise DownstreamError("pip build failed") from e
