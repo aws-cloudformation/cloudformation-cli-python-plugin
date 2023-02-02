@@ -415,6 +415,9 @@ def test_generate_hook(hook_project):
     print("Project files: ", get_files_in_project(hook_project))
     assert files == {
         f"{os.path.join('src', 'foo_bar_baz', 'models.py')}",
+        f"{os.path.join('src', 'foo_bar_baz', 'target_models')}",
+        f"{os.path.join('src', 'foo_bar_baz', 'target_models', 'my_example_resource.py')}",  # noqa: B950 pylint: disable=line-too-long
+        f"{os.path.join('src', 'foo_bar_baz', 'target_models', 'my_other_resource.py')}",  # noqa: B950 pylint: disable=line-too-long
         "foo-bar-baz-configuration.json",
     }
 
