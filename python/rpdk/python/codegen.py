@@ -9,7 +9,12 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import DownstreamError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
-from rpdk.core.jsonutils.resolver import ContainerType, resolve_models
+from rpdk.core.jsonutils.resolver import (
+    UNDEFINED,
+    ContainerType,
+    ResolvedType,
+    resolve_models,
+)
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import ARTIFACT_TYPE_HOOK
 from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
@@ -210,7 +215,47 @@ class Python36LanguagePlugin(LanguagePlugin):
         contents = template.render(support_lib_pkg=SUPPORT_LIB_PKG, models=models)
         project.overwrite(path, contents)
 
+        if project.artifact_type == ARTIFACT_TYPE_HOOK:
+            self._generate_target_models(project)
+
         LOG.debug("Generate complete")
+
+    def _generate_target_models(self, project):
+        target_model_dir = self.package_root / self.package_name / "target_models"
+
+        LOG.debug("Removing generated models: %s", target_model_dir)
+        shutil.rmtree(target_model_dir, ignore_errors=True)
+
+        target_model_dir.mkdir(parents=True, exist_ok=True)
+        template = self.env.get_template("target_model.py")
+
+        for target_type_name, target_info in project.target_info.items():
+            target_schema = target_info["Schema"]
+            target_namespace = [
+                s.lower() for s in target_type_name.split("::")
+            ]  # AWS::SQS::Queue -> awssqsqueue
+            target_name = "".join(
+                [s.capitalize() for s in target_namespace]
+            )  # awssqsqueue -> AwsSqsQueue
+            target_model_file = "{}.py".format(
+                "_".join(target_namespace)
+            )  # awssqsqueue -> aws_sqs_queue.py
+
+            models = resolve_models(target_schema, target_name)
+
+            # TODO: Remove once tagging is fully supported
+            if models.get(target_name, {}).get("Tags"):  # pragma: no cover
+                models[target_name]["Tags"] = ResolvedType(
+                    ContainerType.PRIMITIVE, UNDEFINED
+                )
+
+            path = target_model_dir / target_model_file
+            LOG.debug("Writing file: %s", path)
+
+            contents = template.render(
+                support_lib_pkg=SUPPORT_LIB_PKG, models=models, target_name=target_name
+            )
+            project.overwrite(path, contents)
 
     # pylint: disable=unused-argument
     # the argument "project" is not used here but is used in codegen.py of other plugins

@@ -43,12 +43,8 @@ class {{ model }}(BaseModel):
         if not json_data:
             return None
         {% if model == (target_name) %}
-        data = dict(filter(lambda e: e[0] in cls.__dataclass_fields__, json_data.items()))
-        if not data:
-            return None
-
         dataclasses = {n: o for n, o in getmembers(sys.modules[__name__]) if isclass(o)}
-        recast_object(cls, data, dataclasses)
+        recast_object(cls, json_data, dataclasses)
         {% endif %}
         return cls(
             {% for name, type in properties.items() %}
