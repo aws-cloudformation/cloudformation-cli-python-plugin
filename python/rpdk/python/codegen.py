@@ -375,6 +375,7 @@ class Python36LanguagePlugin(LanguagePlugin):
                 stream=True,
                 entrypoint="",
                 user=localuser,
+                platform="linux/amd64",
             )
         except RequestsConnectionError as e:
             # it seems quite hard to reliably extract the cause from
