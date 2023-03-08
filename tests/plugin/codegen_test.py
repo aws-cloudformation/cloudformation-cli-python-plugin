@@ -626,6 +626,7 @@ def test__build_docker_posix(plugin):
         stream=True,
         entrypoint="",
         user=ANY,
+        platform="linux/amd64",
     )
 
 
@@ -652,6 +653,7 @@ def test__build_docker_windows(plugin):
         stream=True,
         entrypoint="",
         user="root:root",
+        platform="linux/amd64",
     )
 
 
@@ -681,6 +683,7 @@ def test__build_docker_no_euid(plugin):
         stream=True,
         entrypoint="",
         user="root:root",
+        platform="linux/amd64",
     )
 
 
@@ -701,6 +704,7 @@ def test__docker_build_good_path(plugin, tmp_path):
         stream=True,
         entrypoint="",
         user=ANY,
+        platform="linux/amd64",
     )
 
 
@@ -743,4 +747,5 @@ def test__docker_build_bad_path(plugin, tmp_path, exception):
         stream=True,
         entrypoint="",
         user=ANY,
+        platform="linux/amd64",
     )
