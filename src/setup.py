@@ -16,6 +16,7 @@ setup(
     install_requires=[
         "boto3>=1.10.20",
         "aws-encryption-sdk==3.1.0",
+        "cryptography<40.0.0",
         'dataclasses;python_version<"3.7"',
     ],
     license="Apache License 2.0",
