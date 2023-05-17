@@ -204,6 +204,9 @@ class HookRequestContext:
             return HookRequestContext()
         return HookRequestContext(**json_data)
 
+    def serialize(self) -> Mapping[str, Any]:
+        return {key: value for key, value in self.__dict__.items() if value is not None}
+
 
 @dataclass
 class HookRequestData:
@@ -211,15 +214,38 @@ class HookRequestData:
     targetType: str
     targetLogicalId: str
     targetModel: Mapping[str, Any]
-    callerCredentials: Optional[str] = None
-    providerCredentials: Optional[str] = None
+    callerCredentials: Optional[Credentials] = None
+    providerCredentials: Optional[Credentials] = None
     providerLogGroupName: Optional[str] = None
-    hookEncryptionKeyArn: Optional[str] = None
-    hookEncryptionKeyRole: Optional[str] = None
+
+    def __init__(self, **kwargs: Any) -> None:
+        dataclass_fields = {f.name for f in fields(self)}
+        for k, v in kwargs.items():
+            if k in dataclass_fields:
+                setattr(self, k, v)
 
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HookRequestData":
-        return HookRequestData(**json_data)
+        req_data = HookRequestData(**json_data)
+        for key in json_data:
+            if not key.endswith("Credentials"):
+                continue
+            creds = json_data.get(key)
+            if creds:
+                cred_data = json.loads(creds)
+                setattr(req_data, key, Credentials(**cred_data))
+        return req_data
+
+    def serialize(self) -> Mapping[str, Any]:
+        return {
+            key: {k: v for k, v in value.items() if v is not None}
+            if key == "targetModel"
+            else value.__dict__.copy()
+            if key.endswith("Credentials")
+            else value
+            for key, value in self.__dict__.items()
+            if value is not None
+        }
 
 
 @dataclass
@@ -251,6 +277,15 @@ class HookInvocationRequest:
             json_data.get("requestContext", {})
         )
         return event
+
+    def serialize(self) -> Mapping[str, Any]:
+        return {
+            key: value.serialize()
+            if key in ("requestData", "requestContext")
+            else value
+            for key, value in self.__dict__.items()
+            if value is not None
+        }
 
 
 @dataclass

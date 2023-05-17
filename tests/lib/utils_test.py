@@ -1,9 +1,10 @@
-# pylint: disable=protected-access
+# pylint: disable=protected-access,line-too-long
 import pytest
 from cloudformation_cli_python_lib.exceptions import InvalidRequest
 from cloudformation_cli_python_lib.interface import BaseModel
 from cloudformation_cli_python_lib.utils import (
     HandlerRequest,
+    HookInvocationRequest,
     KitchenSinkEncoder,
     UnmodelledRequest,
     deserialize_list,
@@ -97,6 +98,57 @@ def test_handler_request_serde_roundtrip():
         for k, v in payload.items()
         if v is not None and k not in undesired
     }
+    assert ser == expected
+
+
+def test_hook_handler_request_serde_roundtrip():
+    payload = {
+        "awsAccountId": "123456789012",
+        "clientRequestToken": "4b90a7e4-b790-456b-a937-0cfdfa211dfe",
+        "actionInvocationPoint": "CREATE_PRE_PROVISION",
+        "hookTypeName": "AWS::Test::TestHook",
+        "hookTypeVersion": "1.0",
+        "requestContext": {
+            "invocation": 1,
+            "callbackContext": {},
+        },
+        "requestData": {
+            "callerCredentials": '{"accessKeyId": "IASAYK835GAIFHAHEI23", "secretAccessKey": "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5poh2O0", "sessionToken": "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"}',  # noqa: B950
+            "providerCredentials": None,
+            "providerLogGroupName": "providerLoggingGroupName",
+            "targetName": "AWS::Test::Resource",
+            "targetType": "RESOURCE",
+            "targetLogicalId": "myResource",
+            "hookEncryptionKeyArn": None,
+            "hookEncryptionKeyRole": None,
+            "targetModel": {
+                "resourceProperties": {},
+                "previousResourceProperties": None,
+            },
+            "undesiredField": "value",
+        },
+        "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e"
+        "722ae60-fe62-11e8-9a0e-0ae8cc519968",
+        "hookModel": {},
+    }
+    undesired = "undesiredField"
+    ser = HookInvocationRequest.deserialize(payload).serialize()
+    # remove None values from payload
+    expected = {
+        k: {
+            k: {k: v for k, v in v.items() if v is not None}
+            if k == "targetModel"
+            else json.loads(v)
+            if k.endswith("Credentials")
+            else v
+            for k, v in payload[k].items()
+            if v is not None and k not in undesired
+        }
+        if k in ("requestData", "requestContext")
+        else v
+        for k, v in payload.items()
+        if v is not None and k not in undesired
+    }
 
     assert ser == expected
 
@@ -144,6 +196,3 @@ def test_deserialize_list_empty():
 def test_deserialize_list_invalid():
     with pytest.raises(InvalidRequest):
         deserialize_list([(1, 2)], BaseModel)
-
-
-# test_hook_response

@@ -3,11 +3,7 @@ from dataclasses import dataclass
 
 import pytest
 from cloudformation_cli_python_lib import Hook
-from cloudformation_cli_python_lib.exceptions import (
-    InternalFailure,
-    InvalidRequest,
-    _EncryptionError,
-)
+from cloudformation_cli_python_lib.exceptions import InternalFailure, InvalidRequest
 from cloudformation_cli_python_lib.hook import _ensure_serialize
 from cloudformation_cli_python_lib.interface import (
     BaseModel,
@@ -88,11 +84,8 @@ def test_entrypoint_success():
     with patch(
         "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
     ) as mock_log_delivery, patch(
-        "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher, patch(
         "cloudformation_cli_python_lib.hook._get_boto_session", autospec=True
     ):
-        mock_cipher.side_effect = lambda c: Credentials(**json.loads(c))
         event = hook.__call__.__wrapped__(  # pylint: disable=no-member
             hook, ENTRYPOINT_PAYLOAD, None
         )
@@ -125,11 +118,8 @@ def test_entrypoint_handler_raises():
         "cloudformation_cli_python_lib.hook.MetricsPublisherProxy"
     ) as mock_metrics, patch(
         "cloudformation_cli_python_lib.hook.Hook._invoke_handler"
-    ) as mock__invoke_handler, patch(
-        "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher:
+    ) as mock__invoke_handler:
         mock__invoke_handler.side_effect = InvalidRequest("handler failed")
-        mock_cipher.side_effect = lambda c: Credentials(**json.loads(c))
         event = hook.__call__.__wrapped__(  # pylint: disable=no-member
             hook, ENTRYPOINT_PAYLOAD, None
         )
@@ -158,12 +148,7 @@ def test_entrypoint_with_context():
 
     with patch(
         "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
-    ), patch(
-        "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher, patch(
-        "cloudformation_cli_python_lib.hook._get_boto_session", autospec=True
-    ):
-        mock_cipher.side_effect = lambda c: Credentials(**json.loads(c))
+    ), patch("cloudformation_cli_python_lib.hook._get_boto_session", autospec=True):
         hook.__call__.__wrapped__(hook, payload, None)  # pylint: disable=no-member
 
     mock_handler.assert_called_once()
@@ -203,34 +188,6 @@ def test_entrypoint_success_without_caller_provider_creds():
         assert event == expected
 
 
-def test_entrypoint_encryption_error_raises_access_denied():
-    @dataclass
-    class TypeConfigurationModel(BaseModel):
-        a_string: str
-
-        @classmethod
-        def _deserialize(cls, json_data):
-            return cls("test")
-
-    hook = Hook(Mock(), TypeConfigurationModel)
-
-    with patch(
-        "cloudformation_cli_python_lib.hook.HookProviderLogHandler.setup"
-    ), patch("cloudformation_cli_python_lib.hook.MetricsPublisherProxy"), patch(
-        "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher:
-        mock_cipher.side_effect = _EncryptionError("Failed to decrypt credentials.")
-        event = hook.__call__.__wrapped__(  # pylint: disable=no-member
-            hook, ENTRYPOINT_PAYLOAD, None
-        )
-
-    assert event["errorCode"] == "AccessDenied"
-    assert event["hookStatus"] == "FAILED"
-    assert event["callbackDelaySeconds"] == 0
-    assert event["clientRequestToken"] == "4b90a7e4-b790-456b-a937-0cfdfa211dfe"
-    assert "Failed to decrypt credentials" in event["message"]
-
-
 def test_cast_hook_request_invalid_request(hook):
     request = HookInvocationRequest.deserialize(ENTRYPOINT_PAYLOAD)
     request.requestData = None
@@ -248,12 +205,7 @@ def test__parse_request_valid_request_and__cast_hook_request():
 
     hook = Hook(TYPE_NAME, mock_type_configuration_model)
 
-    with patch(
-        "cloudformation_cli_python_lib.hook._get_boto_session"
-    ) as mock_session, patch(
-        "cloudformation_cli_python_lib.hook.KmsCipher.decrypt_credentials"
-    ) as mock_cipher:
-        mock_cipher.side_effect = lambda c: Credentials(**json.loads(c))
+    with patch("cloudformation_cli_python_lib.hook._get_boto_session") as mock_session:
         ret = hook._parse_request(ENTRYPOINT_PAYLOAD)
     sessions, invocation_point, callback_context, request = ret
 

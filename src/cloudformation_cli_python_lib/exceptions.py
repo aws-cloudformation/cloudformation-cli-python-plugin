@@ -106,7 +106,3 @@ class UnsupportedTarget(_HandlerError):
 
 class Unknown(_HandlerError):
     pass
-
-
-class _EncryptionError(Exception):
-    pass
