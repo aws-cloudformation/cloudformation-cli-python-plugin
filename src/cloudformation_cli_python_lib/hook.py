@@ -6,14 +6,7 @@ from functools import wraps
 from typing import Any, Callable, MutableMapping, Optional, Tuple, Type, Union
 
 from .boto3_proxy import SessionProxy, _get_boto_session
-from .cipher import Cipher, KmsCipher
-from .exceptions import (
-    AccessDenied,
-    InternalFailure,
-    InvalidRequest,
-    _EncryptionError,
-    _HandlerError,
-)
+from .exceptions import InternalFailure, InvalidRequest, _HandlerError
 from .interface import (
     BaseHookHandlerRequest,
     HandlerErrorCode,
@@ -173,31 +166,16 @@ class Hook:
     ]:
         try:
             event = HookInvocationRequest.deserialize(event_data)
-            cipher: Cipher = KmsCipher(
-                event.requestData.hookEncryptionKeyArn,
-                event.requestData.hookEncryptionKeyRole,
-            )
-
-            caller_credentials = cipher.decrypt_credentials(
-                event.requestData.callerCredentials
-            )
-            provider_credentials = cipher.decrypt_credentials(
-                event.requestData.providerCredentials
-            )
-
-            caller_sess = _get_boto_session(caller_credentials)
-            provider_sess = _get_boto_session(provider_credentials)
+            caller_sess = _get_boto_session(event.requestData.callerCredentials)
+            provider_sess = _get_boto_session(event.requestData.providerCredentials)
             # credentials are used when rescheduling, so can't zero them out (for now)
             invocation_point = HookInvocationPoint[event.actionInvocationPoint]
             callback_context = event.requestContext.callbackContext or {}
-        except _EncryptionError as e:
-            LOG.exception("Failed to decrypt credentials")
-            raise AccessDenied(f"{e} ({type(e).__name__})") from e
         except Exception as e:
             LOG.exception("Invalid request")
             raise InvalidRequest(f"{e} ({type(e).__name__})") from e
 
-        return ((caller_sess, provider_sess)), invocation_point, callback_context, event
+        return (caller_sess, provider_sess), invocation_point, callback_context, event
 
     def _cast_hook_request(
         self, request: HookInvocationRequest
