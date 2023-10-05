@@ -129,7 +129,7 @@ def _field_to_type(field: Any, key: str, classes: Dict[str, Any]) -> Any:  # noq
     # Assuming that the union is generated from typing.Optional, so only
     # contains one type and None
     # pylint: disable=unidiomatic-typecheck
-    fields = [t for t in possible_types if type(None) != t]
+    fields = [t for t in possible_types if t is not None]
     if len(fields) != 1:
         raise InvalidRequest(f"Cannot process type {field} for field {key}")
     field = fields[0]
