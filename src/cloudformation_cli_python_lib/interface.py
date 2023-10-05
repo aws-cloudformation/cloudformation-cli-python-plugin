@@ -10,6 +10,7 @@ LOG = logging.getLogger(__name__)
 
 class _AutoName(Enum):
     @staticmethod
+    # pylint: disable=arguments-differ
     def _generate_next_value_(
         name: str, _start: int, _count: int, _last_values: List[str]
     ) -> str:

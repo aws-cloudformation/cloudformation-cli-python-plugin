@@ -13,7 +13,7 @@ from rpdk.python.__init__ import __version__
 from rpdk.python.codegen import (
     SUPPORT_LIB_NAME,
     SUPPORT_LIB_PKG,
-    Python36LanguagePlugin as PythonLanguagePlugin,
+    _PythonLanguagePlugin as PythonLanguagePlugin,
     validate_no,
 )
 from shutil import copyfile

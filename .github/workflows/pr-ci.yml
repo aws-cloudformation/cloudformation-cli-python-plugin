@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python: [ 3.7, 3.8, 3.9 ]
+        python: [ 3.8, 3.9, "3.10", "3.11" ]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python }}
@@ -34,11 +34,11 @@ jobs:
     - name: pre-commit checks
       run: |
         pre-commit run --all-files
-    - name: End to End Resource Packaging Test Python 3.6
-      run: ./e2e-test.sh python36
-    - name: End to End Resource Packaging Test Python 3.7
-      run: ./e2e-test.sh python37
     - name: End to End Resource Packaging Test Python 3.8
       run: ./e2e-test.sh python38
     - name: End to End Resource Packaging Test Python 3.9
       run: ./e2e-test.sh python39
+    - name: End to End Resource Packaging Test Python 3.10
+      run: ./e2e-test.sh python310
+    - name: End to End Resource Packaging Test Python 3.11
+      run: ./e2e-test.sh python311

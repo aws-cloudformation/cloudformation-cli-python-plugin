@@ -382,4 +382,4 @@ def test_metrics_publisher_proxy_add_metrics_publisher_none_safe():
     proxy = MetricsPublisherProxy()
     proxy.add_metrics_publisher(None, None)
     proxy.add_hook_metrics_publisher(None, None, None)
-    assert proxy._publishers == []  # pylint: disable=protected-access
+    assert not proxy._publishers  # pylint: disable=protected-access
