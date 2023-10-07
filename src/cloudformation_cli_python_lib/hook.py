@@ -91,7 +91,8 @@ class Hook:
             handler = self._handlers[invocation_point]
         except KeyError:
             return ProgressEvent.failed(
-                HandlerErrorCode.InternalFailure, f"No handler for {invocation_point}"
+                HandlerErrorCode.InternalFailure,
+                f"No handler for {invocation_point.name}",
             )
 
         return handler(session, request, callback_context, type_configuration)

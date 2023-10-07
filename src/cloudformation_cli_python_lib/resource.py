@@ -89,7 +89,7 @@ class Resource:
             handler = self._handlers[action]
         except KeyError:
             return ProgressEvent.failed(
-                HandlerErrorCode.InternalFailure, f"No handler for {action}"
+                HandlerErrorCode.InternalFailure, f"No handler for {action.name}"
             )
         progress = handler(session, request, callback_context)
         is_in_progress = progress.status == OperationStatus.IN_PROGRESS
