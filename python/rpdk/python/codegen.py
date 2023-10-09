@@ -370,7 +370,7 @@ class Python36LanguagePlugin(LanguagePlugin):
             logs = docker_client.containers.run(
                 image=image,
                 command=command,
-                auto_remove=True,
+                remove=True,
                 volumes=volumes,
                 stream=True,
                 entrypoint="",
