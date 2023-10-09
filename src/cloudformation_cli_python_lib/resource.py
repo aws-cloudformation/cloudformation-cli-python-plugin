@@ -89,7 +89,7 @@ class Resource:
             handler = self._handlers[action]
         except KeyError:
             return ProgressEvent.failed(
-                HandlerErrorCode.InternalFailure, f"No handler for {action}"
+                HandlerErrorCode.InternalFailure, f"No handler for {action.name}"
             )
         progress = handler(session, request, callback_context)
         is_in_progress = progress.status == OperationStatus.IN_PROGRESS
@@ -227,10 +227,10 @@ class Resource:
             print_or_log("Handler error")
             progress = e.to_progress_event()
         except Exception as e:  # pylint: disable=broad-except
-            print_or_log("Exception caught {0}".format(e))
+            print_or_log(f"Exception caught {e}")
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
         except BaseException as e:  # pylint: disable=broad-except
-            print_or_log("Base exception caught (this is usually bad) {0}".format(e))
+            print_or_log(f"Base exception caught (this is usually bad) {e}")
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
 
         if progress.result:  # pragma: no cover

@@ -141,7 +141,7 @@ def test_hook_handler_request_serde_roundtrip():
             else json.loads(v)
             if k.endswith("Credentials")
             else v
-            for k, v in payload[k].items()
+            for k, v in v.items()
             if v is not None and k not in undesired
         }
         if k in ("requestData", "requestContext")

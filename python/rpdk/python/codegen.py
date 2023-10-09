@@ -39,15 +39,15 @@ def validate_no(value):
     return value.lower() not in ("n", "no")
 
 
-class Python36LanguagePlugin(LanguagePlugin):
+class _PythonLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
-    NAME = "python36"
-    RUNTIME = "python3.6"
+    NAME = ""
+    RUNTIME = ""
     HOOK_ENTRY_POINT = "{}.handlers.hook"
     RESOURCE_ENTRY_POINT = "{}.handlers.resource"
     TEST_ENTRY_POINT = "{}.handlers.test_entrypoint"
     CODE_URI = "build/"
-    DOCKER_TAG = 3.6
+    DOCKER_TAG = ""
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -237,9 +237,8 @@ class Python36LanguagePlugin(LanguagePlugin):
             target_name = "".join(
                 [s.capitalize() for s in target_namespace]
             )  # awssqsqueue -> AwsSqsQueue
-            target_model_file = "{}.py".format(
-                "_".join(target_namespace)
-            )  # awssqsqueue -> aws_sqs_queue.py
+            target_model_file = f'{"_".join(target_namespace)}.py'
+            # awssqsqueue -> aws_sqs_queue.py
 
             models = resolve_models(target_schema, target_name)
 
@@ -425,19 +424,25 @@ class Python36LanguagePlugin(LanguagePlugin):
         LOG.debug("--- pip stderr:\n%s", completed_proc.stderr)
 
 
-class Python37LanguagePlugin(Python36LanguagePlugin):
-    NAME = "python37"
-    RUNTIME = "python3.7"
-    DOCKER_TAG = 3.7
-
-
-class Python38LanguagePlugin(Python36LanguagePlugin):
+class Python38LanguagePlugin(_PythonLanguagePlugin):
     NAME = "python38"
     RUNTIME = "python3.8"
     DOCKER_TAG = 3.8
 
 
-class Python39LanguagePlugin(Python36LanguagePlugin):
+class Python39LanguagePlugin(_PythonLanguagePlugin):
     NAME = "python39"
     RUNTIME = "python3.9"
     DOCKER_TAG = 3.9
+
+
+class Python310LanguagePlugin(_PythonLanguagePlugin):
+    NAME = "python310"
+    RUNTIME = "python3.10"
+    DOCKER_TAG = 3.10
+
+
+class Python311LanguagePlugin(_PythonLanguagePlugin):
+    NAME = "python311"
+    RUNTIME = "python3.11"
+    DOCKER_TAG = 3.11

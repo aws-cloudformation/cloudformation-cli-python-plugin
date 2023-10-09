@@ -36,20 +36,20 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=["cloudformation-cli>=0.2.26", "types-dataclasses>=0.1.5"],
     entry_points={
         "rpdk.v1.languages": [
+            "python311 = rpdk.python.codegen:Python311LanguagePlugin",
+            "python310 = rpdk.python.codegen:Python310LanguagePlugin",
             "python39 = rpdk.python.codegen:Python39LanguagePlugin",
             "python38 = rpdk.python.codegen:Python38LanguagePlugin",
-            "python37 = rpdk.python.codegen:Python37LanguagePlugin",
-            "python36 = rpdk.python.codegen:Python36LanguagePlugin",
         ],
         "rpdk.v1.parsers": [
+            "python311 = rpdk.python.parser:setup_subparser_python311",
+            "python310 = rpdk.python.parser:setup_subparser_python310",
             "python39 = rpdk.python.parser:setup_subparser_python39",
             "python38 = rpdk.python.parser:setup_subparser_python38",
-            "python37 = rpdk.python.parser:setup_subparser_python37",
-            "python36 = rpdk.python.parser:setup_subparser_python36",
         ],
     },
     license="Apache License 2.0",
@@ -63,8 +63,10 @@ setup(
         "Topic :: Software Development :: Code Generators",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     keywords="Amazon Web Services AWS CloudFormation",
 )

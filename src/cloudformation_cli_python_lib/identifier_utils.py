@@ -20,6 +20,7 @@ def generate_resource_identifier(
     max_length: int,
 ) -> str:
     if max_length < MIN_PHYSICAL_RESOURCE_ID_LENGTH:
+        # pylint: disable=broad-exception-raised
         raise Exception(
             f"Cannot generate resource IDs shorter than\
                {MIN_PHYSICAL_RESOURCE_ID_LENGTH} characters."

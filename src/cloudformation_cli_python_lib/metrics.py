@@ -140,7 +140,7 @@ class HookMetricsPublisher(MetricsPublisher):
         self._account_id = account_id
         self._namespace = self._make_hook_namespace(hook_type, account_id)
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ,arguments-renamed
     def publish_exception_metric(  # type: ignore
         self,
         timestamp: datetime.datetime,

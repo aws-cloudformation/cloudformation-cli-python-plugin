@@ -2,8 +2,8 @@ def setup_subparser(subparsers, parents, python_version, python_version_number):
     parser = subparsers.add_parser(
         python_version,
         description=(
-            "This sub command generates IDE and build files for Python "
-            "{}".format(python_version_number)
+            "This sub command generates IDE and build files for "
+            f"Python {python_version_number}"
         ),
         parents=parents,
     )
@@ -30,17 +30,17 @@ def setup_subparser(subparsers, parents, python_version, python_version_number):
     return parser
 
 
-def setup_subparser_python36(subparsers, parents):
-    return setup_subparser(subparsers, parents, "python36", "3.6")
-
-
-def setup_subparser_python37(subparsers, parents):
-    return setup_subparser(subparsers, parents, "python37", "3.7")
-
-
 def setup_subparser_python38(subparsers, parents):
     return setup_subparser(subparsers, parents, "python38", "3.8")
 
 
 def setup_subparser_python39(subparsers, parents):
     return setup_subparser(subparsers, parents, "python39", "3.9")
+
+
+def setup_subparser_python310(subparsers, parents):
+    return setup_subparser(subparsers, parents, "python310", "3.10")
+
+
+def setup_subparser_python311(subparsers, parents):
+    return setup_subparser(subparsers, parents, "python311", "3.11")
