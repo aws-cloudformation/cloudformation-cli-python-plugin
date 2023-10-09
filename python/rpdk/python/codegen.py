@@ -445,4 +445,4 @@ class Python310LanguagePlugin(_PythonLanguagePlugin):
 class Python311LanguagePlugin(_PythonLanguagePlugin):
     NAME = "python311"
     RUNTIME = "python3.11"
-    DOCKER_TAG = 3.10
+    DOCKER_TAG = 3.11
