@@ -37,15 +37,20 @@ setup(
     include_package_data=True,
     zip_safe=True,
     python_requires=">=3.8",
-    install_requires=["cloudformation-cli>=0.2.26", "types-dataclasses>=0.1.5"],
+    install_requires=[
+        "cloudformation-cli>=0.2.26",
+        "types-dataclasses>=0.1.5",
+    ],
     entry_points={
         "rpdk.v1.languages": [
+            "python312 = rpdk.python.codegen:Python312LanguagePlugin",
             "python311 = rpdk.python.codegen:Python311LanguagePlugin",
             "python310 = rpdk.python.codegen:Python310LanguagePlugin",
             "python39 = rpdk.python.codegen:Python39LanguagePlugin",
             "python38 = rpdk.python.codegen:Python38LanguagePlugin",
         ],
         "rpdk.v1.parsers": [
+            "python312 = rpdk.python.parser:setup_subparser_python312",
             "python311 = rpdk.python.parser:setup_subparser_python311",
             "python310 = rpdk.python.parser:setup_subparser_python310",
             "python39 = rpdk.python.parser:setup_subparser_python39",
@@ -67,6 +72,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     keywords="Amazon Web Services AWS CloudFormation",
 )
