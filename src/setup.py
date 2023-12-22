@@ -12,10 +12,9 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=[
-        "boto3>=1.10.20",
-        'dataclasses;python_version<"3.7"',
+        "boto3>=1.34.6",
     ],
     license="Apache License 2.0",
     classifiers=[
@@ -27,12 +26,11 @@ setup(
         "Topic :: Software Development :: Code Generators",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     keywords="Amazon Web Services AWS CloudFormation",
 )
