@@ -43,6 +43,7 @@ Select a language for code generation:
 [4] python39
 [5] python310
 [6] python311
+[7] python312
 (enter an integer):
 >> 4
 Use docker for platform-independent packaging (Y/n)?
