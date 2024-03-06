@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field, fields
 
 import json
+import requests  # type: ignore
 from datetime import date, datetime, time
 from typing import (
     Any,
@@ -24,6 +25,9 @@ from .interface import (
     HookContext,
     HookInvocationPoint,
 )
+
+HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME = "targetModel"
+HOOK_REMOTE_PAYLOAD_CONNECT_AND_READ_TIMEOUT_SECONDS = 10
 
 
 class KitchenSinkEncoder(json.JSONEncoder):
@@ -214,6 +218,7 @@ class HookRequestData:
     targetType: str
     targetLogicalId: str
     targetModel: Mapping[str, Any]
+    payload: Optional[str] = None
     callerCredentials: Optional[Credentials] = None
     providerCredentials: Optional[Credentials] = None
     providerLogGroupName: Optional[str] = None
@@ -234,6 +239,17 @@ class HookRequestData:
             if creds:
                 cred_data = json.loads(creds)
                 setattr(req_data, key, Credentials(**cred_data))
+
+        if req_data.is_hook_invocation_payload_remote():
+            response = requests.get(
+                req_data.payload,
+                timeout=HOOK_REMOTE_PAYLOAD_CONNECT_AND_READ_TIMEOUT_SECONDS,
+            )
+            if response.status_code == 200:
+                setattr(
+                    req_data, HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME, response.json()
+                )
+
         return req_data
 
     def serialize(self) -> Mapping[str, Any]:
@@ -246,6 +262,14 @@ class HookRequestData:
             for key, value in self.__dict__.items()
             if value is not None
         }
+
+    def is_hook_invocation_payload_remote(self) -> bool:
+        if (
+            not self.targetModel and self.payload
+        ):  # pylint: disable=simplifiable-if-statement
+            return True
+
+        return False
 
 
 @dataclass

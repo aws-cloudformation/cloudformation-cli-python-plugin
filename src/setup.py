@@ -16,6 +16,7 @@ setup(
     install_requires=[
         "boto3>=1.10.20",
         'dataclasses;python_version<"3.7"',
+        "requests>=2.22",
     ],
     license="Apache License 2.0",
     classifiers=[
