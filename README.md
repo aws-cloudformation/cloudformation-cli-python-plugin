@@ -39,8 +39,11 @@ What's the name of your resource type?
 Select a language for code generation:
 [1] java
 [2] csharp
-[3] python36
-[4] python37
+[3] python38
+[4] python39
+[5] python310
+[6] python311
+[7] python312
 (enter an integer):
 >> 4
 Use docker for platform-independent packaging (Y/n)?
