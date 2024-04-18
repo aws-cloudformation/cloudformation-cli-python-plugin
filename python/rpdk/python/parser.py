@@ -44,3 +44,7 @@ def setup_subparser_python310(subparsers, parents):
 
 def setup_subparser_python311(subparsers, parents):
     return setup_subparser(subparsers, parents, "python311", "3.11")
+
+
+def setup_subparser_python312(subparsers, parents):
+    return setup_subparser(subparsers, parents, "python312", "3.12")

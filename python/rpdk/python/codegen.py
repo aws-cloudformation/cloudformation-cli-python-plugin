@@ -446,3 +446,9 @@ class Python311LanguagePlugin(_PythonLanguagePlugin):
     NAME = "python311"
     RUNTIME = "python3.11"
     DOCKER_TAG = 3.11
+
+
+class Python312LanguagePlugin(_PythonLanguagePlugin):
+    NAME = "python312"
+    RUNTIME = "python3.12"
+    DOCKER_TAG = 3.12
