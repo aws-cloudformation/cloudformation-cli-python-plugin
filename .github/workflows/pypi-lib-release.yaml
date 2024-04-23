@@ -1,5 +1,5 @@
 # This workflow will release project to PyPI
-name: CloudFormation CLI Python Plugin Release
+name: CloudFormation CLI Python lib Release
 
 on:
   release:
