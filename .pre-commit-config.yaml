@@ -12,7 +12,7 @@ repos:
   - id: black
     exclude: templates/
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v4.5.0
   hooks:
   - id: check-case-conflict
   - id: end-of-file-fixer
@@ -34,7 +34,6 @@ repos:
     additional_dependencies:
     - flake8-bugbear>=19.3.0
     - flake8-builtins>=1.4.1
-    - flake8-commas>=2.0.0
     - flake8-comprehensions>=2.1.0
     - flake8-debugger>=3.1.0
     - flake8-pep3101>=1.2.1
@@ -52,7 +51,7 @@ repos:
   - id: bandit
     files: ^(src|python)/
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.5.1
+  rev: v1.7.0
   hooks:
   - id: mypy
     files: ^src/
