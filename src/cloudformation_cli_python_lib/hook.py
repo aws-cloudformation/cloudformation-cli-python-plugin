@@ -152,7 +152,7 @@ class Hook:
             return e.to_progress_event()
         except Exception:  # pylint: disable=broad-except
             LOG.exception("Exception caught")
-        except BaseException:  # pylint: disable=broad-except
+        except BaseException:  # pylint: disable=broad-except # noqa: B036
             LOG.critical("Base exception caught (this is usually bad)", exc_info=True)
         return ProgressEvent.failed(HandlerErrorCode.InternalFailure, msg)
 
@@ -260,7 +260,7 @@ class Hook:
         except Exception as e:  # pylint: disable=broad-except
             print_or_log(f"Exception caught {e}")
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
-        except BaseException as e:  # pylint: disable=broad-except
+        except BaseException as e:  # pylint: disable=broad-except # noqa: B036
             print_or_log(f"Base exception caught (this is usually bad) {e}")
             progress = ProgressEvent.failed(HandlerErrorCode.InternalFailure)
 
