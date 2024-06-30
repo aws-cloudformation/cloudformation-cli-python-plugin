@@ -29,7 +29,6 @@ from .interface import (
 )
 
 HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME = "targetModel"
-HOOK_REQUEST_DATA_PAYLOAD_FIELD_NAME = "payload"
 HOOK_REMOTE_PAYLOAD_CONNECT_AND_READ_TIMEOUT_SECONDS = 10
 HOOK_REMOTE_PAYLOAD_RETRY_LIMIT = 3
 HOOK_REMOTE_PAYLOAD_RETRY_BACKOFF_FACTOR = 1
@@ -263,7 +262,6 @@ class HookRequestData:
                 )
 
                 if response.status_code == 200:
-                    # pass
                     setattr(
                         req_data,
                         HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME,
