@@ -219,7 +219,7 @@ class HookRequestContext:
 
 
 @dataclass
-class HookRequestDataFooBar:
+class HookRequestData:
     targetName: str
     targetType: str
     targetLogicalId: str
@@ -236,10 +236,8 @@ class HookRequestDataFooBar:
                 setattr(self, k, v)
 
     @classmethod
-    def deserialize(
-        cls, json_data: MutableMapping[str, Any]
-    ) -> "HookRequestDataFooBar":
-        req_data = HookRequestDataFooBar(**json_data)
+    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HookRequestData":
+        req_data = HookRequestData(**json_data)
         for key in json_data:
             if not key.endswith("Credentials"):
                 continue
@@ -290,12 +288,6 @@ class HookRequestDataFooBar:
             not self.targetModel and self.payload
         ):  # pylint: disable=simplifiable-if-statement
             return True
-        # return True
-        # if (
-        #     not hasattr(self, HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME)
-        #  and hasattr(self, HOOK_REQUEST_DATA_PAYLOAD_FIELD_NAME)
-        # ):  # pylint: disable=simplifiable-if-statement
-        #     return True
 
         return False
 
@@ -307,7 +299,7 @@ class HookInvocationRequest:
     hookTypeName: str
     hookTypeVersion: str
     actionInvocationPoint: str
-    requestData: HookRequestDataFooBar
+    requestData: HookRequestData
     clientRequestToken: str
     changeSetId: Optional[str] = None
     hookModel: Optional[Mapping[str, Any]] = None
@@ -322,7 +314,7 @@ class HookInvocationRequest:
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> Any:
         event = HookInvocationRequest(**json_data)
-        event.requestData = HookRequestDataFooBar.deserialize(
+        event.requestData = HookRequestData.deserialize(
             json_data.get("requestData", {})
         )
         event.requestContext = HookRequestContext.deserialize(

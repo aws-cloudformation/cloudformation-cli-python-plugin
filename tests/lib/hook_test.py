@@ -17,7 +17,7 @@ from cloudformation_cli_python_lib.interface import (
 from cloudformation_cli_python_lib.utils import (
     Credentials,
     HookInvocationRequest,
-    HookRequestDataFooBar,
+    HookRequestData,
 )
 
 import json
@@ -492,7 +492,7 @@ def test_get_hook_status(operation_status, hook_status):
 
 
 def test__hook_request_data_remote_payload():
-    non_remote_input = HookRequestDataFooBar(
+    non_remote_input = HookRequestData(
         targetName="someTargetName",
         targetType="someTargetModel",
         targetLogicalId="someTargetLogicalId",
@@ -500,7 +500,7 @@ def test__hook_request_data_remote_payload():
     )
     assert non_remote_input.is_hook_invocation_payload_remote() is False
 
-    non_remote_input_1 = HookRequestDataFooBar(
+    non_remote_input_1 = HookRequestData(
         targetName="someTargetName",
         targetType="someTargetModel",
         targetLogicalId="someTargetLogicalId",
@@ -509,7 +509,7 @@ def test__hook_request_data_remote_payload():
     )
     assert non_remote_input_1.is_hook_invocation_payload_remote() is False
 
-    remote_input = HookRequestDataFooBar(
+    remote_input = HookRequestData(
         targetName="someTargetName",
         targetType="someTargetModel",
         targetLogicalId="someTargetLogicalId",
