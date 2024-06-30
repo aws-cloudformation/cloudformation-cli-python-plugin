@@ -17,7 +17,7 @@ from cloudformation_cli_python_lib.interface import (
 from cloudformation_cli_python_lib.utils import (
     Credentials,
     HookInvocationRequest,
-    HookRequestData,
+    HookRequestDataFooBar,
 )
 
 import json
@@ -492,7 +492,7 @@ def test_get_hook_status(operation_status, hook_status):
 
 
 def test__hook_request_data_remote_payload():
-    non_remote_input = HookRequestData(
+    non_remote_input = HookRequestDataFooBar(
         targetName="someTargetName",
         targetType="someTargetModel",
         targetLogicalId="someTargetLogicalId",
@@ -500,7 +500,7 @@ def test__hook_request_data_remote_payload():
     )
     assert non_remote_input.is_hook_invocation_payload_remote() is False
 
-    non_remote_input_1 = HookRequestData(
+    non_remote_input_1 = HookRequestDataFooBar(
         targetName="someTargetName",
         targetType="someTargetModel",
         targetLogicalId="someTargetLogicalId",
@@ -509,7 +509,7 @@ def test__hook_request_data_remote_payload():
     )
     assert non_remote_input_1.is_hook_invocation_payload_remote() is False
 
-    remote_input = HookRequestData(
+    remote_input = HookRequestDataFooBar(
         targetName="someTargetName",
         targetType="someTargetModel",
         targetLogicalId="someTargetLogicalId",
@@ -522,7 +522,9 @@ def test__hook_request_data_remote_payload():
 def test__test_stack_level_hook_input(hook):
     hook = Hook(TYPE_NAME, Mock())
 
-    with patch("cloudformation_cli_python_lib.utils.requests.get") as mock_requests_lib:
+    with patch(
+        "cloudformation_cli_python_lib.utils.requests.Session.get"
+    ) as mock_requests_lib:
         mock_requests_lib.return_value = MockResponse(200, {"foo": "bar"})
         _, _, _, req = hook._parse_request(STACK_LEVEL_HOOK_ENTRYPOINT_PAYLOAD)
 
@@ -535,7 +537,9 @@ def test__test_stack_level_hook_input(hook):
 def test__test_stack_level_hook_input_failed_s3_download(hook):
     hook = Hook(TYPE_NAME, Mock())
 
-    with patch("cloudformation_cli_python_lib.utils.requests.get") as mock_requests_lib:
+    with patch(
+        "cloudformation_cli_python_lib.utils.requests.Session.get"
+    ) as mock_requests_lib:
         mock_requests_lib.return_value = MockResponse(404, {"foo": "bar"})
         _, _, _, req = hook._parse_request(STACK_LEVEL_HOOK_ENTRYPOINT_PAYLOAD)
 

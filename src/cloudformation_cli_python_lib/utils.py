@@ -29,6 +29,7 @@ from .interface import (
 )
 
 HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME = "targetModel"
+HOOK_REQUEST_DATA_PAYLOAD_FIELD_NAME = "payload"
 HOOK_REMOTE_PAYLOAD_CONNECT_AND_READ_TIMEOUT_SECONDS = 10
 HOOK_REMOTE_PAYLOAD_RETRY_LIMIT = 3
 HOOK_REMOTE_PAYLOAD_RETRY_BACKOFF_FACTOR = 1
@@ -218,11 +219,11 @@ class HookRequestContext:
 
 
 @dataclass
-class HookRequestData:
+class HookRequestDataFooBar:
     targetName: str
     targetType: str
     targetLogicalId: str
-    targetModel: Mapping[str, Any]
+    targetModel: Optional[Mapping[str, Any]] = None
     payload: Optional[str] = None
     callerCredentials: Optional[Credentials] = None
     providerCredentials: Optional[Credentials] = None
@@ -235,8 +236,10 @@ class HookRequestData:
                 setattr(self, k, v)
 
     @classmethod
-    def deserialize(cls, json_data: MutableMapping[str, Any]) -> "HookRequestData":
-        req_data = HookRequestData(**json_data)
+    def deserialize(
+        cls, json_data: MutableMapping[str, Any]
+    ) -> "HookRequestDataFooBar":
+        req_data = HookRequestDataFooBar(**json_data)
         for key in json_data:
             if not key.endswith("Credentials"):
                 continue
@@ -262,6 +265,7 @@ class HookRequestData:
                 )
 
                 if response.status_code == 200:
+                    # pass
                     setattr(
                         req_data,
                         HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME,
@@ -286,6 +290,12 @@ class HookRequestData:
             not self.targetModel and self.payload
         ):  # pylint: disable=simplifiable-if-statement
             return True
+        # return True
+        # if (
+        #     not hasattr(self, HOOK_REQUEST_DATA_TARGET_MODEL_FIELD_NAME)
+        #  and hasattr(self, HOOK_REQUEST_DATA_PAYLOAD_FIELD_NAME)
+        # ):  # pylint: disable=simplifiable-if-statement
+        #     return True
 
         return False
 
@@ -297,7 +307,7 @@ class HookInvocationRequest:
     hookTypeName: str
     hookTypeVersion: str
     actionInvocationPoint: str
-    requestData: HookRequestData
+    requestData: HookRequestDataFooBar
     clientRequestToken: str
     changeSetId: Optional[str] = None
     hookModel: Optional[Mapping[str, Any]] = None
@@ -312,7 +322,7 @@ class HookInvocationRequest:
     @classmethod
     def deserialize(cls, json_data: MutableMapping[str, Any]) -> Any:
         event = HookInvocationRequest(**json_data)
-        event.requestData = HookRequestData.deserialize(
+        event.requestData = HookRequestDataFooBar.deserialize(
             json_data.get("requestData", {})
         )
         event.requestContext = HookRequestContext.deserialize(

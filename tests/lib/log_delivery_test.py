@@ -8,7 +8,7 @@ from cloudformation_cli_python_lib.log_delivery import (
 from cloudformation_cli_python_lib.utils import (
     HandlerRequest,
     HookInvocationRequest,
-    HookRequestData,
+    HookRequestDataFooBar,
     RequestData,
 )
 
@@ -60,7 +60,7 @@ def make_hook_payload() -> HookInvocationRequest:
         clientRequestToken=str(uuid4()),
         hookTypeName="AWS::Test::Hook",
         hookTypeVersion="3",
-        requestData=HookRequestData(
+        requestData=HookRequestDataFooBar(
             providerLogGroupName="test_group",
             targetName="AWS::Test::Resource",
             targetType="RESOURCE",
