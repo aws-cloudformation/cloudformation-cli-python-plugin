@@ -222,7 +222,7 @@ class HookRequestData:
     targetName: str
     targetType: str
     targetLogicalId: str
-    targetModel: Mapping[str, Any]
+    targetModel: Optional[Mapping[str, Any]] = None
     payload: Optional[str] = None
     callerCredentials: Optional[Credentials] = None
     providerCredentials: Optional[Credentials] = None

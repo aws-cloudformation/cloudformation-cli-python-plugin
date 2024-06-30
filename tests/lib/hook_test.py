@@ -522,7 +522,9 @@ def test__hook_request_data_remote_payload():
 def test__test_stack_level_hook_input(hook):
     hook = Hook(TYPE_NAME, Mock())
 
-    with patch("cloudformation_cli_python_lib.utils.requests.get") as mock_requests_lib:
+    with patch(
+        "cloudformation_cli_python_lib.utils.requests.Session.get"
+    ) as mock_requests_lib:
         mock_requests_lib.return_value = MockResponse(200, {"foo": "bar"})
         _, _, _, req = hook._parse_request(STACK_LEVEL_HOOK_ENTRYPOINT_PAYLOAD)
 
@@ -535,7 +537,9 @@ def test__test_stack_level_hook_input(hook):
 def test__test_stack_level_hook_input_failed_s3_download(hook):
     hook = Hook(TYPE_NAME, Mock())
 
-    with patch("cloudformation_cli_python_lib.utils.requests.get") as mock_requests_lib:
+    with patch(
+        "cloudformation_cli_python_lib.utils.requests.Session.get"
+    ) as mock_requests_lib:
         mock_requests_lib.return_value = MockResponse(404, {"foo": "bar"})
         _, _, _, req = hook._parse_request(STACK_LEVEL_HOOK_ENTRYPOINT_PAYLOAD)
 
