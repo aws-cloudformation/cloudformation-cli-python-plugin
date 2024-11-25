@@ -61,19 +61,23 @@ repos:
     - --no-warn-unused-ignores # https://github.com/python/mypy/issues/8823, https://github.com/python/mypy/issues/8990
 - repo: local
   hooks:
-  # - id: pylint-local
-  #   name: pylint-local
-  #   description: Run pylint in the local virtualenv
-  #   entry: pylint "setup.py" "src/" "python/" "tests/"
-  #   language: system
-  #   # ignore all files, run on hard-coded modules instead
-  #   pass_filenames: false
-  #   always_run: true
+  - id: pylint-local
+    name: pylint-local
+    description: Run pylint in the local virtualenv
+    entry: pylint "setup.py" "src/" "python/" "tests/"
+    language: system
+    # ignore all files, run on hard-coded modules instead
+    pass_filenames: false
+    always_run: true
   - id: pytest-local
     name: pytest-local
     description: Run pytest in the local virtualenv
     entry: >
       pytest
+      --cov-report=term
+      --cov-report=html
+      --cov="rpdk.python"
+      --cov="cloudformation_cli_python_lib"
       --durations=5
       "tests/"
     language: system

@@ -485,6 +485,10 @@ def test_test_entrypoint_success():
         (OperationStatus.IN_PROGRESS, HookStatus.IN_PROGRESS),
         (OperationStatus.SUCCESS, HookStatus.SUCCESS),
         (OperationStatus.FAILED, HookStatus.FAILED),
+        (
+            OperationStatus.CHANGE_SET_SUCCESS_SKIP_STACK_HOOK,
+            HookStatus.CHANGE_SET_SUCCESS_SKIP_STACK_HOOK,
+        ),
     ],
 )
 def test_get_hook_status(operation_status, hook_status):

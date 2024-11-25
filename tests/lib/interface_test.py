@@ -185,8 +185,9 @@ def test_hook_progress_event_serialize_to_response_with_error_code(message):
     }
 
 
-# add this test back when
-# def test_operation_status_enum_matches_sdk(client):
-#     sdk = set(client.meta.service_model.shape_for("OperationStatus").enum)
-#     enum = set(OperationStatus.__members__)
-#     assert enum == sdk
+def test_operation_status_enum_matches_sdk(client):
+    sdk = set(client.meta.service_model.shape_for("OperationStatus").enum)
+    enum = set(OperationStatus.__members__)
+    # CHANGE_SET_SUCCESS_SKIP_STACK_HOOK is a status specific to Hooks
+    enum.remove("CHANGE_SET_SUCCESS_SKIP_STACK_HOOK")
+    assert enum == sdk
