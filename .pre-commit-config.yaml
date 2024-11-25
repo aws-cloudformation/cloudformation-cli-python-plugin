@@ -68,7 +68,7 @@ repos:
     language: python
     additional_dependencies:
     - requests>=2.22
-    - setuptools
+    - setuptools>=65.5.0
     # ignore all files, run on hard-coded modules instead
     pass_filenames: false
     always_run: true
@@ -86,7 +86,7 @@ repos:
     language: python
     additional_dependencies:
     - requests>=2.22
-    - setuptools
+    - setuptools>=65.5.0
     # ignore all files, run on hard-coded modules instead
     pass_filenames: false
     always_run: true
