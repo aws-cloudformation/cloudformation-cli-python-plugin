@@ -17,6 +17,7 @@ setup(
         "boto3>=1.34.6",
         'dataclasses;python_version<"3.7"',
         "requests>=2.22",
+        "setuptools",
     ],
     license="Apache License 2.0",
     classifiers=[
