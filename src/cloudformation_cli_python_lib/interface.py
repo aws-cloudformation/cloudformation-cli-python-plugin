@@ -58,6 +58,20 @@ class HookStatus(str, _AutoName):
     FAILED = auto()
 
 
+class HookAnnotationStatus(str, _AutoName):
+    PASSED = auto()
+    FAILED = auto()
+    SKIPPED = auto()
+
+
+class HookAnnotationSeverityLevel(str, _AutoName):
+    INFORMATIONAL = auto()
+    LOW = auto()
+    MEDIUM = auto()
+    HIGH = auto()
+    CRITICAL = auto()
+
+
 class HandlerErrorCode(str, _AutoName):
     NotUpdatable = auto()
     InvalidRequest = auto()
@@ -105,6 +119,26 @@ class BaseModel:
         raise NotImplementedError()
 
 
+@dataclass
+class HookAnnotation:
+    annotationName: str
+    status: HookAnnotationStatus
+    statusMessage: Optional[str] = None
+    remediationMessage: Optional[str] = None
+    remediationLink: Optional[str] = None
+    severityLevel: Optional[HookAnnotationSeverityLevel] = None
+
+    def _serialize(self) -> Mapping[str, Any]:
+        ser = {k: v for k, v in self.__dict__.items() if v is not None}
+
+        ser["status"] = ser.pop("status").name
+
+        if self.severityLevel:
+            ser["severityLevel"] = self.severityLevel.name
+
+        return ser
+
+
 # pylint: disable=too-many-instance-attributes
 @dataclass
 class ProgressEvent:
@@ -118,6 +152,7 @@ class ProgressEvent:
     resourceModel: Optional[BaseModel] = None
     resourceModels: Optional[List[BaseModel]] = None
     nextToken: Optional[str] = None
+    annotations: Optional[List[HookAnnotation]] = None
 
     def _serialize(self) -> MutableMapping[str, Any]:
         # to match Java serialization, which drops `null` values, and the
@@ -125,6 +160,10 @@ class ProgressEvent:
         ser = {k: v for k, v in self.__dict__.items() if v is not None}
 
         # mutate to what's expected in the response
+
+        # removing hook response only fields
+        ser.pop("result", None)
+        ser.pop("annotations", None)
 
         ser["status"] = ser.pop("status").name
 
@@ -184,6 +223,7 @@ class HookProgressEvent:
     callbackDelaySeconds: int = 0
     result: Optional[str] = None
     clientRequestToken: Optional[str] = None
+    annotations: Optional[List[HookAnnotation]] = None
 
     def _serialize(self) -> MutableMapping[str, Any]:
         # to match Java serialization, which drops `null` values, and the
@@ -191,18 +231,31 @@ class HookProgressEvent:
         ser = {k: v for k, v in self.__dict__.items() if v is not None}
 
         # mutate to what's expected in the response
-
         ser["hookStatus"] = ser.pop("hookStatus").name
 
+        if self.annotations:
+            ser["annotations"] = [
+                annotation._serialize()  # pylint: disable=protected-access
+                for annotation in self.annotations
+            ]
         if self.errorCode:
             ser["errorCode"] = self.errorCode.name
+
         return ser
 
     @classmethod
     def failed(
-        cls: Type["HookProgressEvent"], error_code: HandlerErrorCode, message: str = ""
+        cls: Type["HookProgressEvent"],
+        error_code: HandlerErrorCode,
+        message: str = "",
+        annotations: Optional[List[HookAnnotation]] = None,
     ) -> "HookProgressEvent":
-        return cls(hookStatus=HookStatus.FAILED, errorCode=error_code, message=message)
+        return cls(
+            hookStatus=HookStatus.FAILED,
+            errorCode=error_code,
+            message=message,
+            annotations=annotations,
+        )
 
 
 @dataclass

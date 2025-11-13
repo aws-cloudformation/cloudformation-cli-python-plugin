@@ -283,6 +283,7 @@ class Hook:
         response.errorCode = progress_event.errorCode
         if request:
             response.clientRequestToken = request.get("clientRequestToken")
+        response.annotations = progress_event.annotations
         return response
 
     @staticmethod
