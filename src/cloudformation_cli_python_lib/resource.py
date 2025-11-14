@@ -235,6 +235,8 @@ class Resource:
 
         if progress.result:  # pragma: no cover
             progress.result = None
+        if progress.annotations:  # pragma: no cover
+            progress.annotations = None
 
         # use the raw event_data as a last-ditch attempt to call back if the
         # request is invalid
