@@ -553,6 +553,17 @@ def test__build_pip(plugin):
     mock_pip.assert_called_once_with(sentinel.base_path)
 
 
+def test__make_pip_command_pins_setuptools_lt_82(tmp_path):
+    """setuptools<82 must be in the pip command to prevent pkg_resources removal."""
+    cmd = PythonLanguagePlugin._make_pip_command(tmp_path)
+    assert "setuptools<82" in cmd, (
+        "setuptools<82 must be pinned in pip command — setuptools 82+ removes "
+        "pkg_resources which breaks cloudformation-cli-python-lib at runtime"
+    )
+    assert str(tmp_path / "requirements.txt") in cmd
+    assert str(tmp_path / "build") in cmd
+
+
 def test__build_pip_posix(plugin):
     patch_os_name = patch("rpdk.python.codegen.os.name", "posix")
     patch_subproc = patch("rpdk.python.codegen.subprocess_run")

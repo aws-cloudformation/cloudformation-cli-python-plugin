@@ -1,1 +1,2 @@
 {{ support_lib_name }}>=2.1.9
+setuptools<82

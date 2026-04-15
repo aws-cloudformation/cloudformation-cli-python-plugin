@@ -322,6 +322,7 @@ class _PythonLanguagePlugin(LanguagePlugin):
             str(base_path / "requirements.txt"),
             "--target",
             str(base_path / "build"),
+            "setuptools<82",
         ]
 
     @staticmethod
