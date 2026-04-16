@@ -540,6 +540,27 @@ def test__pip_build_called_process_error(tmp_path):
     assert isinstance(excinfo.value.__cause__, (FileNotFoundError, CalledProcessError))
 
 
+def test__pip_build_windows_quotes_version_specifiers(tmp_path):
+    """On Windows, args with '<' must be quoted so CMD doesn't misinterpret them."""
+    command = ["pip", "install", "setuptools<82"]
+    patch_cmd = patch.object(
+        PythonLanguagePlugin, "_make_pip_command", return_value=command
+    )
+    patch_os = patch("rpdk.python.codegen.os.name", "nt")
+    patch_run = patch("rpdk.python.codegen.subprocess_run", autospec=True)
+
+    with patch_cmd, patch_os, patch_run as mock_run:
+        PythonLanguagePlugin._pip_build(tmp_path)
+
+    call_args = mock_run.call_args
+    cmd_arg = call_args[0][0]
+    assert isinstance(
+        cmd_arg, str
+    ), "Windows branch must pass a string to subprocess_run"
+    assert "setuptools<82" in cmd_arg
+    assert call_args[1]["shell"] is True
+
+
 def test__build_pip(plugin):
     plugin._use_docker = False
     plugin._no_docker = True
@@ -551,6 +572,17 @@ def test__build_pip(plugin):
 
     mock_docker.assert_not_called()
     mock_pip.assert_called_once_with(sentinel.base_path)
+
+
+def test__make_pip_command_pins_setuptools_lt_82(tmp_path):
+    """setuptools<82 must be in the pip command to prevent pkg_resources removal."""
+    cmd = PythonLanguagePlugin._make_pip_command(tmp_path)
+    assert "setuptools<82" in cmd, (
+        "setuptools<82 must be pinned in pip command — setuptools 82+ removes "
+        "pkg_resources which breaks cloudformation-cli-python-lib at runtime"
+    )
+    assert str(tmp_path / "requirements.txt") in cmd
+    assert str(tmp_path / "build") in cmd
 
 
 def test__build_pip_posix(plugin):
@@ -581,7 +613,10 @@ def test__build_pip_windows(plugin):
         plugin._pip_build(temppath)
 
     mock_subproc.assert_called_once_with(
-        plugin._make_pip_command(temppath),
+        " ".join(
+            f'"{a}"' if any(c in a for c in ("<", ">", "&", "|")) else a
+            for a in plugin._make_pip_command(temppath)
+        ),
         stdout=ANY,
         stderr=ANY,
         cwd=temppath,
