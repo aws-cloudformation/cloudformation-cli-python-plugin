@@ -400,9 +400,15 @@ class _PythonLanguagePlugin(LanguagePlugin):
         LOG.warning("Starting pip build.")
         try:
             # On windows run pip command through the default shell (CMD)
+            # Build a quoted string so CMD doesn't misinterpret '<' or '>'
+            # in version specifiers (e.g. 'setuptools<82') as redirection.
             if os.name == "nt":
+                cmd_str = " ".join(
+                    f'"{a}"' if any(c in a for c in ("<", ">", "&", "|")) else a
+                    for a in command
+                )
                 completed_proc = subprocess_run(  # nosec
-                    command,
+                    cmd_str,
                     stdout=PIPE,
                     stderr=PIPE,
                     cwd=base_path,
