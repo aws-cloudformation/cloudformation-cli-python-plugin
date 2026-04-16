@@ -541,7 +541,7 @@ def test__pip_build_called_process_error(tmp_path):
 
 
 def test__pip_build_windows_quotes_version_specifiers(tmp_path):
-    """On Windows, args with '<' must be quoted so CMD doesn't treat them as redirection."""
+    """On Windows, args with '<' must be quoted so CMD doesn't misinterpret them."""
     command = ["pip", "install", "setuptools<82"]
     patch_cmd = patch.object(
         PythonLanguagePlugin, "_make_pip_command", return_value=command
@@ -554,7 +554,9 @@ def test__pip_build_windows_quotes_version_specifiers(tmp_path):
 
     call_args = mock_run.call_args
     cmd_arg = call_args[0][0]
-    assert isinstance(cmd_arg, str), "Windows branch must pass a string to subprocess_run"
+    assert isinstance(
+        cmd_arg, str
+    ), "Windows branch must pass a string to subprocess_run"
     assert "setuptools<82" in cmd_arg
     assert call_args[1]["shell"] is True
 
